@@ -1,0 +1,19 @@
+# FIRINGup Inventory Management System
+# Python Dependencies
+
+# Core Framework
+Flask==3.1.2
+
+# Flask automatically installs these dependencies:
+# - Werkzeug (WSGI utility library)
+# - Jinja2 (template engine)
+# - itsdangerous (secure signing)
+# - click (CLI creation)
+# - blinker (signals support)
+# - MarkupSafe (string escaping)
+
+# Database
+# SQLite3 is included with Python (no package needed)
+
+# Production server (will add later if needed)
+# gunicorn==21.2.0  # For production deployment

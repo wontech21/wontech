@@ -1,0 +1,28 @@
+ingredient_code,ingredient_name,brand,supplier_name,category,quantity_on_hand,unit_of_measure,unit_cost,total_value,storage_location,reorder_level,date_received,lot_number,expiration_date
+ING-FLO-002,"All-Purpose Flour","Gold Medal","Sysco Foods","Dry Goods",100.0,lbs,0.5,50.0,"Dry Storage A",50.0,2024-01-06,LOT-FLO-GM-20240106,2024-07-06
+ING-FLO-001,"All-Purpose Flour","King Arthur","Restaurant Depot","Dry Goods",200.0,lbs,0.45,90.0,"Dry Storage A",50.0,2024-01-05,LOT-FLO-20240105,2024-07-05
+ING-BEA-001,"Black Beans (dried)",Goya,"Restaurant Depot","Dry Goods",50.0,lbs,1.2,60.0,"Dry Storage A",20.0,2024-01-05,LOT-BEA-20240105,2024-12-05
+ING-PEP-001,"Black Pepper",McCormick,"Restaurant Depot",Spices,32.0,oz,1.25,40.0,"Spice Rack",16.0,2023-12-15,LOT-PEP-20231215,2025-12-15
+ING-BUN-001,"Burger Buns",Wonder,"US Foods","Dry Goods",30.0,dozen,2.5,75.0,"Dry Storage A",15.0,2024-01-09,LOT-BUN-20240109,2024-01-16
+ING-CHE-002,"Cheddar Cheese",Cabot,"Restaurant Depot",Dairy,15.0,lbs,5.5,82.5,"Walk-in Cooler C",15.0,2024-01-09,LOT-CHE-CAB-20240109,2024-02-09
+ING-CHE-001,"Cheddar Cheese",Tillamook,"US Foods",Dairy,25.0,lbs,5.25,131.25,"Walk-in Cooler C",15.0,2024-01-08,LOT-CHE-20240108,2024-02-08
+ING-CHK-001,"Chicken Breast","Farm Fresh","Sysco Foods",Meat,100.0,lbs,3.25,325.0,"Walk-in Cooler B",30.0,2024-01-09,LOT-CHK-20240109,2024-01-16
+ING-CHK-002,"Chicken Breast",Perdue,"Restaurant Depot",Meat,50.0,lbs,3.5,175.0,"Walk-in Cooler B",30.0,2024-01-11,LOT-CHK-PER-20240111,2024-01-18
+ING-CHI-001,"Chili Powder",McCormick,"Restaurant Depot",Spices,48.0,oz,0.65,31.2,"Spice Rack",24.0,2023-12-15,LOT-CHI-20231215,2025-12-15
+ING-TOR-001,"Flour Tortillas (10-inch)",Mission,"US Foods","Dry Goods",50.0,dozen,3.0,150.0,"Dry Storage A",20.0,2024-01-08,LOT-TOR-20240108,2024-01-22
+ING-GAR-001,"Fresh Garlic","Garden Select","Fresh Produce Wholesalers",Produce,10.0,lbs,3.75,37.5,"Walk-in Cooler A",5.0,2024-01-10,LOT-GAR-20240110,2024-01-24
+ING-BEF-002,"Ground Beef 80/20","Certified Angus","US Foods",Meat,75.0,lbs,4.25,318.75,"Walk-in Cooler B",40.0,2024-01-11,LOT-BEEF-CA-20240111,2024-01-18
+ING-BEF-001,"Ground Beef 80/20","Premium Angus","Sysco Foods",Meat,150.0,lbs,4.5,675.0,"Walk-in Cooler B",40.0,2024-01-09,LOT-BEEF-20240109,2024-01-16
+ING-CUM-001,"Ground Cumin",McCormick,"Restaurant Depot",Spices,32.0,oz,0.85,27.2,"Spice Rack",16.0,2023-12-15,LOT-CUM-20231215,2025-12-15
+ING-LET-001,"Iceberg Lettuce","Green Valley","Fresh Produce Wholesalers",Produce,36.0,heads,1.5,54.0,"Walk-in Cooler A",12.0,2024-01-10,LOT-LET-20240110,2024-01-15
+ING-JAL-001,"Jalapeño Peppers","Garden Select","Fresh Produce Wholesalers",Produce,8.0,lbs,2.0,16.0,"Walk-in Cooler A",5.0,2024-01-10,LOT-JAL-20240110,2024-01-20
+PKG-BAG-001,"Paper Bags",Generic,"Packaging Solutions Inc",Packaging,300.0,units,0.15,45.0,"Packaging Area",150.0,2024-01-03,LOT-BAG-20240103,
+ING-POR-001,"Pulled Pork","Smoky Mountain","Sysco Foods",Meat,63.0,lbs,5.75,362.25,"Walk-in Cooler B",20.0,2024-01-09,LOT-PORK-20240109,2024-01-23
+ING-TOM-001,"Roma Tomatoes","Fresh Farms","Fresh Produce Wholesalers",Produce,75.0,lbs,2.5,187.5,"Walk-in Cooler A",20.0,2024-01-10,LOT-TOM-20240110,2024-01-17
+ING-TOM-002,"Roma Tomatoes","Organic Valley","US Foods",Produce,30.0,lbs,2.75,82.5,"Walk-in Cooler A",20.0,2024-01-11,LOT-TOM-OV-20240111,2024-01-18
+ING-SAL-001,Salt,Morton,"Restaurant Depot",Spices,20.0,lbs,0.5,10.0,"Spice Rack",10.0,2023-12-15,LOT-SAL-20231215,2026-12-15
+PKG-CUP-001,"Sauce Cups 2oz",Generic,"Packaging Solutions Inc",Packaging,1000.0,units,0.08,80.0,"Packaging Area",400.0,2024-01-03,LOT-CUP-20240103,
+ING-SCR-001,"Sour Cream",Darigold,"US Foods",Dairy,5.0,gallons,12.5,62.5,"Walk-in Cooler C",3.0,2024-01-08,LOT-SCR-20240108,2024-01-22
+PKG-BOX-001,"To-Go Boxes (9x6)",Generic,"Packaging Solutions Inc",Packaging,500.0,units,0.35,175.0,"Packaging Area",200.0,2024-01-03,LOT-BOX-20240103,
+ING-RIC-001,"White Rice",Goya,"Restaurant Depot","Dry Goods",100.0,lbs,0.75,75.0,"Dry Storage A",40.0,2024-01-05,LOT-RIC-20240105,2024-12-05
+ING-ONI-001,"Yellow Onions","Fresh Farms","Fresh Produce Wholesalers",Produce,50.0,lbs,1.25,62.5,"Walk-in Cooler A",15.0,2024-01-10,LOT-ONI-20240110,2024-01-24

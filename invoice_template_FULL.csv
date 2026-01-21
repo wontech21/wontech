@@ -1,0 +1,4 @@
+invoice_number,supplier_name,invoice_date,received_date,ingredient_code,ingredient_name,quantity_ordered,quantity_received,unit_of_measure,unit_price,total_price,lot_number,expiration_date,invoice_total,payment_status,reconciled
+INV-2024-002,"Sysco Foods",2024-01-09,2024-01-09,ING-BEF-001,"Ground Beef 80/20",60.0,50.0,lbs,4.5,225.0,LOT-BEEF-20240109,2024-01-16,487.5,UNPAID,YES
+INV-2024-002,"Sysco Foods",2024-01-09,2024-01-09,ING-CHK-001,"Chicken Breast",40.0,40.0,lbs,3.25,130.0,LOT-CHK-20240109,2024-01-16,487.5,UNPAID,YES
+INV-2024-002,"Sysco Foods",2024-01-09,2024-01-09,ING-POR-001,"Pulled Pork",20.0,23.0,lbs,5.75,132.25,LOT-PORK-20240109,2024-01-23,487.5,UNPAID,YES

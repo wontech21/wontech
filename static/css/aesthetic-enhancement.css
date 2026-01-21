@@ -1,0 +1,1549 @@
+/*
+==============================================
+🎨 AESTHETIC ENHANCEMENT - FIRING UP DASHBOARD
+==============================================
+Visual harmony upgrade matching the beautiful
+category icon system (🍞🥩🧀🥬 etc.)
+*/
+
+/* ==================== ENHANCED MODALS ==================== */
+
+.modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-bottom: none;
+    padding: 24px 30px;
+    position: relative;
+    overflow: hidden;
+}
+
+.modal-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)" /></svg>');
+    opacity: 0.3;
+}
+
+.modal-header h2 {
+    color: white !important;
+    font-size: 1.6em;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-header h2::before {
+    content: '✨';
+    font-size: 1.2em;
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+/* Specific modal header icons */
+.modal-header h2[data-modal="ingredient"]::before { content: '🥕'; }
+.modal-header h2[data-modal="supplier"]::before { content: '🚚'; }
+.modal-header h2[data-modal="brand"]::before { content: '🏷️'; }
+.modal-header h2[data-modal="product"]::before { content: '📦'; }
+.modal-header h2[data-modal="recipe"]::before { content: '👨‍🍳'; }
+.modal-header h2[data-modal="category"]::before { content: '📂'; }
+
+@keyframes sparkle {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    50% { transform: scale(1.1) rotate(5deg); opacity: 0.8; }
+}
+
+.modal-close {
+    background: rgba(255, 255, 255, 0.15);
+    color: white !important;
+    backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: rotate(90deg);
+    color: white !important;
+}
+
+.modal-content {
+    box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.modal-body {
+    background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
+}
+
+/* ==================== ENHANCED FORM FIELDS ==================== */
+
+.form-group {
+    position: relative;
+    margin-bottom: 22px;
+}
+
+.form-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 10px;
+    font-size: 0.95em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-group label::before {
+    font-size: 1.2em;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.1));
+}
+
+/* Icon mapping for different field types */
+.form-group label[for*="Code"]::before,
+.form-group label[for*="code"]::before { content: '🔖'; }
+
+.form-group label[for*="Name"]::before,
+.form-group label[for*="name"]::before { content: '📝'; }
+
+.form-group label[for*="Category"]::before,
+.form-group label[for*="category"]::before { content: '📂'; }
+
+.form-group label[for*="Unit"]::before,
+.form-group label[for*="unit"]::before,
+.form-group label[for*="Measure"]::before { content: '📏'; }
+
+.form-group label[for*="Cost"]::before,
+.form-group label[for*="cost"]::before,
+.form-group label[for*="Price"]::before,
+.form-group label[for*="price"]::before { content: '💰'; }
+
+.form-group label[for*="Quantity"]::before,
+.form-group label[for*="quantity"]::before { content: '📦'; }
+
+.form-group label[for*="Reorder"]::before,
+.form-group label[for*="reorder"]::before { content: '⚠️'; }
+
+.form-group label[for*="Supplier"]::before,
+.form-group label[for*="supplier"]::before { content: '🚚'; }
+
+.form-group label[for*="Brand"]::before,
+.form-group label[for*="brand"]::before { content: '🏷️'; }
+
+.form-group label[for*="Storage"]::before,
+.form-group label[for*="storage"]::before,
+.form-group label[for*="Location"]::before { content: '📍'; }
+
+.form-group label[for*="Contact"]::before,
+.form-group label[for*="contact"]::before { content: '👤'; }
+
+.form-group label[for*="Phone"]::before,
+.form-group label[for*="phone"]::before { content: '📞'; }
+
+.form-group label[for*="Email"]::before,
+.form-group label[for*="email"]::before { content: '📧'; }
+
+.form-group label[for*="Address"]::before,
+.form-group label[for*="address"]::before { content: '🏠'; }
+
+.form-group label[for*="Payment"]::before,
+.form-group label[for*="payment"]::before { content: '💳'; }
+
+.form-group label[for*="Notes"]::before,
+.form-group label[for*="notes"]::before { content: '📄'; }
+
+.form-group label[for*="Active"]::before,
+.form-group label[for*="active"]::before { content: '✅'; }
+
+/* Enhanced Input Fields */
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="email"],
+.form-group select,
+.form-group textarea {
+    border: 2px solid #e1e8ed;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus,
+.form-group input[type="email"]:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: #667eea;
+    outline: none;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15),
+                0 0 0 3px rgba(102, 126, 234, 0.1);
+    transform: translateY(-1px);
+}
+
+.form-group input[type="text"]::placeholder,
+.form-group input[type="number"]::placeholder,
+.form-group input[type="email"]::placeholder,
+.form-group textarea::placeholder {
+    color: #adb5bd;
+    font-style: italic;
+}
+
+.form-group select {
+    cursor: pointer;
+    background-image: url('data:image/svg+xml,<svg width="12" height="8" viewBox="0 0 12 8" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l5 5 5-5" stroke="%23667eea" stroke-width="2" fill="none" stroke-linecap="round"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+}
+
+/* Enhanced Textarea */
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+    font-family: inherit;
+    line-height: 1.6;
+}
+
+/* Checkbox Enhancement */
+.form-group input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    accent-color: #667eea;
+    margin-right: 8px;
+}
+
+.form-group .checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.form-group .checkbox-label:hover {
+    background: rgba(102, 126, 234, 0.05);
+}
+
+/* ==================== ENHANCED BUTTONS ==================== */
+
+/* Primary Action Buttons */
+.modal-btn-success,
+.btn-create-primary {
+    background: linear-gradient(135deg, #28a745 0%, #20a03a 100%);
+    color: white;
+    padding: 14px 28px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.05em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.25);
+    position: relative;
+    overflow: hidden;
+}
+
+.modal-btn-success::before,
+.btn-create-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+}
+
+.modal-btn-success:hover::before,
+.btn-create-primary:hover::before {
+    left: 100%;
+}
+
+.modal-btn-success:hover,
+.btn-create-primary:hover {
+    background: linear-gradient(135deg, #20a03a 0%, #1e8e35 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.35);
+}
+
+.modal-btn-success:active,
+.btn-create-primary:active {
+    transform: translateY(0);
+}
+
+/* Secondary Buttons */
+.modal-btn-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    color: white;
+    padding: 14px 28px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.05em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.2);
+}
+
+.modal-btn-secondary:hover {
+    background: linear-gradient(135deg, #5a6268 0%, #545b62 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.3);
+}
+
+/* Inline Create Buttons (Supplier/Brand) */
+.btn-create-inline {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 3px 10px rgba(102, 126, 234, 0.25);
+}
+
+.btn-create-inline::before {
+    content: '✨';
+    font-size: 1.1em;
+}
+
+.btn-create-inline:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.35);
+}
+
+/* ==================== ENHANCED TABLE ACTION BUTTONS ==================== */
+
+.btn-edit,
+.btn-delete {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 1.1em;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.btn-edit {
+    background: linear-gradient(135deg, #e7f5ff 0%, #d0ebff 100%);
+    color: #0c8599;
+}
+
+.btn-edit:hover {
+    background: linear-gradient(135deg, #a5d8ff 0%, #74c0fc 100%);
+    transform: scale(1.15) rotate(5deg);
+    box-shadow: 0 4px 12px rgba(12, 133, 153, 0.3);
+}
+
+.btn-delete {
+    background: linear-gradient(135deg, #ffe0e0 0%, #ffc9c9 100%);
+    color: #c92a2a;
+}
+
+.btn-delete:hover {
+    background: linear-gradient(135deg, #ffc9c9 0%, #ffa8a8 100%);
+    transform: scale(1.15) rotate(-5deg);
+    box-shadow: 0 4px 12px rgba(201, 42, 42, 0.3);
+}
+
+/* ==================== ENHANCED TOAST NOTIFICATIONS ==================== */
+
+.toast {
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    border: 2px solid;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+}
+
+.toast::before {
+    font-size: 1.5em;
+    animation: toastIcon 0.6s ease-out;
+}
+
+@keyframes toastIcon {
+    0% { transform: scale(0) rotate(-180deg); }
+    50% { transform: scale(1.2) rotate(10deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+.toast-success {
+    background: linear-gradient(135deg, #d3f9d8 0%, #b2f2bb 100%);
+    border-color: #51cf66;
+    color: #2b8a3e;
+}
+
+.toast-success::before {
+    content: '✅';
+}
+
+.toast-error {
+    background: linear-gradient(135deg, #ffe0e0 0%, #ffc9c9 100%);
+    border-color: #ff6b6b;
+    color: #c92a2a;
+}
+
+.toast-error::before {
+    content: '❌';
+}
+
+.toast-warning {
+    background: linear-gradient(135deg, #fff4e6 0%, #ffe8cc 100%);
+    border-color: #ffa94d;
+    color: #e8590c;
+}
+
+.toast-warning::before {
+    content: '⚠️';
+}
+
+.toast-info {
+    background: linear-gradient(135deg, #e7f5ff 0%, #d0ebff 100%);
+    border-color: #339af0;
+    color: #1971c2;
+}
+
+.toast-info::before {
+    content: 'ℹ️';
+}
+
+/* ==================== ENHANCED FORM GROUPS WITH ACTIONS ==================== */
+
+.form-group-with-action {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    padding: 16px;
+    border-radius: 12px;
+    border: 2px solid #e9ecef;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.form-group-with-action:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    transform: translateY(-2px);
+}
+
+.form-group-with-action .form-group {
+    margin-bottom: 10px;
+}
+
+/* ==================== ENHANCED BADGES ==================== */
+
+.badge {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.badge:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* ==================== ENHANCED MODAL FOOTER ==================== */
+
+.modal-footer {
+    padding: 20px 30px;
+    background: linear-gradient(to top, #f8f9fa 0%, #ffffff 100%);
+    border-top: 2px solid #e9ecef;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    border-radius: 0 0 12px 12px;
+}
+
+/* ==================== ENHANCED FORM VALIDATION ==================== */
+
+.form-error {
+    color: #c92a2a;
+    font-size: 0.9em;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    animation: shake 0.4s ease;
+}
+
+.form-error::before {
+    content: '⚠️';
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.field-error {
+    border-color: #ff6b6b !important;
+    box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1) !important;
+}
+
+/* ==================== LOADING STATES ==================== */
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 0.8s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ==================== RESPONSIVE ENHANCEMENTS ==================== */
+
+@media (max-width: 768px) {
+    .modal-header h2 {
+        font-size: 1.3em;
+    }
+
+    .modal-btn-success,
+    .modal-btn-secondary,
+    .btn-create-primary {
+        padding: 12px 20px;
+        font-size: 1em;
+    }
+
+    .form-group-with-action {
+        padding: 12px;
+    }
+}
+
+/* ==================== MICRO-INTERACTIONS ==================== */
+
+.form-group input[type="text"]:valid,
+.form-group input[type="number"]:valid,
+.form-group input[type="email"]:valid,
+.form-group select:valid {
+    border-color: #51cf66;
+}
+
+.form-group input[type="text"]:invalid:not(:placeholder-shown),
+.form-group input[type="number"]:invalid:not(:placeholder-shown),
+.form-group input[type="email"]:invalid:not(:placeholder-shown) {
+    border-color: #ff6b6b;
+}
+
+/* ==================== ENHANCED SHADOWS ==================== */
+
+.elevated-1 {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.elevated-2 {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.elevated-3 {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
+}
+
+/* ==================== GLASSMORPHISM EFFECTS ==================== */
+
+.glass-effect {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* ==================== MAIN DASHBOARD ENHANCEMENTS ==================== */
+
+/* Enhanced Header */
+.header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+}
+
+.header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M 30 0 L 0 0 0 30" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)" /></svg>');
+    opacity: 1;
+}
+
+.header h1 {
+    position: relative;
+    z-index: 1;
+    font-weight: 700;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.5px;
+}
+
+.header-stats {
+    position: relative;
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    padding: 12px 24px;
+    border-radius: 50px;
+    display: inline-block;
+    margin-top: 12px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.timezone-indicator {
+    position: relative;
+    z-index: 1;
+}
+
+/* Enhanced Navigation Tabs */
+.nav-tabs {
+    background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+    border-bottom: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    padding: 8px 8px 0 8px;
+    gap: 4px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 16px 20px;
+    background: transparent;
+    border: none;
+    border-radius: 12px 12px 0 0;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    color: #6c757d;
+    min-width: 120px;
+}
+
+.tab-btn::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    transform: translateX(-50%);
+    transition: width 0.3s ease;
+    border-radius: 3px 3px 0 0;
+}
+
+.tab-btn:hover {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+    color: #667eea;
+    transform: translateY(-2px);
+}
+
+.tab-btn:hover::before {
+    width: 60%;
+}
+
+.tab-btn.active {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+    color: #667eea;
+    box-shadow: 0 -4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.tab-btn.active::before {
+    width: 100%;
+    height: 4px;
+}
+
+/* Enhanced Page Title */
+.page-title {
+    color: #2c3e50;
+    font-size: clamp(1.4em, 2.5vw, 2em);
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 24px;
+    position: relative;
+    display: inline-block;
+    padding-bottom: 12px;
+}
+
+.page-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 2px;
+}
+
+/* Enhanced Filters Section */
+.filters {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    padding: 20px;
+    border-radius: 16px;
+    border: 2px solid #e9ecef;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.filters label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filters label::before {
+    font-size: 1.2em;
+}
+
+.filters select {
+    padding: 10px 16px;
+    border: 2px solid #e1e8ed;
+    border-radius: 10px;
+    font-size: 0.95em;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 150px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.filters select:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.15);
+}
+
+.filters select:focus {
+    border-color: #667eea;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Enhanced Filter Buttons */
+.btn-clear-filters,
+.btn-clear-dates {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 8px rgba(108, 117, 125, 0.2);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-clear-filters::before,
+.btn-clear-dates::before {
+    content: '🔄';
+    font-size: 1.1em;
+}
+
+.btn-clear-filters:hover,
+.btn-clear-dates:hover {
+    background: linear-gradient(135deg, #5a6268 0%, #545b62 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+}
+
+/* Enhanced Summary Cards */
+.inventory-summary,
+.analytics-grid,
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card,
+.analytics-widget,
+.summary-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    padding: 24px;
+    border-radius: 16px;
+    border: 2px solid #e9ecef;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before,
+.analytics-widget::before,
+.summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.stat-card:hover,
+.analytics-widget:hover,
+.summary-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+    border-color: #667eea;
+}
+
+.stat-card h3,
+.analytics-widget h3,
+.summary-card h3 {
+    color: #495057;
+    font-size: 0.9em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stat-card h3::before,
+.analytics-widget h3::before,
+.summary-card h3::before {
+    font-size: 1.3em;
+}
+
+.stat-value {
+    font-size: 2.2em;
+    font-weight: 700;
+    color: #667eea;
+    margin: 8px 0;
+}
+
+/* Enhanced Tables */
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+thead th {
+    padding: 18px 16px;
+    text-align: left;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.85em;
+    border: none;
+    color: white !important;
+}
+
+tbody tr {
+    transition: all 0.2s ease;
+    border-bottom: 1px solid #f1f3f5;
+}
+
+tbody tr:hover {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.04) 0%, rgba(118, 75, 162, 0.04) 100%);
+    transform: scale(1.01);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+tbody td {
+    padding: 16px;
+    color: #495057;
+    border: none;
+}
+
+/* Enhanced Action Buttons in Tables */
+.actions-cell {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Enhanced Bulk Actions Bar */
+.bulk-actions {
+    background: linear-gradient(135deg, #fff4e6 0%, #ffe8cc 100%);
+    padding: 16px 20px;
+    border-radius: 12px;
+    border: 2px solid #ffa94d;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(255, 169, 77, 0.2);
+}
+
+.bulk-actions-label {
+    font-weight: 600;
+    color: #e8590c;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bulk-actions-label::before {
+    content: '📦';
+    font-size: 1.3em;
+}
+
+/* Enhanced Action Buttons */
+.btn-bulk-edit,
+.btn-bulk-delete {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-bulk-edit {
+    background: linear-gradient(135deg, #339af0 0%, #1971c2 100%);
+    color: white;
+    box-shadow: 0 3px 8px rgba(51, 154, 240, 0.3);
+}
+
+.btn-bulk-edit:hover {
+    background: linear-gradient(135deg, #1971c2 0%, #1864ab 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(51, 154, 240, 0.4);
+}
+
+.btn-bulk-delete {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+    color: white;
+    box-shadow: 0 3px 8px rgba(255, 107, 107, 0.3);
+}
+
+.btn-bulk-delete:hover {
+    background: linear-gradient(135deg, #ee5a6f 0%, #dc004e 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+}
+
+/* Enhanced Search Input */
+input[type="search"],
+input[type="text"].search-input {
+    padding: 12px 16px 12px 44px;
+    border: 2px solid #e1e8ed;
+    border-radius: 12px;
+    font-size: 1em;
+    background: white url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%23667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>') no-repeat 14px center;
+    transition: all 0.3s ease;
+    min-width: 300px;
+}
+
+input[type="search"]:focus,
+input[type="text"].search-input:focus {
+    border-color: #667eea;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    transform: translateY(-1px);
+}
+
+/* Enhanced Pagination */
+.pagination {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+    margin-top: 24px;
+    padding: 20px;
+}
+
+.pagination button {
+    padding: 10px 16px;
+    border: 2px solid #e1e8ed;
+    background: white;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    color: #495057;
+}
+
+.pagination button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.pagination button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pagination button.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.pagination-info {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 10px;
+    font-weight: 600;
+    color: #495057;
+}
+
+/* Enhanced Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.empty-state-icon {
+    font-size: 4em;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state-title {
+    font-size: 1.5em;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+.empty-state-description {
+    font-size: 1em;
+    color: #6c757d;
+}
+
+/* Enhanced Loading State */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 16px;
+}
+
+.loading-spinner-large {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(102, 126, 234, 0.2);
+    border-radius: 50%;
+    border-top-color: #667eea;
+    animation: spin 0.8s ease-in-out infinite;
+}
+
+.loading-text {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #667eea;
+}
+
+/* Enhanced Category Badges (additional polish) */
+.category-badge {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+    backdrop-filter: blur(4px);
+}
+
+/* Enhanced Status Badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-active {
+    background: linear-gradient(135deg, #d3f9d8 0%, #b2f2bb 100%);
+    color: #2b8a3e;
+    border: 2px solid #51cf66;
+}
+
+.status-active::before {
+    content: '✅';
+}
+
+.status-inactive {
+    background: linear-gradient(135deg, #f1f3f5 0%, #e9ecef 100%);
+    color: #495057;
+    border: 2px solid #adb5bd;
+}
+
+.status-inactive::before {
+    content: '⏸️';
+}
+
+.status-low-stock {
+    background: linear-gradient(135deg, #fff4e6 0%, #ffe8cc 100%);
+    color: #e8590c;
+    border: 2px solid #ffa94d;
+}
+
+.status-low-stock::before {
+    content: '⚠️';
+}
+
+.status-out-of-stock {
+    background: linear-gradient(135deg, #ffe0e0 0%, #ffc9c9 100%);
+    color: #c92a2a;
+    border: 2px solid #ff6b6b;
+}
+
+.status-out-of-stock::before {
+    content: '❌';
+}
+
+/* Enhanced Container */
+.container {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+/* ==================== ENHANCED SELECTION CONTROLS ==================== */
+
+.selection-controls {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    padding: 16px 20px;
+    border-radius: 14px;
+    border: 2px solid #e9ecef;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.selection-controls .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #495057;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.selection-controls .checkbox-label:hover {
+    background: rgba(102, 126, 234, 0.05);
+}
+
+.selection-controls .checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+.selection-controls .checkbox-label span {
+    font-size: 0.95em;
+}
+
+.selection-count {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    color: #667eea;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9em;
+    border: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+/* Enhanced Primary and Secondary Buttons in Selection Controls */
+.selection-controls .btn-primary,
+.selection-controls .btn-secondary {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.selection-controls .btn-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    color: white;
+    box-shadow: 0 3px 8px rgba(108, 117, 125, 0.25);
+}
+
+.selection-controls .btn-secondary::before {
+    content: '🔄';
+    font-size: 1.1em;
+}
+
+.selection-controls .btn-secondary:hover {
+    background: linear-gradient(135deg, #5a6268 0%, #545b62 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(108, 117, 125, 0.35);
+}
+
+.selection-controls .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 3px 8px rgba(102, 126, 234, 0.25);
+}
+
+.selection-controls .btn-primary::before {
+    content: '✏️';
+    font-size: 1.1em;
+}
+
+.selection-controls .btn-primary:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.35);
+}
+
+/* Shimmer effect for buttons */
+.selection-controls .btn-primary::after,
+.selection-controls .btn-secondary::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+}
+
+.selection-controls .btn-primary:hover::after,
+.selection-controls .btn-secondary:hover::after {
+    left: 100%;
+}
+
+/* Enhanced Section Dividers */
+.section-divider {
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, #667eea 50%, transparent 100%);
+    margin: 40px 0;
+    border: none;
+}
+
+/* ========================================
+   LAYER 3: PRODUCT MANAGEMENT STYLES
+   ======================================== */
+
+/* Recipe Builder Section */
+.recipe-builder {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+    border: 2px solid rgba(102, 126, 234, 0.15);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 15px;
+}
+
+.recipe-add-section {
+    display: grid;
+    grid-template-columns: 2fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 20px;
+}
+
+.recipe-ingredients-list {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    min-height: 100px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.recipe-ingredient-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.04) 0%, rgba(118, 75, 162, 0.04) 100%);
+    border: 1px solid rgba(102, 126, 234, 0.15);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+
+.recipe-ingredient-item:hover {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+}
+
+.recipe-ingredient-item:last-child {
+    margin-bottom: 0;
+}
+
+.ingredient-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+    padding-right: 15px;
+}
+
+.ingredient-info strong {
+    color: #2c3e50;
+    font-size: 1em;
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+.ingredient-quantity {
+    color: #667eea;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.btn-remove-ingredient {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-size: 1.2em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(255, 107, 107, 0.3);
+}
+
+.btn-remove-ingredient:hover {
+    background: linear-gradient(135deg, #ee5a6f 0%, #ff6b6b 100%);
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.5);
+}
+
+/* Recipe Cost Summary */
+.recipe-cost-summary {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 18px;
+}
+
+.cost-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.cost-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.cost-row span {
+    color: #495057;
+    font-size: 0.95em;
+}
+
+.cost-row strong {
+    font-size: 1.1em;
+    font-weight: 600;
+}
+
+/* Action Buttons in Table */
+.actions-cell {
+    width: 100px;
+    text-align: center;
+    padding: 8px !important;
+}
+
+.action-btn {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    font-size: 1.2em;
+    cursor: pointer;
+    margin: 0 3px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.action-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.edit-btn {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+}
+
+.edit-btn:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #007bff 100%);
+    transform: translateY(-2px) scale(1.05) rotate(5deg);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+}
+
+.delete-btn {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+
+.delete-btn:hover {
+    background: linear-gradient(135deg, #c82333 0%, #dc3545 100%);
+    transform: translateY(-2px) scale(1.05) rotate(-5deg);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+/* Form Section Titles */
+.section-title {
+    color: #667eea;
+    font-size: 1.1em;
+    font-weight: 600;
+    margin: 0 0 15px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-title::before {
+    content: '📋';
+    font-size: 1.2em;
+}
+
+.form-section {
+    margin-bottom: 30px;
+}
+
+.form-section:last-child {
+    margin-bottom: 0;
+}
+
+.form-help-text {
+    color: #6c757d;
+    font-size: 0.9em;
+    margin: -5px 0 15px 0;
+    font-style: italic;
+}
+
+/* Product Name Cell */
+.product-name-cell {
+    cursor: pointer;
+}
+
+.product-name-cell:hover {
+    color: #667eea;
+}
+
+/* Responsive Enhancements */
+@media (max-width: 768px) {
+    .recipe-add-section {
+        grid-template-columns: 1fr;
+    }
+
+    .action-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 1em;
+    }
+
+    .filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filters select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    input[type="search"],
+    input[type="text"].search-input {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .stat-card,
+    .analytics-widget,
+    .summary-card {
+        padding: 16px;
+    }
+
+    .stat-value {
+        font-size: 1.8em;
+    }
+}
+
+/* ==================== END OF AESTHETIC ENHANCEMENTS ==================== */

@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔥 Firing Up - Inventory Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/aesthetic-enhancement.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🔥 Firing Up Inventory Dashboard</h1>
+            <div class="header-stats" id="headerStats">Loading...</div>
+            <div class="timezone-indicator" id="timezoneIndicator"></div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs">
+            <button class="tab-btn active" onclick="showTab('inventory')">📊 Inventory</button>
+            <button class="tab-btn" onclick="showTab('products')">🍔 Products</button>
+            <button class="tab-btn" onclick="showTab('sales')">💰 Sales</button>
+            <button class="tab-btn" onclick="showTab('invoices')">📄 Invoices</button>
+            <button class="tab-btn" onclick="showTab('counts')">📋 Counts</button>
+            <button class="tab-btn" onclick="showTab('analytics')">📈 Analytics</button>
+            <button class="tab-btn" onclick="showTab('history')">📜 History</button>
+            <button class="tab-btn" onclick="showTab('settings')">⚙️ Settings</button>
+        </nav>
+
+        <!-- Inventory View Tab -->
+        <div id="inventory-tab" class="tab-content active">
+            <div class="page-header">
+                <h2 class="page-title">Inventory Details</h2>
+                <button class="btn-create-primary" onclick="openCreateIngredientModal()">
+                    <span class="btn-icon">+</span> Create Ingredient
+                </button>
+            </div>
+
+            <div class="filters">
+                <select id="statusFilter" onchange="loadInventory()">
+                    <option value="active">Active Items</option>
+                    <option value="inactive">Inactive Items</option>
+                    <option value="all">All Items</option>
+                </select>
+                <select id="ingredientFilter" onchange="loadInventory()">
+                    <option value="all">All Ingredients</option>
+                </select>
+                <select id="categoryFilter" onchange="loadInventory()">
+                    <option value="all">All Categories</option>
+                </select>
+                <select id="supplierFilter" onchange="loadInventory()">
+                    <option value="all">All Suppliers</option>
+                </select>
+                <select id="brandFilter" onchange="loadInventory()">
+                    <option value="all">All Brands</option>
+                </select>
+            </div>
+            <div class="date-range-filter">
+                <label class="date-label">Date Received:</label>
+                <input type="date" id="dateFrom" class="date-input" placeholder="From">
+                <span class="date-separator">to</span>
+                <input type="date" id="dateTo" class="date-input" placeholder="To">
+                <button class="btn-apply-filter" onclick="applyInventoryDateFilter()">✓ Apply</button>
+                <button class="btn-clear-dates" onclick="clearDateFilter()">Clear</button>
+            </div>
+
+            <div class="category-summary" id="categorySummary"></div>
+
+            <div class="selection-controls" id="selectionControls">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
+                    <span>Select All</span>
+                </label>
+                <button class="btn-secondary" onclick="clearSelection()">Clear Selection</button>
+                <span class="selection-count" id="selectionCount">0 selected</span>
+                <button class="btn-primary" id="editSelectedBtn" onclick="editSelectedCategories()" style="display:none;">Edit Selected Categories</button>
+                <button class="btn-primary" onclick="editAllCategories()">Edit All Categories</button>
+            </div>
+
+            <div class="table-container">
+                <table id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" onclick="sortTable('inventory', 0, 'string')">Ingredient <span class="sort-arrow"></span></th>
+                            <th>Brand / Variant</th>
+                            <th>Supplier / Variant</th>
+                            <th class="sortable" onclick="sortTable('inventory', 3, 'string')">Category <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortTable('inventory', 4, 'number')">Total Qty <span class="sort-arrow"></span></th>
+                            <th>Unit</th>
+                            <th class="sortable" onclick="sortTable('inventory', 6, 'number')">Avg Cost <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortTable('inventory', 7, 'number')">Total Value <span class="sort-arrow"></span></th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody">
+                        <tr><td colspan="9" class="loading">Loading inventory...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    <span id="inventoryPaginationInfo">Showing 0-0 of 0 items</span>
+                </div>
+                <div class="pagination-controls">
+                    <label>Show:
+                        <select id="inventoryPageSize" onchange="changeInventoryPageSize()">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="all">All</option>
+                        </select>
+                    </label>
+                    <div class="pagination-buttons">
+                        <button onclick="changeInventoryPage('first')" id="inventoryFirstPage">«</button>
+                        <button onclick="changeInventoryPage('prev')" id="inventoryPrevPage">‹</button>
+                        <span id="inventoryPageNumbers"></span>
+                        <button onclick="changeInventoryPage('next')" id="inventoryNextPage">›</button>
+                        <button onclick="changeInventoryPage('last')" id="inventoryLastPage">»</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Tab -->
+        <div id="products-tab" class="tab-content">
+            <div class="page-header">
+                <h2 class="page-title">Products & Recipes</h2>
+                <button class="btn-create-primary" onclick="openCreateProductModal()">
+                    <span class="btn-icon">+</span> Create Product
+                </button>
+            </div>
+
+            <div class="section-header">
+                <p class="subtitle">Manage products, recipes, and cost analysis</p>
+            </div>
+
+            <div class="table-container">
+                <table id="productsTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" onclick="sortTable('products', 0, 'string')">Product <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortTable('products', 1, 'number')">Ingredient Cost <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortTable('products', 2, 'number')">Selling Price <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortTable('products', 3, 'number')">Gross Profit <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortTable('products', 4, 'number')">Margin % <span class="sort-arrow"></span></th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody">
+                        <tr><td colspan="6" class="loading">Loading products...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    <span id="productsPaginationInfo">Showing 0-0 of 0 items</span>
+                </div>
+                <div class="pagination-controls">
+                    <label>Show:
+                        <select id="productsPageSize" onchange="changeProductsPageSize()">
+                            <option value="10" selected>10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="all">All</option>
+                        </select>
+                    </label>
+                    <div class="pagination-buttons">
+                        <button onclick="changeProductsPage('first')" id="productsFirstPage">«</button>
+                        <button onclick="changeProductsPage('prev')" id="productsPrevPage">‹</button>
+                        <span id="productsPageNumbers"></span>
+                        <button onclick="changeProductsPage('next')" id="productsNextPage">›</button>
+                        <button onclick="changeProductsPage('last')" id="productsLastPage">»</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales Tab -->
+        <div id="sales-tab" class="tab-content">
+            <div class="page-header">
+                <h2 class="page-title">💰 Sales Analytics</h2>
+                <p class="subtitle">Comprehensive sales reporting and insights</p>
+            </div>
+
+            <!-- Sales Analytics Dashboard (formerly in Analytics tab) -->
+            <div id="sales-analytics-content">
+                <!-- Time Period Selector -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn-time-filter" data-period="today" onclick="changeSalesPeriod('today')">Today</button>
+                            <button class="btn-time-filter active" data-period="7days" onclick="changeSalesPeriod('7days')">Last 7 Days</button>
+                            <button class="btn-time-filter" data-period="week" onclick="changeSalesPeriod('week')">This Week</button>
+                            <button class="btn-time-filter" data-period="month" onclick="changeSalesPeriod('month')">This Month</button>
+                            <button class="btn-time-filter" data-period="30days" onclick="changeSalesPeriod('30days')">Last 30 Days</button>
+                            <button class="btn-time-filter" data-period="all" onclick="changeSalesPeriod('all')">All Time</button>
+                            <button class="btn-time-filter" data-period="custom" onclick="showCustomDateRange()">Custom Range</button>
+                        </div>
+                        <div id="custom-date-range" style="display: none; gap: 10px; align-items: center;">
+                            <input type="date" id="sales-start-date" style="padding: 8px; border: 2px solid #667eea; border-radius: 5px;">
+                            <span>to</span>
+                            <input type="date" id="sales-end-date" style="padding: 8px; border: 2px solid #667eea; border-radius: 5px;">
+                            <button class="btn-success" onclick="applyCustomDateRange()" style="padding: 10px 20px; font-weight: 600; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);">
+                                ✓ Apply Range
+                            </button>
+                        </div>
+                        <div id="selected-period-display" style="color: #667eea; font-weight: 600;">
+                            Last 7 Days
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Stats Row -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <div class="kpi-card">
+                        <div class="kpi-icon">💰</div>
+                        <div class="kpi-value" id="sales-total-revenue">$0.00</div>
+                        <div class="kpi-label">Total Revenue</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon">📊</div>
+                        <div class="kpi-value" id="sales-total-profit">$0.00</div>
+                        <div class="kpi-label">Gross Profit</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon">📈</div>
+                        <div class="kpi-value" id="sales-total-transactions">0</div>
+                        <div class="kpi-label">Transactions</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon">🛒</div>
+                        <div class="kpi-value" id="sales-avg-transaction">$0.00</div>
+                        <div class="kpi-label">Avg Transaction</div>
+                    </div>
+                </div>
+
+                <!-- Main Content Area -->
+                <div style="display: grid; grid-template-columns: 1fr 350px; gap: 20px;">
+                    <!-- Left Column: Charts and Product List -->
+                    <div>
+                        <!-- Sales Trend Chart -->
+                        <div class="card" style="margin-bottom: 20px;">
+                            <h3>📈 Sales Trend</h3>
+                            <div id="sales-trend-chart" style="min-height: 300px; padding: 20px;">
+                                <canvas id="salesTrendCanvas"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Top Products -->
+                        <div class="card">
+                            <h3>🏆 Top Selling Products</h3>
+                            <div id="top-products-list" style="max-height: 500px; overflow-y: auto;">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Stats Sidebar -->
+                    <div>
+                        <!-- Quick Stats -->
+                        <div class="card" style="margin-bottom: 20px;">
+                            <h3 style="margin-bottom: 15px;">📊 Quick Stats</h3>
+                            <div style="display: flex; flex-direction: column; gap: 15px;">
+                                <div class="stat-item">
+                                    <div style="font-size: 0.85em; color: #6c757d; margin-bottom: 5px;">🌟 Best Seller</div>
+                                    <div id="stat-best-seller" style="font-weight: 600; color: #667eea;">Loading...</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div style="font-size: 0.85em; color: #6c757d; margin-bottom: 5px;">⏰ Busiest Hour</div>
+                                    <div id="stat-busiest-hour" style="font-weight: 600; color: #667eea;">Loading...</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div style="font-size: 0.85em; color: #6c757d; margin-bottom: 5px;">💵 Highest Sale</div>
+                                    <div id="stat-highest-sale" style="font-weight: 600; color: #667eea;">Loading...</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div style="font-size: 0.85em; color: #6c757d; margin-bottom: 5px;">📦 Items Sold</div>
+                                    <div id="stat-items-sold" style="font-weight: 600; color: #667eea;">Loading...</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div style="font-size: 0.85em; color: #6c757d; margin-bottom: 5px;">🎫 Discounts Given</div>
+                                    <div id="stat-discounts" style="font-weight: 600; color: #667eea;">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hourly Sales -->
+                        <div class="card">
+                            <h3 style="margin-bottom: 15px;">⏰ Sales by Hour</h3>
+                            <div id="hourly-sales-chart" style="padding: 10px;">
+                                <canvas id="hourlySalesCanvas" style="max-height: 200px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Detail Modal -->
+                <div id="product-detail-modal" class="modal" style="display: none;">
+                    <div class="modal-content modal-large">
+                        <div class="modal-header">
+                            <h2 id="product-detail-title">Product Details</h2>
+                            <button class="modal-close" onclick="closeProductDetail()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="product-detail-content">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hidden: Old CSV input section (keep for future use if needed) -->
+            <div id="csv-input-section-hidden" style="display: none;">
+            <div class="card" style="margin-bottom: 30px;">
+                <h3>📝 Enter Sales Data</h3>
+                <p class="form-help-text">Paste CSV data or manually enter sales</p>
+
+                <div class="sales-input-section">
+                    <!-- CSV Input -->
+                    <div id="csv-input" class="input-method-content">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <label for="salesCsvText">Sales Data (CSV):</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <label for="csvFileUpload" class="btn-upload" style="cursor: pointer; padding: 8px 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 6px; font-weight: 600; font-size: 0.9em; display: inline-flex; align-items: center; gap: 8px;">
+                                    📁 Upload CSV File
+                                    <input type="file" id="csvFileUpload" accept=".csv" style="display: none;" onchange="handleCsvFileUpload(event)">
+                                </label>
+                                <span id="uploadedFileName" style="font-size: 0.85em; color: #28a745;"></span>
+                                <button id="clearUploadBtn" class="btn-clear-upload" onclick="clearCsvUpload()" style="display: none; padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em;">
+                                    ✕ Clear
+                                </button>
+                            </div>
+                        </div>
+                        <p class="form-help-text" style="margin: 5px 0 10px 0; font-size: 0.9em; color: #666;">
+                            <strong>Format:</strong> Product, Quantity, Retail_Price (optional), Time (optional)<br>
+                            Revenue = retail_price × quantity
+                        </p>
+                        <textarea id="salesCsvText" rows="12" placeholder="With headers (recommended):
+Product, Quantity, Retail_Price, Time
+Cheese Pizza, 100, 14.99, 14:30:00
+Beef Tacos, 250, 9.99, 14:35:00
+Chicken Burrito, 75, 11.99, 15:00:00
+
+Without headers (same order):
+Margherita Pizza, 50, 13.99, 16:00:00
+Veggie Burrito, 30, , 16:15:00
+
+(If retail_price is blank, uses database price)"></textarea>
+                        <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <label style="font-weight: 600;">Default Date:</label>
+                            <input type="date" id="saleDate" value="" style="flex: 0 0 auto;">
+                            <button class="btn-create-inline" onclick="parseSalesCSV()">
+                                🔍 Parse & Preview
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview Section -->
+            <div id="preview-section" style="display: none;">
+                <div class="card" style="margin-bottom: 20px;">
+                    <h3>👁️ Preview Changes</h3>
+                    <div id="preview-summary" class="sales-summary-cards"></div>
+                    <div id="preview-details" class="sales-preview-details"></div>
+                    <div id="preview-warnings" class="sales-warnings"></div>
+                    <div style="margin-top: 20px; text-align: right;">
+                        <button class="btn-secondary" onclick="cancelPreview()">Cancel</button>
+                        <button class="btn-success" onclick="applySales()">✓ Apply to Inventory</button>
+                    </div>
+                </div>
+            </div>
+            </div>
+            <!-- End of hidden CSV input section -->
+        </div>
+
+        <!-- Invoices Tab -->
+        <div id="invoices-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Invoice Management</h2>
+                <div class="header-buttons">
+                    <button class="btn btn-primary" onclick="openCreateInvoiceModal()">
+                        ➕ Create New Invoice
+                    </button>
+                    <button class="btn btn-secondary" onclick="openImportInvoiceModal()">
+                        📂 Import from File
+                    </button>
+                </div>
+            </div>
+
+            <div class="date-range-filter">
+                <label class="date-label">Invoice Date:</label>
+                <input type="date" id="invoiceDateFrom" class="date-input" placeholder="From">
+                <span class="date-separator">to</span>
+                <input type="date" id="invoiceDateTo" class="date-input" placeholder="To">
+                <button class="btn-apply-filter" onclick="applyInvoiceDateFilter()">✓ Apply</button>
+                <button class="btn-clear-dates" onclick="clearInvoiceDateFilters()">Clear</button>
+            </div>
+
+            <div class="invoice-section">
+                <h3>⚠️ Unreconciled Invoices</h3>
+                <div class="table-container">
+                    <table id="unreconciledTable">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Supplier</th>
+                                <th>Invoice Date</th>
+                                <th>Received Date</th>
+                                <th>Amount</th>
+                                <th>Payment Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unreconciledTableBody">
+                            <tr><td colspan="7" class="loading">Loading invoices...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        <span id="unreconciledPaginationInfo">Showing 0-0 of 0 items</span>
+                    </div>
+                    <div class="pagination-controls">
+                        <label>Show:
+                            <select id="unreconciledPageSize" onchange="changeUnreconciledPageSize()">
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="all">All</option>
+                            </select>
+                        </label>
+                        <div class="pagination-buttons">
+                            <button onclick="changeUnreconciledPage('first')" id="unreconciledFirstPage">«</button>
+                            <button onclick="changeUnreconciledPage('prev')" id="unreconciledPrevPage">‹</button>
+                            <span id="unreconciledPageNumbers"></span>
+                            <button onclick="changeUnreconciledPage('next')" id="unreconciledNextPage">›</button>
+                            <button onclick="changeUnreconciledPage('last')" id="unreconciledLastPage">»</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="invoice-section">
+                <h3>📋 Recent Invoices</h3>
+                <div class="table-container">
+                    <table id="recentInvoicesTable">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Supplier</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Payment</th>
+                                <th>Reconciled</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentInvoicesTableBody">
+                            <tr><td colspan="7" class="loading">Loading invoices...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        <span id="invoicesPaginationInfo">Showing 0-0 of 0 items</span>
+                    </div>
+                    <div class="pagination-controls">
+                        <label>Show:
+                            <select id="invoicesPageSize" onchange="changeInvoicesPageSize()">
+                                <option value="10">10</option>
+                                <option value="25" selected>25</option>
+                                <option value="50">50</option>
+                                <option value="all">All</option>
+                            </select>
+                        </label>
+                        <div class="pagination-buttons">
+                            <button onclick="changeInvoicesPage('first')" id="invoicesFirstPage">«</button>
+                            <button onclick="changeInvoicesPage('prev')" id="invoicesPrevPage">‹</button>
+                            <span id="invoicesPageNumbers"></span>
+                            <button onclick="changeInvoicesPage('next')" id="invoicesNextPage">›</button>
+                            <button onclick="changeInvoicesPage('last')" id="invoicesLastPage">»</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Counts Tab -->
+        <div id="counts-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Inventory Counts</h2>
+                <button class="btn btn-primary" onclick="openCreateCountModal()">
+                    ➕ Create New Count
+                </button>
+            </div>
+
+            <div class="date-range-filter">
+                <label class="date-label">Count Date:</label>
+                <input type="date" id="countDateFrom" class="date-input" placeholder="From">
+                <span class="date-separator">to</span>
+                <input type="date" id="countDateTo" class="date-input" placeholder="To">
+                <button class="btn-apply-filter" onclick="applyCountDateFilter()">✓ Apply</button>
+                <button class="btn-clear-dates" onclick="clearCountDateFilters()">Clear</button>
+            </div>
+
+            <div class="counts-section">
+                <h3>📊 Recent Counts</h3>
+                <div class="table-container">
+                    <table id="countsTable">
+                        <thead>
+                            <tr>
+                                <th>Count #</th>
+                                <th>Count Date</th>
+                                <th>Counted By</th>
+                                <th>Items</th>
+                                <th>Total Variance</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="countsTableBody">
+                            <tr><td colspan="7" class="loading">Loading counts...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history-tab" class="tab-content">
+            <div class="section-header">
+                <h2>System History</h2>
+            </div>
+
+            <div class="filters">
+                <select id="historyActionFilter" onchange="loadHistory()">
+                    <option value="all">All Actions</option>
+                    <option value="INVOICE_CREATED">Invoice Created</option>
+                    <option value="INVOICE_IMPORTED">Invoice Imported</option>
+                    <option value="INVOICE_DELETED">Invoice Deleted</option>
+                    <option value="INVOICE_PAYMENT_PAID">Invoice Paid</option>
+                    <option value="INVOICE_PAYMENT_UNPAID">Invoice Unpaid</option>
+                    <option value="INVOICE_PAYMENT_PARTIAL">Invoice Partial Payment</option>
+                    <option value="COUNT_CREATED">Count Created</option>
+                    <option value="COUNT_DELETED">Count Deleted</option>
+                    <option value="ITEM_CREATED">Item Created</option>
+                    <option value="ITEM_DEACTIVATED">Item Deactivated</option>
+                    <option value="ITEM_REACTIVATED">Item Reactivated</option>
+                    <option value="BRAND_UPDATED">Brand Updated</option>
+                    <option value="SUPPLIER_UPDATED">Supplier Updated</option>
+                    <option value="SUPPLIER_CREATED">Supplier Created</option>
+                </select>
+                <select id="historyEntityFilter" onchange="loadHistory()">
+                    <option value="all">All Types</option>
+                    <option value="invoice">Invoices</option>
+                    <option value="count">Counts</option>
+                    <option value="item">Items</option>
+                    <option value="brand">Brands</option>
+                    <option value="supplier">Suppliers</option>
+                </select>
+            </div>
+
+            <div class="date-range-filter">
+                <label class="date-label">Event Date:</label>
+                <input type="date" id="historyDateFrom" class="date-input" placeholder="From">
+                <span class="date-separator">to</span>
+                <input type="date" id="historyDateTo" class="date-input" placeholder="To">
+                <button class="btn-apply-filter" onclick="applyHistoryDateFilter()">✓ Apply</button>
+                <button class="btn-clear-dates" onclick="clearHistoryDateFilters()">Clear</button>
+            </div>
+
+            <div class="stats-cards" id="historyStats">
+                <div class="stat-card">
+                    <div class="stat-label">Total Events</div>
+                    <div class="stat-value" id="totalEvents">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Last 7 Days</div>
+                    <div class="stat-value" id="recentEvents">-</div>
+                </div>
+            </div>
+
+            <div class="history-section">
+                <h3>📜 Activity Log</h3>
+                <div class="table-container">
+                    <table id="historyTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortHistoryTable(0)">Timestamp <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortHistoryTable(1)">Action <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortHistoryTable(2)">Type <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortHistoryTable(3)">Reference <span class="sort-arrow"></span></th>
+                                <th>Details</th>
+                                <th>User</th>
+                                <th>IP Address</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <tr><td colspan="7" class="loading">Loading history...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        <span id="historyPaginationInfo">Showing 0-0 of 0 items</span>
+                    </div>
+                    <div class="pagination-controls">
+                        <label>Show:
+                            <select id="historyPageSize" onchange="changeHistoryPageSize()">
+                                <option value="10">10</option>
+                                <option value="25" selected>25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="all">All</option>
+                            </select>
+                        </label>
+                        <div class="pagination-buttons">
+                            <button onclick="changeHistoryPage('first')" id="historyFirstPage">«</button>
+                            <button onclick="changeHistoryPage('prev')" id="historyPrevPage">‹</button>
+                            <span id="historyPageNumbers"></span>
+                            <button onclick="changeHistoryPage('next')" id="historyNextPage">›</button>
+                            <button onclick="changeHistoryPage('last')" id="historyLastPage">»</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics-tab" class="tab-content">
+            <div class="section-header">
+                <h2>📈 Analytics Dashboard</h2>
+                <div class="analytics-controls">
+                    <select id="analyticsDateRange" onchange="refreshAnalytics()">
+                        <option value="7">Last 7 Days</option>
+                        <option value="30" selected>Last 30 Days</option>
+                        <option value="90">Last Quarter</option>
+                        <option value="365">Last Year</option>
+                        <option value="all">All Time</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="refreshAnalytics()">🔄 Refresh</button>
+                    <button class="btn btn-primary" onclick="openCustomizeWidgets()">⚙️ Customize</button>
+                </div>
+            </div>
+
+            <!-- KPI Summary Cards -->
+            <div class="analytics-kpi-grid" id="analyticsKPIs">
+                <div class="kpi-card">
+                    <div class="kpi-icon">💰</div>
+                    <div class="kpi-value" id="kpiSpending">$0</div>
+                    <div class="kpi-label">Total Spending</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon">🏢</div>
+                    <div class="kpi-value" id="kpiSuppliers">0</div>
+                    <div class="kpi-label">Active Suppliers</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon">⚠️</div>
+                    <div class="kpi-value" id="kpiAlerts">0</div>
+                    <div class="kpi-label">Price Alerts</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon">📦</div>
+                    <div class="kpi-value" id="kpiInventoryValue">$0</div>
+                    <div class="kpi-label">Inventory Value</div>
+                </div>
+            </div>
+
+            <!-- Analytics Sub-Tabs -->
+            <div class="analytics-subtabs">
+                <button class="analytics-subtab-btn active" onclick="showAnalyticsPage('spending')">💰 Spending</button>
+                <button class="analytics-subtab-btn" onclick="showAnalyticsPage('pricing')">💵 Pricing</button>
+                <button class="analytics-subtab-btn" onclick="showAnalyticsPage('performance')">📊 Performance</button>
+                <button class="analytics-subtab-btn" onclick="showAnalyticsPage('all')">🔍 All Widgets</button>
+            </div>
+
+            <!-- Sales Analytics Page -->
+            <!-- Sales Analytics removed - now in Sales tab -->
+
+            <!-- Widgets Container (Dynamic) -->
+            <div class="analytics-widgets-grid" id="analyticsWidgetsContainer">
+                <div class="widget-placeholder">
+                    <p>Loading analytics widgets...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customize Widgets Modal -->
+        <div id="customizeWidgetsModal" class="modal">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h2>⚙️ Customize Analytics Dashboard</h2>
+                    <button class="modal-close" onclick="closeCustomizeWidgets()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="customize-search">
+                        <input type="text" id="widgetSearch" placeholder="🔍 Search widgets..." onkeyup="filterWidgets()">
+                        <select id="widgetCategoryFilter" onchange="filterWidgets()">
+                            <option value="all">All Categories</option>
+                            <option value="cost">Cost Analysis</option>
+                            <option value="profitability">Profitability</option>
+                            <option value="inventory">Inventory</option>
+                            <option value="supplier">Supplier</option>
+                            <option value="forecasting">Forecasting</option>
+                        </select>
+                    </div>
+
+                    <div class="widget-lists">
+                        <div class="widget-list-section">
+                            <h3>✅ Enabled Widgets</h3>
+                            <p class="widget-list-help">Drag to reorder</p>
+                            <div id="enabledWidgetsList" class="widget-list sortable">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <div class="widget-list-section">
+                            <h3>☐ Available Widgets</h3>
+                            <p class="widget-list-help">Click to enable</p>
+                            <div id="availableWidgetsList" class="widget-list">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeCustomizeWidgets()">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveWidgetPreferences()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Data Management</h2>
+                <p class="subtitle">Manage brands, suppliers, and supplier profiles</p>
+            </div>
+
+            <div class="settings-grid">
+                <!-- Brand Management -->
+                <div class="settings-card">
+                    <h3>🏷️ Brand Management</h3>
+                    <p class="settings-description">Rename a brand across all items that use it</p>
+
+                    <div class="settings-form">
+                        <div class="form-group">
+                            <label>Select Brand to Update</label>
+                            <select id="brandSelect" class="form-control" onchange="updateBrandPreview()">
+                                <option value="">-- Select a brand --</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>New Brand Name</label>
+                            <input type="text" id="newBrandName" class="form-control" placeholder="Enter new brand name">
+                        </div>
+
+                        <div id="brandPreview" class="update-preview"></div>
+
+                        <button class="btn btn-primary" onclick="bulkUpdateBrand()">
+                            Update Brand
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Supplier Management -->
+                <div class="settings-card">
+                    <h3>🚚 Supplier Name Management</h3>
+                    <p class="settings-description">Rename a supplier across all items from that supplier</p>
+
+                    <div class="settings-form">
+                        <div class="form-group">
+                            <label>Select Supplier to Update</label>
+                            <select id="supplierSelect" class="form-control" onchange="updateSupplierPreview()">
+                                <option value="">-- Select a supplier --</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>New Supplier Name</label>
+                            <input type="text" id="newSupplierName" class="form-control" placeholder="Enter new supplier name">
+                        </div>
+
+                        <div id="supplierPreview" class="update-preview"></div>
+
+                        <button class="btn btn-primary" onclick="bulkUpdateSupplier()">
+                            Update Supplier
+                        </button>
+                    </div>
+                </div>
+                <!-- Timezone Settings -->
+                <div class="settings-card">
+                    <h3>🕐 Timezone Settings</h3>
+                    <p class="settings-description">Select your timezone for displaying all timestamps</p>
+
+                    <div class="settings-form">
+                        <div class="form-group">
+                            <label>Current Timezone</label>
+                            <div id="currentTimezone" class="timezone-display"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Select Timezone</label>
+                            <select id="timezoneSelect" class="form-control timezone-select" onchange="updateTimezone()">
+                                <optgroup label="🇺🇸 United States">
+                                    <option value="America/New_York">Eastern Time (EST/EDT)</option>
+                                    <option value="America/Chicago">Central Time (CST/CDT)</option>
+                                    <option value="America/Denver">Mountain Time (MST/MDT)</option>
+                                    <option value="America/Phoenix">Arizona (MST - no DST)</option>
+                                    <option value="America/Los_Angeles">Pacific Time (PST/PDT)</option>
+                                    <option value="America/Anchorage">Alaska Time (AKST/AKDT)</option>
+                                    <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                                </optgroup>
+                                <optgroup label="🇨🇦 Canada">
+                                    <option value="America/St_Johns">Newfoundland Time (NST/NDT)</option>
+                                    <option value="America/Halifax">Atlantic Time (AST/ADT)</option>
+                                    <option value="America/Toronto">Eastern Time (EST/EDT)</option>
+                                    <option value="America/Winnipeg">Central Time (CST/CDT)</option>
+                                    <option value="America/Edmonton">Mountain Time (MST/MDT)</option>
+                                    <option value="America/Vancouver">Pacific Time (PST/PDT)</option>
+                                </optgroup>
+                                <optgroup label="🇲🇽 Mexico">
+                                    <option value="America/Mexico_City">Central Time</option>
+                                    <option value="America/Cancun">Eastern Time</option>
+                                    <option value="America/Tijuana">Pacific Time</option>
+                                </optgroup>
+                                <optgroup label="🇬🇧 Europe">
+                                    <option value="Europe/London">London (GMT/BST)</option>
+                                    <option value="Europe/Paris">Paris (CET/CEST)</option>
+                                    <option value="Europe/Berlin">Berlin (CET/CEST)</option>
+                                    <option value="Europe/Rome">Rome (CET/CEST)</option>
+                                    <option value="Europe/Madrid">Madrid (CET/CEST)</option>
+                                    <option value="Europe/Athens">Athens (EET/EEST)</option>
+                                    <option value="Europe/Moscow">Moscow (MSK)</option>
+                                </optgroup>
+                                <optgroup label="🌏 Asia">
+                                    <option value="Asia/Dubai">Dubai (GST)</option>
+                                    <option value="Asia/Kolkata">India (IST)</option>
+                                    <option value="Asia/Bangkok">Bangkok (ICT)</option>
+                                    <option value="Asia/Singapore">Singapore (SGT)</option>
+                                    <option value="Asia/Hong_Kong">Hong Kong (HKT)</option>
+                                    <option value="Asia/Shanghai">Shanghai (CST)</option>
+                                    <option value="Asia/Tokyo">Tokyo (JST)</option>
+                                    <option value="Asia/Seoul">Seoul (KST)</option>
+                                </optgroup>
+                                <optgroup label="🌏 Australia & Pacific">
+                                    <option value="Australia/Perth">Perth (AWST)</option>
+                                    <option value="Australia/Adelaide">Adelaide (ACST/ACDT)</option>
+                                    <option value="Australia/Brisbane">Brisbane (AEST)</option>
+                                    <option value="Australia/Sydney">Sydney (AEST/AEDT)</option>
+                                    <option value="Pacific/Auckland">Auckland (NZST/NZDT)</option>
+                                </optgroup>
+                                <optgroup label="🌍 Other">
+                                    <option value="UTC">UTC (Coordinated Universal Time)</option>
+                                    <option value="Africa/Cairo">Cairo (EET)</option>
+                                    <option value="Africa/Johannesburg">Johannesburg (SAST)</option>
+                                    <option value="America/Sao_Paulo">São Paulo (BRT)</option>
+                                    <option value="America/Buenos_Aires">Buenos Aires (ART)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div class="timezone-preview">
+                            <strong>Current Time:</strong> <span id="timezonePreview">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supplier Profiles Section -->
+            <div class="section-header" style="margin-top: 40px;">
+                <h2>Supplier Profiles</h2>
+                <button class="btn btn-primary" onclick="openCreateSupplierModal()">
+                    ➕ Create New Supplier
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table id="suppliersTable">
+                    <thead>
+                        <tr>
+                            <th>Supplier Name</th>
+                            <th>Contact Person</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Address</th>
+                            <th>Payment Terms</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="suppliersTableBody">
+                        <tr><td colspan="7" class="loading">Loading suppliers...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Category Management Section -->
+            <div class="section-header" style="margin-top: 40px;">
+                <h2>Category Management</h2>
+                <button class="btn btn-primary" onclick="openCreateCategoryModal()">
+                    ➕ Create New Category
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table id="categoriesTable">
+                    <thead>
+                        <tr>
+                            <th>Category Name</th>
+                            <th>Items Using</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="categoriesTableBody">
+                        <tr><td colspan="4" class="loading">Loading categories...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tooltip Container -->
+    <div id="tooltip" class="tooltip">
+        <div class="tooltip-content" id="tooltipContent"></div>
+    </div>
+
+    <!-- Invoice Details Modal -->
+    <div id="invoiceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalInvoiceTitle">Invoice Details</h2>
+                <button class="modal-close" onclick="closeInvoiceModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="invoiceInfo" class="invoice-info"></div>
+                <div class="invoice-items-section">
+                    <h3>Line Items</h3>
+                    <div class="table-container">
+                        <table id="invoiceItemsTable">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Ingredient</th>
+                                    <th>Brand</th>
+                                    <th>Size</th>
+                                    <th>Qty Ordered</th>
+                                    <th>Qty Received</th>
+                                    <th>Unit Price</th>
+                                    <th>Total Price</th>
+                                    <th>Lot #</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoiceItemsTableBody">
+                                <tr><td colspan="9" class="loading">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div id="editItemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Inventory Item</h2>
+                <button class="modal-close" onclick="closeEditModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editItemForm" onsubmit="saveItemChanges(event)">
+                    <input type="hidden" id="editItemId">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Ingredient Code *</label>
+                            <input type="text" id="editCode" required class="form-control" placeholder="e.g., BEEF-001">
+                        </div>
+                        <div class="form-group">
+                            <label>Ingredient Name *</label>
+                            <input type="text" id="editName" required class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Brand</label>
+                            <input type="text" id="editBrand" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Supplier</label>
+                            <select id="editSupplier" class="form-control">
+                                <option value="">-- Select Supplier --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Category *</label>
+                            <select id="editCategory" required class="form-control">
+                                <option value="Meat">Meat</option>
+                                <option value="Produce">Produce</option>
+                                <option value="Dairy">Dairy</option>
+                                <option value="Dry Goods">Dry Goods</option>
+                                <option value="Packaging">Packaging</option>
+                                <option value="Beverages">Beverages</option>
+                                <option value="Condiments">Condiments</option>
+                                <option value="Bakery">Bakery</option>
+                                <option value="Seafood">Seafood</option>
+                                <option value="Frozen">Frozen</option>
+                                <option value="Spices">Spices</option>
+                                <option value="Uncategorized">Uncategorized</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Storage Location</label>
+                            <input type="text" id="editLocation" class="form-control" placeholder="e.g., Freezer A, Shelf 3">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Quantity *</label>
+                            <input type="number" step="0.01" id="editQuantity" required class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Unit of Measure *</label>
+                            <select id="editUnit" required class="form-control">
+                                <option value="lb">lb (pounds)</option>
+                                <option value="oz">oz (ounces)</option>
+                                <option value="kg">kg (kilograms)</option>
+                                <option value="g">g (grams)</option>
+                                <option value="ea">ea (each)</option>
+                                <option value="gal">gal (gallons)</option>
+                                <option value="qt">qt (quarts)</option>
+                                <option value="pt">pt (pints)</option>
+                                <option value="cup">cup</option>
+                                <option value="L">L (liters)</option>
+                                <option value="mL">mL (milliliters)</option>
+                                <option value="case">case</option>
+                                <option value="box">box</option>
+                                <option value="bag">bag</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Last Price ($) *</label>
+                            <input type="number" step="0.01" id="editCost" required class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Date Received</label>
+                            <input type="date" id="editDateReceived" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Lot Number</label>
+                            <input type="text" id="editLotNumber" class="form-control" placeholder="Vendor lot/batch number">
+                        </div>
+                        <div class="form-group">
+                            <label>Expiration Date</label>
+                            <input type="date" id="editExpirationDate" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Invoice Modal -->
+    <div id="createInvoiceModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Create New Invoice</h2>
+                <button class="modal-close" onclick="closeCreateInvoiceModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createInvoiceForm" onsubmit="saveNewInvoice(event)">
+                    <!-- Invoice Header -->
+                    <div class="invoice-header-section">
+                        <h3>Invoice Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Invoice Number *</label>
+                                <input type="text" id="newInvoiceNumber" required class="form-control" placeholder="INV-123456">
+                            </div>
+                            <div class="form-group">
+                                <label>Supplier *</label>
+                                <select id="newInvoiceSupplier" required class="form-control">
+                                    <option value="">-- Select Supplier --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Invoice Date *</label>
+                                <input type="date" id="newInvoiceDate" required class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Received Date *</label>
+                                <input type="date" id="newReceivedDate" required class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Payment Status *</label>
+                                <select id="newPaymentStatus" required class="form-control">
+                                    <option value="UNPAID">Unpaid</option>
+                                    <option value="PAID">Paid</option>
+                                    <option value="PARTIAL">Partial</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Notes</label>
+                                <input type="text" id="newInvoiceNotes" class="form-control" placeholder="Optional notes">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Line Items -->
+                    <div class="invoice-items-section">
+                        <h3>Line Items</h3>
+                        <p class="subtitle" style="margin-top: 5px; font-size: 0.9em;">💡 Tip: You can select existing ingredients or type new ingredient codes</p>
+                        <div class="table-container">
+                            <table id="newInvoiceItemsTable" class="line-items-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 150px;">Ingredient Code *</th>
+                                        <th style="width: 100px;">Brand</th>
+                                        <th style="width: 80px;">Size</th>
+                                        <th style="width: 70px;">Cases Ordered *</th>
+                                        <th style="width: 70px;">Cases Received *</th>
+                                        <th style="width: 70px;">Units/Case</th>
+                                        <th style="width: 90px;">Unit Price *</th>
+                                        <th style="width: 90px;">Total</th>
+                                        <th style="width: 80px;">Lot #</th>
+                                        <th style="width: 50px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="newInvoiceItemsBody">
+                                    <!-- Dynamic rows will be added here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="addInvoiceLineItem()">
+                            ➕ Add Line Item
+                        </button>
+                    </div>
+
+                    <!-- Invoice Total -->
+                    <div class="invoice-total-section">
+                        <div class="invoice-total">
+                            <span>Invoice Total:</span>
+                            <strong id="newInvoiceTotal">$0.00</strong>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeCreateInvoiceModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Invoice</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Invoice Modal -->
+    <div id="importInvoiceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Import Invoice from File</h2>
+                <button class="modal-close" onclick="closeImportInvoiceModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="importInvoiceForm" onsubmit="uploadInvoiceFile(event)" enctype="multipart/form-data">
+                    <div class="import-info">
+                        <h3>Supported File Formats</h3>
+                        <ul>
+                            <li>CSV files (.csv)</li>
+                            <li>Excel files (.xlsx, .xls)</li>
+                        </ul>
+                        <p><strong>Required Columns:</strong> ingredient_code, quantity_received, unit_price</p>
+                        <p><strong>Optional Columns:</strong> brand, size, quantity_ordered, lot_number</p>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Invoice Number *</label>
+                            <input type="text" id="importInvoiceNumber" required class="form-control" placeholder="INV-123456">
+                        </div>
+                        <div class="form-group">
+                            <label>Supplier *</label>
+                            <select id="importSupplier" required class="form-control">
+                                <option value="">-- Select Supplier --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Invoice Date *</label>
+                            <input type="date" id="importInvoiceDate" required class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Received Date *</label>
+                            <input type="date" id="importReceivedDate" required class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Payment Status *</label>
+                            <select id="importPaymentStatus" required class="form-control">
+                                <option value="UNPAID">Unpaid</option>
+                                <option value="PAID">Paid</option>
+                                <option value="PARTIAL">Partial</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Select File *</label>
+                            <input type="file" id="invoiceFile" required class="form-control" accept=".csv,.xlsx,.xls">
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeImportInvoiceModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Import Invoice</button>
+                    </div>
+                </form>
+                <div id="importProgress" class="import-progress" style="display: none;">
+                    <p>Importing invoice...</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Invoice Confirmation Modal -->
+    <div id="deleteInvoiceModal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>Delete Invoice</h2>
+                <button class="modal-close" onclick="closeDeleteInvoiceModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="warning-box">
+                    <p><strong>⚠️ Warning: This action cannot be undone</strong></p>
+                    <p>Deleting this invoice will:</p>
+                    <ul>
+                        <li>Remove the invoice and all its line items from the database</li>
+                        <li>Reverse any inventory changes made by this invoice</li>
+                    </ul>
+                </div>
+                <p id="deleteInvoiceInfo"></p>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeDeleteInvoiceModal()">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="confirmDeleteInvoice()">Delete Invoice</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Category Modal -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2 id="categoryModalTitle">Edit Category</h2>
+                <button class="modal-close" onclick="closeCategoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="categoryForm" onsubmit="saveCategory(event)">
+                    <input type="hidden" id="categoryEditId">
+                    <input type="hidden" id="categoryOldName">
+
+                    <div class="form-group">
+                        <label>Category Name *</label>
+                        <input type="text" id="categoryName" required class="form-control" placeholder="Enter category name">
+                    </div>
+
+                    <div class="form-group" id="categoryHelpText">
+                        <p class="form-help">This will rename the category for all items that use it.</p>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="closeCategoryModal()">Cancel</button>
+                        <button type="submit" class="btn-primary" id="categorySaveBtn">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Count Modal -->
+    <div id="createCountModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>Create Inventory Count</h2>
+                <button class="modal-close" onclick="closeCreateCountModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="countForm" onsubmit="submitCount(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Count Number *</label>
+                            <input type="text" id="countNumber" required class="form-control" placeholder="e.g., COUNT-2026-001">
+                        </div>
+                        <div class="form-group">
+                            <label>Count Date *</label>
+                            <input type="date" id="countDate" required class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Counted By</label>
+                            <input type="text" id="countedBy" class="form-control" placeholder="Person who did the count">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="countNotes" class="form-control" rows="2" placeholder="Optional notes about this count"></textarea>
+                    </div>
+
+                    <hr style="margin: 20px 0;">
+
+                    <div class="section-header" style="margin-bottom: 15px;">
+                        <h3>Count Items</h3>
+                        <button type="button" class="btn btn-secondary" onclick="addCountRow()">+ Add Item</button>
+                    </div>
+
+                    <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                        <table id="countItemsTable" class="invoice-items-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 150px;">Ingredient Code *</th>
+                                    <th style="width: 200px;">Ingredient Name</th>
+                                    <th style="width: 80px;">Expected</th>
+                                    <th style="width: 100px;">Counted *</th>
+                                    <th style="width: 80px;">Variance</th>
+                                    <th style="width: 80px;">Unit</th>
+                                    <th style="width: 150px;">Notes</th>
+                                    <th style="width: 60px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="countItemsTableBody">
+                                <!-- Rows will be added here dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="count-summary" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <strong>Total Items: <span id="countTotalItems">0</span></strong> |
+                        <strong>Total Variance: <span id="countTotalVariance">0</span></strong>
+                    </div>
+
+                    <div class="form-actions" style="margin-top: 20px;">
+                        <button type="button" class="btn btn-secondary" onclick="closeCreateCountModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Count & Reconcile Inventory</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Count Details Modal -->
+    <div id="countDetailsModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="countDetailsTitle">Count Details</h2>
+                <button class="modal-close" onclick="closeCountDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="countDetailsContent">
+                    <p class="loading">Loading count details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Supplier Modal -->
+    <div id="supplierModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="supplierModalTitle">Create New Supplier</h2>
+                <button class="modal-close" onclick="closeSupplierModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="supplierForm" onsubmit="saveSupplier(event)">
+                    <input type="hidden" id="supplierEditId">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Supplier Name *</label>
+                            <input type="text" id="supplierName" required class="form-control" placeholder="Enter supplier name">
+                        </div>
+                        <div class="form-group">
+                            <label>Contact Person</label>
+                            <input type="text" id="supplierContact" class="form-control" placeholder="Enter contact person">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="tel" id="supplierPhone" class="form-control" placeholder="(555) 123-4567">
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="supplierEmail" class="form-control" placeholder="contact@supplier.com">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Address</label>
+                        <textarea id="supplierAddress" class="form-control" rows="3" placeholder="Enter complete address"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Payment Terms</label>
+                            <input type="text" id="supplierPaymentTerms" class="form-control" placeholder="e.g., Net 30, COD, etc.">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="supplierNotes" class="form-control" rows="2" placeholder="Additional notes about this supplier"></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeSupplierModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Supplier</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Datalist for ingredient code autocomplete in counts -->
+    <datalist id="ingredientCodesList">
+        <!-- Populated dynamically by JavaScript -->
+    </datalist>
+
+    <!-- ========== GENERIC MODAL (Layer 1.1) ========== -->
+    <div id="genericModal" class="modal-backdrop" style="display: none;">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2 id="modalTitle">Modal Title</h2>
+                <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic content injected here by JavaScript -->
+            </div>
+            <div class="modal-footer" id="modalFooter">
+                <!-- Dynamic buttons injected here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sales_tracking_ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/layer4_sales.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sales_analytics.js') }}"></script>
+</body>
+</html>

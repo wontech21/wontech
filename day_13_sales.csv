@@ -1,0 +1,33 @@
+Product, Quantity, Retail_Price, Time
+Beef Tacos (3-pack), 4, 12.99, 10:00:00
+Cheese Pizza - Large (16"), 6, 16.99, 19:00:00
+Cheese Pizza - Large (16"), 3, 16.99, 15:30:00
+Cheese Pizza - Large (16"), 5, 16.99, 18:30:00
+Cheese Pizza - Small (10"), 17, 9.99, 13:00:00
+Cheese Pizza - Small (10"), 9, 9.99, 18:30:00
+Cheese Pizza - Small (10"), 19, 7.99, 12:00:00
+Chicken Burrito, 19, 10.99, 18:30:00
+Chicken Burrito, 6, 10.99, 15:30:00
+Chicken Burrito, 11, 10.99, 18:30:00
+Chicken Burrito, 19, 10.99, 11:30:00
+Chicken Burrito, 13, 10.99, 19:30:00
+Chicken Pasta Alfredo, 8, 16.99, 13:00:00
+Chicken Pasta Alfredo, 6, 16.99, 13:00:00
+Chicken Pasta Alfredo, 5, 16.99, 11:30:00
+Chicken Pasta Alfredo, 7, 16.99, 13:00:00
+Chicken Pasta Alfredo, 3, 16.99, 10:00:00
+Classic Burger, 6, 12.99, 11:30:00
+Classic Burger, 6, 11.04, 15:30:00
+Classic Burger, 12, 12.99, 19:00:00
+Fish and Chips, 5, 14.99, 12:30:00
+Fish and Chips, 7, 14.99, 19:00:00
+Fish and Chips, 7, 11.99, 18:30:00
+Fish and Chips, 3, 14.99, 20:30:00
+Medium Bacon Pizza, 9, 16.99, 12:00:00
+Medium Bacon Pizza, 8, 16.99, 18:00:00
+Pepperoni Pizza - Medium (14"), 6, 15.99, 10:00:00
+Pepperoni Pizza - Medium (14"), 6, 15.99, 20:30:00
+Pepperoni Pizza - Medium (14"), 9, 15.99, 11:30:00
+Pico de Gallo, 29, 5.99, 13:00:00
+Supreme Pizza - Large (16"), 3, 20.99, 12:00:00
+Supreme Pizza - Large (16"), 7, 20.99, 19:30:00
