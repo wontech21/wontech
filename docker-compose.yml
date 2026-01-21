@@ -1,0 +1,51 @@
+# FIRINGup Inventory Management System
+# Docker Compose Configuration
+
+version: '3.8'
+
+services:
+  firingup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    # Container name
+    container_name: firingup-app
+
+    # Port mapping: host:container
+    ports:
+      - "5001:5001"
+
+    # Volume mounts for data persistence
+    # This ensures databases persist even if container is removed
+    volumes:
+      - ./inventory.db:/app/inventory.db
+      - ./invoices.db:/app/invoices.db
+      - ./data:/app/data
+
+    # Environment variables
+    environment:
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5001
+      - FLASK_DEBUG=False
+      - INVENTORY_DB_PATH=/app/inventory.db
+      - INVOICES_DB_PATH=/app/invoices.db
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+    # Network configuration
+    networks:
+      - firingup-network
+
+networks:
+  firingup-network:
+    driver: bridge
