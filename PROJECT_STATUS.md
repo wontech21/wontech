@@ -185,6 +185,14 @@ git add . && git commit -m "Description" && git push
    - Box shadows with theme colors now adapt to selected gradient
    - Sales preview details, product items, variant dropdowns themed
    - Complete visual coherence across all UI elements
+9. **Fixed inline styles preventing theme sync** - Removed hardcoded inline styles from HTML:
+   - Fixed line-items-table column headers (were stuck on gray)
+   - Replaced inline gradient styles on Format Guide button
+   - Replaced inline border colors on CSV date/time inputs
+   - Replaced inline gradient on Parse & Preview button
+   - Replaced inline gradient on CSV upload button
+   - Created new CSS classes: btn-format-guide, format-guide-box, btn-upload-csv, csv-date-input, btn-parse-csv
+   - All previously stubborn elements now sync perfectly with selected theme
 
 ---
 

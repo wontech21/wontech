@@ -333,14 +333,14 @@
                             <h3 style="margin: 0;">📝 Import Sales Data</h3>
                             <p class="form-help-text" style="margin: 5px 0 0 0;">Upload or paste CSV sales data to process</p>
                         </div>
-                        <button onclick="toggleFormatGuide()" style="padding: 8px 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                        <button onclick="toggleFormatGuide()" class="btn-format-guide">
                             📋 Show Format Guide
                         </button>
                     </div>
 
                     <!-- Format Guide (Collapsible) -->
-                    <div id="format-guide" style="display: none; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 10px; padding: 20px; margin-bottom: 20px; border-left: 5px solid #667eea;">
-                        <h4 style="margin-top: 0; color: #667eea;">📊 CSV Format Guide</h4>
+                    <div id="format-guide" class="format-guide-box">
+                        <h4 class="format-guide-title">📊 CSV Format Guide</h4>
 
                         <div style="background: white; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
                             <strong style="color: #28a745;">✓ Required Format:</strong>
@@ -386,7 +386,7 @@ Hawaiian Pizza, 25, 15.99</pre>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                 <label for="salesCsvText" style="font-weight: 600; font-size: 1.05em;">Sales Data (CSV):</label>
                                 <div style="display: flex; gap: 10px; align-items: center;">
-                                    <label for="csvFileUpload" class="btn-upload" style="cursor: pointer; padding: 10px 18px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 6px; font-weight: 600; font-size: 0.95em; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3); transition: all 0.3s ease;">
+                                    <label for="csvFileUpload" class="btn-upload-csv">
                                         📁 Upload CSV File
                                         <input type="file" id="csvFileUpload" accept=".csv" style="display: none;" onchange="handleCsvFileUpload(event)">
                                     </label>
@@ -404,10 +404,10 @@ Cheese Pizza, 100, 14.99, 14:30:00
 Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                             <div style="margin-top: 15px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
                                 <label style="font-weight: 600;">Sale Date:</label>
-                                <input type="date" id="saleDate" value="" style="padding: 10px; border: 2px solid #667eea; border-radius: 6px; font-size: 0.95em;">
+                                <input type="date" id="saleDate" value="" class="csv-date-input">
                                 <label style="font-weight: 600;">Time (Optional):</label>
-                                <input type="time" id="saleTime" value="" step="1" style="padding: 10px; border: 2px solid #667eea; border-radius: 6px; font-size: 0.95em;">
-                                <button class="btn-create-inline" onclick="parseSalesCSV()" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 1em; cursor: pointer; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">
+                                <input type="time" id="saleTime" value="" step="1" class="csv-date-input">
+                                <button class="btn-parse-csv" onclick="parseSalesCSV()">
                                     🔍 Parse & Preview
                                 </button>
                             </div>

@@ -1310,6 +1310,92 @@ tbody tr.hoverable-row:hover {
     line-height: 1;
 }
 
+/* Format Guide Button */
+.btn-format-guide {
+    padding: 8px 16px;
+    background: var(--theme-gradient);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-format-guide:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--theme-color-1-rgb), 0.3);
+}
+
+/* Format Guide Box */
+.format-guide-box {
+    display: none;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-left: 5px solid var(--theme-color-1);
+}
+
+.format-guide-title {
+    margin-top: 0;
+    color: var(--theme-color-1);
+}
+
+/* CSV Upload Button */
+.btn-upload-csv {
+    cursor: pointer;
+    padding: 10px 18px;
+    background: var(--theme-gradient);
+    color: white;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.95em;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(var(--theme-color-1-rgb), 0.3);
+    transition: all 0.3s ease;
+}
+
+.btn-upload-csv:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(var(--theme-color-1-rgb), 0.4);
+}
+
+/* CSV Date Inputs */
+.csv-date-input {
+    padding: 10px;
+    border: 2px solid var(--theme-color-1);
+    border-radius: 6px;
+    font-size: 0.95em;
+}
+
+.csv-date-input:focus {
+    outline: none;
+    border-color: var(--theme-color-2);
+    box-shadow: 0 0 0 3px rgba(var(--theme-color-1-rgb), 0.1);
+}
+
+/* Parse & Preview Button */
+.btn-parse-csv {
+    padding: 12px 24px;
+    background: var(--theme-gradient);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(var(--theme-color-1-rgb), 0.4);
+    transition: all 0.3s ease;
+}
+
+.btn-parse-csv:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(var(--theme-color-1-rgb), 0.5);
+}
+
 /* Action Buttons */
 .actions-cell {
     text-align: center;
@@ -1646,7 +1732,7 @@ tbody tr.hoverable-row:hover {
 }
 
 .line-items-table th {
-    background: #495057;
+    background: var(--theme-gradient);
     color: white;
     padding: 10px 8px;
     text-align: left;
