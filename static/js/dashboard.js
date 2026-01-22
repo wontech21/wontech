@@ -7831,6 +7831,20 @@ const GRADIENTS = {
     gold: 'linear-gradient(135deg, #ffd89b 0%, #19547b 100%)'
 };
 
+// Theme color pairs for UI elements (extracted from gradients)
+const THEME_COLORS = {
+    default: { color1: '#667eea', color2: '#764ba2' },
+    sunset: { color1: '#f093fb', color2: '#f5576c' },
+    ocean: { color1: '#4facfe', color2: '#00f2fe' },
+    forest: { color1: '#43e97b', color2: '#38f9d7' },
+    lavender: { color1: '#a8edea', color2: '#fed6e3' },
+    fire: { color1: '#fa709a', color2: '#fee140' },
+    midnight: { color1: '#2c3e50', color2: '#3498db' },
+    cherry: { color1: '#eb3349', color2: '#f45c43' },
+    mint: { color1: '#30cfd0', color2: '#330867' },
+    gold: { color1: '#ffd89b', color2: '#19547b' }
+};
+
 /**
  * Load and apply saved background on page load
  */
@@ -7843,9 +7857,17 @@ function loadSavedBackground() {
         document.body.style.backgroundImage = `url(${savedImage})`;
         document.body.style.background = 'none';
         showBackgroundImagePreview(savedImage);
+
+        // Keep default theme colors for UI elements when using custom image
+        const defaultColors = THEME_COLORS.default;
+        document.documentElement.style.setProperty('--theme-color-1', defaultColors.color1);
+        document.documentElement.style.setProperty('--theme-color-2', defaultColors.color2);
     } else if (savedGradient && GRADIENTS[savedGradient]) {
-        // Apply saved gradient
+        // Apply saved gradient (which also sets theme colors)
         applyGradient(savedGradient, false);
+    } else {
+        // No saved preference - apply default
+        applyGradient('default', false);
     }
 
     // Mark active gradient in UI
@@ -7857,8 +7879,9 @@ function loadSavedBackground() {
  */
 function applyGradient(gradientName, showMsg = true) {
     const gradient = GRADIENTS[gradientName];
+    const themeColors = THEME_COLORS[gradientName];
 
-    if (!gradient) {
+    if (!gradient || !themeColors) {
         console.error('Unknown gradient:', gradientName);
         return;
     }
@@ -7871,6 +7894,10 @@ function applyGradient(gradientName, showMsg = true) {
     document.body.style.backgroundSize = 'cover';
     document.body.style.backgroundPosition = 'center';
     document.body.style.backgroundAttachment = 'fixed';
+
+    // Update CSS variables for theme colors (updates all UI elements)
+    document.documentElement.style.setProperty('--theme-color-1', themeColors.color1);
+    document.documentElement.style.setProperty('--theme-color-2', themeColors.color2);
 
     // Save to localStorage
     localStorage.setItem('background_gradient', gradientName);
@@ -7946,6 +7973,11 @@ function handleBackgroundImageUpload(event) {
         document.body.style.backgroundSize = 'cover';
         document.body.style.backgroundPosition = 'center';
         document.body.style.backgroundAttachment = 'fixed';
+
+        // Keep default theme colors for UI elements when using custom image
+        const defaultColors = THEME_COLORS.default;
+        document.documentElement.style.setProperty('--theme-color-1', defaultColors.color1);
+        document.documentElement.style.setProperty('--theme-color-2', defaultColors.color2);
 
         // Save to localStorage
         localStorage.setItem('background_image', imageData);

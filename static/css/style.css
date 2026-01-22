@@ -1,5 +1,12 @@
 /* Firing Up Inventory Dashboard Styles */
 
+:root {
+    /* Theme colors - dynamically updated based on background selection */
+    --theme-color-1: #667eea;
+    --theme-color-2: #764ba2;
+    --theme-gradient: linear-gradient(135deg, var(--theme-color-1) 0%, var(--theme-color-2) 100%);
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -58,7 +65,7 @@ body {
 
 /* Header */
 .header {
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+    background: var(--theme-gradient);
     color: white;
     padding: clamp(20px, 3vw, 40px);
     text-align: center;
@@ -107,8 +114,8 @@ body {
 }
 
 .tab-btn.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-bottom-color: #ff6b6b;
+    background: var(--theme-gradient);
+    border-bottom-color: var(--theme-color-1);
     color: white;
     font-weight: 600;
 }
@@ -305,7 +312,7 @@ table {
 }
 
 thead {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--theme-gradient);
     border-bottom: 2px solid #dee2e6;
     color: white;
 }
@@ -771,7 +778,7 @@ tbody tr.hoverable-row:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--theme-gradient);
     border-radius: 12px 12px 0 0;
 }
 
@@ -2223,7 +2230,7 @@ textarea.form-control {
 }
 
 .stat-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--theme-gradient);
     color: white;
     padding: clamp(15px, 2vw, 20px);
     border-radius: 10px;
@@ -2388,7 +2395,7 @@ textarea.form-control {
 }
 
 .kpi-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--theme-gradient);
     color: white;
     padding: 25px;
     border-radius: 12px;
@@ -3436,7 +3443,7 @@ textarea.form-control {
 }
 
 .ingredients-table thead {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--theme-gradient);
 }
 
 .ingredients-table th {
@@ -3618,7 +3625,7 @@ textarea.form-control {
     align-items: center;
     justify-content: space-between;
     flex-shrink: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--theme-gradient);
 }
 
 .modal-header h2 {
@@ -4478,7 +4485,7 @@ textarea.form-control {
 }
 
 #sales-history-container table thead tr {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--theme-gradient);
     color: white;
 }
 
