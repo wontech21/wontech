@@ -7908,8 +7908,9 @@ function applyGradient(gradientName, showMsg = true) {
         return;
     }
 
-    // Remove any background image
-    document.body.style.backgroundImage = 'none';
+    // Clear any inline background styles so CSS variables can take effect
+    document.body.style.backgroundImage = '';
+    document.body.style.background = '';
 
     // Update CSS variables for theme colors (updates all UI elements including body and header)
     document.documentElement.style.setProperty('--theme-color-1', themeColors.color1);
