@@ -24,12 +24,19 @@
    - Charts and visualizations
 
 4. **Infrastructure**
-   - Git version control (6 commits)
+   - Git version control (8 commits)
    - Docker containerization
    - GitHub repository: https://github.com/wontech21/firingup-inventory
    - Cloud deployment: https://firingup-inventory.onrender.com/
    - Automatic deployment pipeline (git push → Render auto-deploys)
    - PWA installed on iPad
+
+5. **CSV Import**
+   - Sales CSV import in Sales tab
+   - File upload and copy/paste support
+   - Comprehensive format guide with examples
+   - Preview before applying changes
+   - Validation and error handling
 
 ### 🚧 In Progress
 - None currently
@@ -112,6 +119,7 @@ git add . && git commit -m "Description" && git push
 4. Completed Phase 2: Docker containerization
 5. Completed Phase 3: Cloud deployment to Render.com
 6. PWA installed on iPad - full mobile access enabled
+7. Added CSV import to Sales tab with comprehensive format guide
 
 ---
 
