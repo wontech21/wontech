@@ -7863,6 +7863,10 @@ function loadSavedBackground() {
         document.documentElement.style.setProperty('--theme-color-1', defaultColors.color1);
         document.documentElement.style.setProperty('--theme-color-2', defaultColors.color2);
 
+        // Set the gradient explicitly
+        const defaultGradient = `linear-gradient(135deg, ${defaultColors.color1} 0%, ${defaultColors.color2} 100%)`;
+        document.documentElement.style.setProperty('--theme-gradient', defaultGradient);
+
         // Set RGB values too
         const rgb1 = hexToRgb(defaultColors.color1);
         const rgb2 = hexToRgb(defaultColors.color2);
@@ -7911,9 +7915,12 @@ function applyGradient(gradientName, showMsg = true) {
     document.body.style.background = '';
 
     // Update CSS variables for theme colors (updates all UI elements including body and header)
-    // Note: Don't set --theme-gradient here! It's calculated in CSS from color-1 and color-2
     document.documentElement.style.setProperty('--theme-color-1', themeColors.color1);
     document.documentElement.style.setProperty('--theme-color-2', themeColors.color2);
+
+    // Manually construct and set the gradient (browsers don't always recalculate CSS var references)
+    const calculatedGradient = `linear-gradient(135deg, ${themeColors.color1} 0%, ${themeColors.color2} 100%)`;
+    document.documentElement.style.setProperty('--theme-gradient', calculatedGradient);
 
     // Update RGB versions for rgba() usage
     const rgb1 = hexToRgb(themeColors.color1);
@@ -8002,6 +8009,10 @@ function handleBackgroundImageUpload(event) {
         const defaultColors = THEME_COLORS.default;
         document.documentElement.style.setProperty('--theme-color-1', defaultColors.color1);
         document.documentElement.style.setProperty('--theme-color-2', defaultColors.color2);
+
+        // Set the gradient explicitly
+        const defaultGradient = `linear-gradient(135deg, ${defaultColors.color1} 0%, ${defaultColors.color2} 100%)`;
+        document.documentElement.style.setProperty('--theme-gradient', defaultGradient);
 
         // Set RGB values too
         const rgb1 = hexToRgb(defaultColors.color1);
