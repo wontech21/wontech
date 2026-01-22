@@ -7860,8 +7860,10 @@ function loadSavedBackground() {
 
         // Keep default theme colors for UI elements when using custom image
         const defaultColors = THEME_COLORS.default;
+        const defaultGradient = GRADIENTS.default;
         document.documentElement.style.setProperty('--theme-color-1', defaultColors.color1);
         document.documentElement.style.setProperty('--theme-color-2', defaultColors.color2);
+        document.documentElement.style.setProperty('--theme-gradient', defaultGradient);
 
         // Set RGB values too
         const rgb1 = hexToRgb(defaultColors.color1);
@@ -7918,6 +7920,7 @@ function applyGradient(gradientName, showMsg = true) {
     // Update CSS variables for theme colors (updates all UI elements)
     document.documentElement.style.setProperty('--theme-color-1', themeColors.color1);
     document.documentElement.style.setProperty('--theme-color-2', themeColors.color2);
+    document.documentElement.style.setProperty('--theme-gradient', gradient);
 
     // Update RGB versions for rgba() usage
     const rgb1 = hexToRgb(themeColors.color1);
@@ -8004,8 +8007,10 @@ function handleBackgroundImageUpload(event) {
 
         // Keep default theme colors for UI elements when using custom image
         const defaultColors = THEME_COLORS.default;
+        const defaultGradient = GRADIENTS.default;
         document.documentElement.style.setProperty('--theme-color-1', defaultColors.color1);
         document.documentElement.style.setProperty('--theme-color-2', defaultColors.color2);
+        document.documentElement.style.setProperty('--theme-gradient', defaultGradient);
 
         // Set RGB values too
         const rgb1 = hexToRgb(defaultColors.color1);
