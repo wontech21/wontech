@@ -12,6 +12,26 @@ from datetime import datetime
 def register_sales_routes(app, get_db_connection, INVENTORY_DB):
     """Register all sales processing routes"""
 
+    def log_audit(action_type, entity_type, entity_reference, details, timestamp=None):
+        """Log action to audit_log table"""
+        conn = get_db_connection(INVENTORY_DB)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO audit_log
+            (timestamp, action_type, entity_type, entity_reference, details, user, ip_address)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            timestamp or datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            action_type,
+            entity_type,
+            entity_reference,
+            details,
+            request.remote_addr or 'System',
+            request.remote_addr or 'localhost'
+        ))
+        conn.commit()
+        conn.close()
+
     @app.route('/api/sales/preview', methods=['POST'])
     def preview_sales():
         """Preview what inventory deductions will happen (doesn't modify data)"""
@@ -270,6 +290,40 @@ def register_sales_routes(app, get_db_connection, INVENTORY_DB):
                 applied_count += 1
                 total_revenue += actual_revenue
                 total_cost += product_cost
+
+                # Build ingredient deductions list for audit log
+                cursor.execute("""
+                    SELECT
+                        r.ingredient_id,
+                        r.quantity_needed,
+                        r.unit_of_measure,
+                        i.ingredient_name
+                    FROM recipes r
+                    JOIN ingredients i ON r.ingredient_id = i.id
+                    WHERE r.product_id = ?
+                """, (product_id,))
+
+                recipe_for_audit = cursor.fetchall()
+                deductions = []
+                for ing in recipe_for_audit:
+                    deduction_qty = ing['quantity_needed'] * quantity_sold
+                    deductions.append(f"{ing['ingredient_name']}: -{deduction_qty:.2f} {ing['unit_of_measure']}")
+
+                # Log to audit trail
+                audit_timestamp = f"{sale_date} {item_sale_time}" if item_sale_time else f"{sale_date} 00:00:00"
+                details = f"Sold {quantity_sold} x {product['product_name']}. Deductions: {'; '.join(deductions) if deductions else 'No recipe'}"
+
+                cursor.execute("""
+                    INSERT INTO audit_log
+                    (timestamp, action_type, entity_type, entity_reference, details, user, ip_address)
+                    VALUES (?, 'SALE_RECORDED', 'product', ?, ?, ?, ?)
+                """, (
+                    audit_timestamp,
+                    product['product_name'],
+                    details,
+                    request.remote_addr or 'System',
+                    request.remote_addr or 'localhost'
+                ))
 
             conn.commit()
 

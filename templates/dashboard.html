@@ -598,6 +598,7 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
             <div class="filters">
                 <select id="historyActionFilter" onchange="loadHistory()">
                     <option value="all">All Actions</option>
+                    <option value="SALE_RECORDED">Sales Recorded</option>
                     <option value="INVOICE_CREATED">Invoice Created</option>
                     <option value="INVOICE_IMPORTED">Invoice Imported</option>
                     <option value="INVOICE_DELETED">Invoice Deleted</option>
@@ -615,6 +616,7 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                 </select>
                 <select id="historyEntityFilter" onchange="loadHistory()">
                     <option value="all">All Types</option>
+                    <option value="product">Products/Sales</option>
                     <option value="invoice">Invoices</option>
                     <option value="count">Counts</option>
                     <option value="item">Items</option>
