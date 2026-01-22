@@ -619,4 +619,123 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+/**
+ * Export sales records to CSV for current date range
+ */
+async function exportSalesRecords() {
+    try {
+        const exportBtn = event.target;
+        const originalText = exportBtn.innerHTML;
+
+        // Show loading state
+        exportBtn.innerHTML = '⏳ Exporting...';
+        exportBtn.disabled = true;
+
+        // Build API URL with date filters
+        let url = '/api/sales/history';
+        const params = new URLSearchParams();
+
+        if (currentStartDate) params.append('start_date', currentStartDate);
+        if (currentEndDate) params.append('end_date', currentEndDate);
+        params.append('per_page', '10000'); // Get all records (up to 10k)
+
+        if (params.toString()) url += '?' + params.toString();
+
+        // Fetch sales data
+        const response = await fetch(url);
+        const result = await response.json();
+
+        if (!result.data || result.data.length === 0) {
+            showMessage('No sales records found for the selected period', 'warning');
+            exportBtn.innerHTML = originalText;
+            exportBtn.disabled = false;
+            return;
+        }
+
+        const salesData = result.data;
+
+        // Convert to CSV
+        const headers = [
+            'Sale Date',
+            'Sale Time',
+            'Product Name',
+            'Quantity Sold',
+            'Original Price',
+            'Sale Price',
+            'Discount Amount',
+            'Discount %',
+            'Revenue',
+            'Cost of Goods',
+            'Gross Profit',
+            'Processed Date'
+        ];
+
+        // Create CSV content
+        let csvContent = headers.join(',') + '\n';
+
+        salesData.forEach(record => {
+            const row = [
+                record.sale_date || '',
+                record.sale_time || '',
+                `"${(record.product_name || '').replace(/"/g, '""')}"`, // Escape quotes
+                record.quantity_sold || 0,
+                (record.original_price || 0).toFixed(2),
+                (record.sale_price || 0).toFixed(2),
+                (record.discount_amount || 0).toFixed(2),
+                (record.discount_percent || 0).toFixed(1),
+                (record.revenue || 0).toFixed(2),
+                (record.cost_of_goods || 0).toFixed(2),
+                (record.gross_profit || 0).toFixed(2),
+                record.processed_date || ''
+            ];
+            csvContent += row.join(',') + '\n';
+        });
+
+        // Create filename with date range
+        let filename = 'sales_records';
+        if (currentStartDate && currentEndDate) {
+            filename += `_${currentStartDate}_to_${currentEndDate}`;
+        } else if (currentStartDate) {
+            filename += `_from_${currentStartDate}`;
+        } else if (currentEndDate) {
+            filename += `_until_${currentEndDate}`;
+        } else {
+            filename += '_all_time';
+        }
+        filename += '.csv';
+
+        // Create download link
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const downloadUrl = URL.createObjectURL(blob);
+
+        link.setAttribute('href', downloadUrl);
+        link.setAttribute('download', filename);
+        link.style.display = 'none';
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Clean up
+        URL.revokeObjectURL(downloadUrl);
+
+        // Show success message
+        showMessage(`✅ Exported ${salesData.length} sales records to ${filename}`, 'success');
+
+        // Restore button
+        exportBtn.innerHTML = originalText;
+        exportBtn.disabled = false;
+
+    } catch (error) {
+        console.error('Error exporting sales records:', error);
+        showMessage('Failed to export sales records', 'error');
+
+        // Restore button
+        const exportBtn = event.target;
+        exportBtn.innerHTML = '📊 Export CSV';
+        exportBtn.disabled = false;
+    }
+}
+
 console.log('%c✓ Sales Analytics Ready', 'color: green; font-weight: bold; font-size: 14px');

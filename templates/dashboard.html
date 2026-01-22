@@ -215,8 +215,13 @@
                                 ✓ Apply Range
                             </button>
                         </div>
-                        <div id="selected-period-display" style="color: #667eea; font-weight: 600;">
-                            Last 7 Days
+                        <div style="display: flex; gap: 15px; align-items: center;">
+                            <div id="selected-period-display" style="color: #667eea; font-weight: 600;">
+                                Last 7 Days
+                            </div>
+                            <button class="btn-export" onclick="exportSalesRecords()" style="padding: 10px 20px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3); transition: all 0.3s ease;">
+                                📊 Export CSV
+                            </button>
                         </div>
                     </div>
                 </div>
