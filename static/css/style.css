@@ -4828,3 +4828,299 @@ textarea.form-control {
         transform: translateY(0);
     }
 }
+/* ============================================================================
+   GLASSMORPHISM EFFECT - Frosted Glass Appearance
+   ============================================================================ */
+
+/* Main Container - Glassmorphism */
+.container {
+    background: rgba(255, 255, 255, 0.75) !important;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+                0 8px 32px rgba(31, 38, 135, 0.15);
+}
+
+/* Add subtle shine effect to container */
+.container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.8) 50%,
+        transparent
+    );
+    opacity: 0.6;
+}
+
+/* Header - Glassmorphism */
+.header {
+    background: rgba(255, 107, 107, 0.15) !important;
+    backdrop-filter: blur(15px) saturate(150%);
+    -webkit-backdrop-filter: blur(15px) saturate(150%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+/* Tab Navigation - Glassmorphism */
+.tab-navigation {
+    background: rgba(255, 255, 255, 0.4) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.tab-btn {
+    background: transparent !important;
+    transition: all 0.3s ease;
+}
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.tab-btn.active {
+    background: rgba(255, 255, 255, 0.6) !important;
+    backdrop-filter: blur(15px) saturate(150%);
+    -webkit-backdrop-filter: blur(15px) saturate(150%);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08),
+                0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+}
+
+/* Tab Content - Glassmorphism */
+.tab-content {
+    background: transparent !important;
+}
+
+/* Category Cards - Glassmorphism */
+.category-card {
+    background: rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.15) inset !important;
+}
+
+.category-card:hover {
+    background: rgba(255, 255, 255, 0.65) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(255, 255, 255, 0.25) inset !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Settings Cards - Glassmorphism */
+.settings-card {
+    background: rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.15) inset !important;
+}
+
+.settings-card:hover {
+    background: rgba(255, 255, 255, 0.65) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(255, 255, 255, 0.25) inset !important;
+}
+
+/* KPI Cards - Glassmorphism */
+.kpi-card {
+    background: rgba(255, 255, 255, 0.55) !important;
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.15) inset !important;
+}
+
+.kpi-card:hover {
+    background: rgba(255, 255, 255, 0.7) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(255, 255, 255, 0.25) inset !important;
+    transform: translateY(-4px) scale(1.02);
+}
+
+/* Stat Cards - Glassmorphism */
+.stat-card {
+    background: rgba(255, 255, 255, 0.55) !important;
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.15) inset !important;
+}
+
+/* Table Container - Glassmorphism */
+.table-container {
+    background: rgba(255, 255, 255, 0.4) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+/* Tables - Slight glass effect on headers */
+table thead {
+    background: rgba(102, 126, 234, 0.15) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.2) !important;
+}
+
+table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.4) !important;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+/* Modals - Glassmorphism */
+.modal-content {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.35),
+                0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+}
+
+.modal-header {
+    background: rgba(102, 126, 234, 0.1) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Form Elements - Subtle glass effect */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+select,
+textarea {
+    background: rgba(255, 255, 255, 0.6) !important;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    transition: all 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+select:focus,
+textarea:focus {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border-color: rgba(102, 126, 234, 0.6) !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15),
+                0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Buttons - Glass effect */
+.btn,
+.btn-primary,
+.btn-success,
+.btn-secondary {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+    transition: all 0.3s ease;
+}
+
+.btn:hover,
+.btn-primary:hover,
+.btn-success:hover,
+.btn-secondary:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+    transform: translateY(-2px);
+}
+
+/* Charts Container - Glass effect */
+.card {
+    background: rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+}
+
+/* Pagination - Glass effect */
+.pagination-container {
+    background: rgba(255, 255, 255, 0.4) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+/* Filters - Glass effect */
+.filters,
+.date-range-filter {
+    background: rgba(255, 255, 255, 0.4) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+/* Gradient Options - Enhanced glass */
+.gradient-option > div {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(255, 255, 255, 0.2) inset !important;
+}
+
+.gradient-option:hover > div {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.4) inset !important;
+}
+
+/* Subtle shimmer effect on hover for glass elements */
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+.category-card:hover::after,
+.settings-card:hover::after,
+.kpi-card:hover::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
+    pointer-events: none;
+    border-radius: inherit;
+}
