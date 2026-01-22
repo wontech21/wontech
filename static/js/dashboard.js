@@ -7911,13 +7911,7 @@ function applyGradient(gradientName, showMsg = true) {
     // Remove any background image
     document.body.style.backgroundImage = 'none';
 
-    // Apply gradient
-    document.body.style.background = gradient;
-    document.body.style.backgroundSize = 'cover';
-    document.body.style.backgroundPosition = 'center';
-    document.body.style.backgroundAttachment = 'fixed';
-
-    // Update CSS variables for theme colors (updates all UI elements)
+    // Update CSS variables for theme colors (updates all UI elements including body and header)
     document.documentElement.style.setProperty('--theme-color-1', themeColors.color1);
     document.documentElement.style.setProperty('--theme-color-2', themeColors.color2);
     document.documentElement.style.setProperty('--theme-gradient', gradient);
