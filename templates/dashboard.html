@@ -857,80 +857,88 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                         </button>
                     </div>
                 </div>
-                <!-- Timezone Settings -->
+
+                <!-- Background Customization -->
                 <div class="settings-card">
-                    <h3>🕐 Timezone Settings</h3>
-                    <p class="settings-description">Select your timezone for displaying all timestamps</p>
+                    <h3>🎨 Background Customization</h3>
+                    <p class="settings-description">Personalize your dashboard with gradients or custom images</p>
 
                     <div class="settings-form">
+                        <!-- Gradient Selection -->
                         <div class="form-group">
-                            <label>Current Timezone</label>
-                            <div id="currentTimezone" class="timezone-display"></div>
+                            <label>Gradient Themes</label>
+                            <div class="gradient-palette">
+                                <div class="gradient-option" data-gradient="default" onclick="applyGradient('default')" title="Default Blue Purple">
+                                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+                                    <span>Default</span>
+                                </div>
+                                <div class="gradient-option" data-gradient="sunset" onclick="applyGradient('sunset')" title="Sunset Orange Pink">
+                                    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"></div>
+                                    <span>Sunset</span>
+                                </div>
+                                <div class="gradient-option" data-gradient="ocean" onclick="applyGradient('ocean')" title="Ocean Blue">
+                                    <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"></div>
+                                    <span>Ocean</span>
+                                </div>
+                                <div class="gradient-option" data-gradient="forest" onclick="applyGradient('forest')" title="Forest Green">
+                                    <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);"></div>
+                                    <span>Forest</span>
+                                </div>
+                                <div class="gradient-option" data-gradient="lavender" onclick="applyGradient('lavender')" title="Lavender Purple">
+                                    <div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);"></div>
+                                    <span>Lavender</span>
+                                </div>
+                                <div class="gradient-option" data-gradient="fire" onclick="applyGradient('fire')" title="Fire Red Orange">
+                                    <div style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);"></div>
+                                    <span>Fire</span>
+                                </div>
+                                <div class="gradient-option" data-gradient="midnight" onclick="applyGradient('midnight')" title="Midnight Dark Blue">
+                                    <div style="background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);"></div>
+                                    <span>Midnight</span>
+                                </div>
+                                <div class="gradient-option" data-gradient="cherry" onclick="applyGradient('cherry')" title="Cherry Blossom">
+                                    <div style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);"></div>
+                                    <span>Cherry</span>
+                                </div>
+                                <div class="gradient-option" data-gradient="mint" onclick="applyGradient('mint')" title="Mint Fresh">
+                                    <div style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);"></div>
+                                    <span>Mint</span>
+                                </div>
+                                <div class="gradient-option" data-gradient="gold" onclick="applyGradient('gold')" title="Golden Hour">
+                                    <div style="background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);"></div>
+                                    <span>Gold</span>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>Select Timezone</label>
-                            <select id="timezoneSelect" class="form-control timezone-select" onchange="updateTimezone()">
-                                <optgroup label="🇺🇸 United States">
-                                    <option value="America/New_York">Eastern Time (EST/EDT)</option>
-                                    <option value="America/Chicago">Central Time (CST/CDT)</option>
-                                    <option value="America/Denver">Mountain Time (MST/MDT)</option>
-                                    <option value="America/Phoenix">Arizona (MST - no DST)</option>
-                                    <option value="America/Los_Angeles">Pacific Time (PST/PDT)</option>
-                                    <option value="America/Anchorage">Alaska Time (AKST/AKDT)</option>
-                                    <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
-                                </optgroup>
-                                <optgroup label="🇨🇦 Canada">
-                                    <option value="America/St_Johns">Newfoundland Time (NST/NDT)</option>
-                                    <option value="America/Halifax">Atlantic Time (AST/ADT)</option>
-                                    <option value="America/Toronto">Eastern Time (EST/EDT)</option>
-                                    <option value="America/Winnipeg">Central Time (CST/CDT)</option>
-                                    <option value="America/Edmonton">Mountain Time (MST/MDT)</option>
-                                    <option value="America/Vancouver">Pacific Time (PST/PDT)</option>
-                                </optgroup>
-                                <optgroup label="🇲🇽 Mexico">
-                                    <option value="America/Mexico_City">Central Time</option>
-                                    <option value="America/Cancun">Eastern Time</option>
-                                    <option value="America/Tijuana">Pacific Time</option>
-                                </optgroup>
-                                <optgroup label="🇬🇧 Europe">
-                                    <option value="Europe/London">London (GMT/BST)</option>
-                                    <option value="Europe/Paris">Paris (CET/CEST)</option>
-                                    <option value="Europe/Berlin">Berlin (CET/CEST)</option>
-                                    <option value="Europe/Rome">Rome (CET/CEST)</option>
-                                    <option value="Europe/Madrid">Madrid (CET/CEST)</option>
-                                    <option value="Europe/Athens">Athens (EET/EEST)</option>
-                                    <option value="Europe/Moscow">Moscow (MSK)</option>
-                                </optgroup>
-                                <optgroup label="🌏 Asia">
-                                    <option value="Asia/Dubai">Dubai (GST)</option>
-                                    <option value="Asia/Kolkata">India (IST)</option>
-                                    <option value="Asia/Bangkok">Bangkok (ICT)</option>
-                                    <option value="Asia/Singapore">Singapore (SGT)</option>
-                                    <option value="Asia/Hong_Kong">Hong Kong (HKT)</option>
-                                    <option value="Asia/Shanghai">Shanghai (CST)</option>
-                                    <option value="Asia/Tokyo">Tokyo (JST)</option>
-                                    <option value="Asia/Seoul">Seoul (KST)</option>
-                                </optgroup>
-                                <optgroup label="🌏 Australia & Pacific">
-                                    <option value="Australia/Perth">Perth (AWST)</option>
-                                    <option value="Australia/Adelaide">Adelaide (ACST/ACDT)</option>
-                                    <option value="Australia/Brisbane">Brisbane (AEST)</option>
-                                    <option value="Australia/Sydney">Sydney (AEST/AEDT)</option>
-                                    <option value="Pacific/Auckland">Auckland (NZST/NZDT)</option>
-                                </optgroup>
-                                <optgroup label="🌍 Other">
-                                    <option value="UTC">UTC (Coordinated Universal Time)</option>
-                                    <option value="Africa/Cairo">Cairo (EET)</option>
-                                    <option value="Africa/Johannesburg">Johannesburg (SAST)</option>
-                                    <option value="America/Sao_Paulo">São Paulo (BRT)</option>
-                                    <option value="America/Buenos_Aires">Buenos Aires (ART)</option>
-                                </optgroup>
-                            </select>
+                        <!-- Custom Image Upload -->
+                        <div class="form-group" style="margin-top: 30px;">
+                            <label>Custom Background Image</label>
+                            <p style="font-size: 0.9em; color: #666; margin: 5px 0 10px 0;">
+                                Upload a high-res image (JPEG, PNG, or GIF) to use as your background
+                            </p>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <label for="backgroundImageUpload" class="btn-upload" style="cursor: pointer; padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+                                    📸 Upload Image
+                                    <input type="file" id="backgroundImageUpload" accept=".jpg,.jpeg,.png,.gif" style="display: none;" onchange="handleBackgroundImageUpload(event)">
+                                </label>
+                                <button class="btn-secondary" onclick="removeBackgroundImage()" style="padding: 10px 20px;">
+                                    ✕ Remove Image
+                                </button>
+                            </div>
+                            <div id="backgroundImagePreview" style="margin-top: 15px; display: none;">
+                                <strong>Current Background:</strong>
+                                <div style="margin-top: 10px; border: 2px solid #ddd; border-radius: 8px; overflow: hidden; max-width: 300px;">
+                                    <img id="backgroundImagePreviewImg" src="" alt="Background preview" style="width: 100%; height: auto;">
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="timezone-preview">
-                            <strong>Current Time:</strong> <span id="timezonePreview">Loading...</span>
+                        <!-- Reset to Default -->
+                        <div class="form-group" style="margin-top: 20px;">
+                            <button class="btn btn-secondary" onclick="resetBackgroundToDefault()" style="width: 100%;">
+                                🔄 Reset to Default Theme
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -1,8 +1,5 @@
 // Firing Up Inventory Dashboard JavaScript
 
-// ========== GLOBAL TIMEZONE CONFIGURATION ==========
-// Load timezone from localStorage or use default
-let APP_TIMEZONE = localStorage.getItem('app_timezone') || 'America/New_York';
 
 // ========== PAGINATION STATE ==========
 const paginationState = {
@@ -38,17 +35,13 @@ const paginationState = {
     }
 };
 
-// Helper function to format timestamps in the configured timezone
+// Helper function to format timestamps
 function formatDateTime(dateString) {
     if (!dateString) return '-';
 
     try {
-        // Parse the date string (SQLite format: "YYYY-MM-DD HH:MM:SS")
-        // SQLite timestamps are stored in UTC, so we treat them as UTC and convert to APP_TIMEZONE
-        const date = new Date(dateString.replace(' ', 'T') + 'Z'); // Treat as UTC
-
+        const date = new Date(dateString.replace(' ', 'T'));
         return date.toLocaleString('en-US', {
-            timeZone: APP_TIMEZONE,
             month: 'short',
             day: 'numeric',
             year: 'numeric',
@@ -431,16 +424,6 @@ function changeHistoryPage(direction) {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize timezone settings
-    updateHeaderTimezoneIndicator();
-    initializeTimezoneSettings();
-
-    loadHeaderStats();
-    loadInventory();
-    loadFilters();
-    loadCategoriesList();  // Load available categories for dropdowns
-});
-
-// Tab switching
 function showTab(tabName) {
     // Hide all tabs
     document.querySelectorAll('.tab-content').forEach(tab => {
@@ -3868,107 +3851,6 @@ function initializeTimezoneSettings() {
         timezoneSelect.value = APP_TIMEZONE;
 
         // Update current timezone display
-        updateTimezoneDisplay();
-
-        // Start timezone preview clock
-        updateTimezonePreview();
-        setInterval(updateTimezonePreview, 1000); // Update every second
-    }
-}
-
-// Update current timezone display
-function updateTimezoneDisplay() {
-    const currentTimezoneDisplay = document.getElementById('currentTimezone');
-    if (currentTimezoneDisplay) {
-        const now = new Date();
-        const tzAbbr = now.toLocaleString('en-US', {
-            timeZone: APP_TIMEZONE,
-            timeZoneName: 'short'
-        }).split(' ').pop();
-
-        const tzName = APP_TIMEZONE.replace('America/', '')
-                                   .replace('Europe/', '')
-                                   .replace('Asia/', '')
-                                   .replace('Australia/', '')
-                                   .replace('Pacific/', '')
-                                   .replace('Africa/', '')
-                                   .replace('_', ' ');
-
-        currentTimezoneDisplay.innerHTML = `<strong>${tzName}</strong> (${tzAbbr})`;
-    }
-}
-
-// Update timezone preview (live clock)
-function updateTimezonePreview() {
-    const previewElement = document.getElementById('timezonePreview');
-    if (previewElement) {
-        const now = new Date();
-        const timeString = now.toLocaleString('en-US', {
-            timeZone: APP_TIMEZONE,
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true
-        });
-        previewElement.textContent = timeString;
-    }
-}
-
-// Update timezone when user selects a new one
-function updateTimezone() {
-    const timezoneSelect = document.getElementById('timezoneSelect');
-    const newTimezone = timezoneSelect.value;
-
-    if (newTimezone && newTimezone !== APP_TIMEZONE) {
-        // Update global timezone
-        APP_TIMEZONE = newTimezone;
-
-        // Save to localStorage
-        localStorage.setItem('app_timezone', newTimezone);
-
-        // Update displays
-        updateTimezoneDisplay();
-        updateTimezonePreview();
-        updateHeaderTimezoneIndicator();
-
-        // Reload current tab data to show updated timestamps
-        const activeTab = document.querySelector('.tab-content.active');
-        if (activeTab) {
-            const tabId = activeTab.id;
-            if (tabId === 'history-tab') {
-                loadHistory();
-            } else if (tabId === 'invoices-tab') {
-                loadInvoices();
-            } else if (tabId === 'counts-tab') {
-                loadCounts();
-            } else if (tabId === 'settings-tab') {
-                loadCategoriesList();
-            }
-        }
-
-        alert(`✅ Timezone updated to ${newTimezone.replace('America/', '').replace('_', ' ')}`);
-    }
-}
-
-// Update header timezone indicator
-function updateHeaderTimezoneIndicator() {
-    const timezoneIndicator = document.getElementById('timezoneIndicator');
-    if (timezoneIndicator) {
-        const now = new Date();
-        const tzAbbr = now.toLocaleString('en-US', {
-            timeZone: APP_TIMEZONE,
-            timeZoneName: 'short'
-        }).split(' ').pop();
-        timezoneIndicator.textContent = `🕐 All times shown in ${APP_TIMEZONE.replace('America/', '').replace('_', ' ')} (${tzAbbr})`;
-    }
-}
-
-// ========== DATE FILTER CLEAR FUNCTIONS ==========
-
 function clearInvoiceDateFilters() {
     document.getElementById('invoiceDateFrom').value = '';
     document.getElementById('invoiceDateTo').value = '';
@@ -7935,3 +7817,240 @@ console.log('  - updateProduct()');
 console.log('  - deleteProduct(productId, productName)');
 console.log('  - addIngredientToRecipe()');
 console.log('  - removeIngredientFromRecipe(ingredientId)');
+
+// ============================================================================
+// BACKGROUND CUSTOMIZATION
+// ============================================================================
+
+// Gradient definitions
+const GRADIENTS = {
+    default: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    sunset: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    ocean: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    forest: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+    lavender: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+    fire: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+    midnight: 'linear-gradient(135deg, #2c3e50 0%, #3498db 100%)',
+    cherry: 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)',
+    mint: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+    gold: 'linear-gradient(135deg, #ffd89b 0%, #19547b 100%)'
+};
+
+/**
+ * Load and apply saved background on page load
+ */
+function loadSavedBackground() {
+    const savedGradient = localStorage.getItem('background_gradient');
+    const savedImage = localStorage.getItem('background_image');
+
+    if (savedImage) {
+        // Apply saved image
+        document.body.style.backgroundImage = `url(${savedImage})`;
+        document.body.style.background = 'none';
+        showBackgroundImagePreview(savedImage);
+    } else if (savedGradient && GRADIENTS[savedGradient]) {
+        // Apply saved gradient
+        applyGradient(savedGradient, false);
+    }
+
+    // Mark active gradient in UI
+    updateActiveGradient();
+}
+
+/**
+ * Apply a gradient theme
+ */
+function applyGradient(gradientName, showMsg = true) {
+    const gradient = GRADIENTS[gradientName];
+
+    if (!gradient) {
+        console.error('Unknown gradient:', gradientName);
+        return;
+    }
+
+    // Remove any background image
+    document.body.style.backgroundImage = 'none';
+
+    // Apply gradient
+    document.body.style.background = gradient;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundAttachment = 'fixed';
+
+    // Save to localStorage
+    localStorage.setItem('background_gradient', gradientName);
+    localStorage.removeItem('background_image');
+
+    // Hide image preview
+    const preview = document.getElementById('backgroundImagePreview');
+    if (preview) {
+        preview.style.display = 'none';
+    }
+
+    // Update UI
+    updateActiveGradient();
+
+    if (showMsg) {
+        const displayName = gradientName.charAt(0).toUpperCase() + gradientName.slice(1);
+        showMessage(`✅ ${displayName} theme applied!`, 'success');
+    }
+}
+
+/**
+ * Update active state on gradient options
+ */
+function updateActiveGradient() {
+    const savedGradient = localStorage.getItem('background_gradient') || 'default';
+
+    // Remove all active classes
+    document.querySelectorAll('.gradient-option').forEach(opt => {
+        opt.classList.remove('active');
+    });
+
+    // Add active class to current gradient
+    const activeOption = document.querySelector(`[data-gradient="${savedGradient}"]`);
+    if (activeOption) {
+        activeOption.classList.add('active');
+    }
+}
+
+/**
+ * Handle background image upload
+ */
+function handleBackgroundImageUpload(event) {
+    const file = event.target.files[0];
+
+    if (!file) {
+        return;
+    }
+
+    // Check file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+        showMessage('Please upload a JPEG, PNG, or GIF image', 'error');
+        event.target.value = '';
+        return;
+    }
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showMessage('Image size must be less than 5MB', 'error');
+        event.target.value = '';
+        return;
+    }
+
+    // Read the file
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const imageData = e.target.result;
+
+        // Apply background image
+        document.body.style.background = 'none';
+        document.body.style.backgroundImage = `url(${imageData})`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+        document.body.style.backgroundAttachment = 'fixed';
+
+        // Save to localStorage
+        localStorage.setItem('background_image', imageData);
+        localStorage.removeItem('background_gradient');
+
+        // Show preview
+        showBackgroundImagePreview(imageData);
+
+        // Remove active state from gradients
+        document.querySelectorAll('.gradient-option').forEach(opt => {
+            opt.classList.remove('active');
+        });
+
+        showMessage('✅ Custom background image applied!', 'success');
+    };
+
+    reader.onerror = function() {
+        showMessage('Error reading file. Please try again.', 'error');
+        event.target.value = '';
+    };
+
+    reader.readAsDataURL(file);
+}
+
+/**
+ * Show background image preview
+ */
+function showBackgroundImagePreview(imageData) {
+    const preview = document.getElementById('backgroundImagePreview');
+    const previewImg = document.getElementById('backgroundImagePreviewImg');
+
+    if (preview && previewImg) {
+        previewImg.src = imageData;
+        preview.style.display = 'block';
+    }
+}
+
+/**
+ * Remove background image
+ */
+function removeBackgroundImage() {
+    if (!confirm('Remove custom background image and return to gradient theme?')) {
+        return;
+    }
+
+    // Clear file input
+    const fileInput = document.getElementById('backgroundImageUpload');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+
+    // Remove from localStorage
+    localStorage.removeItem('background_image');
+
+    // Hide preview
+    const preview = document.getElementById('backgroundImagePreview');
+    if (preview) {
+        preview.style.display = 'none';
+    }
+
+    // Apply default gradient
+    applyGradient('default');
+
+    showMessage('✅ Background image removed', 'success');
+}
+
+/**
+ * Reset to default theme
+ */
+function resetBackgroundToDefault() {
+    if (!confirm('Reset to default theme? This will remove any custom backgrounds.')) {
+        return;
+    }
+
+    // Clear file input
+    const fileInput = document.getElementById('backgroundImageUpload');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+
+    // Clear localStorage
+    localStorage.removeItem('background_gradient');
+    localStorage.removeItem('background_image');
+
+    // Hide preview
+    const preview = document.getElementById('backgroundImagePreview');
+    if (preview) {
+        preview.style.display = 'none';
+    }
+
+    // Apply default
+    applyGradient('default');
+
+    showMessage('✅ Reset to default theme', 'success');
+}
+
+// Initialize background on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadSavedBackground();
+});
+
+console.log('%c✓ Background Customization Ready', 'color: purple; font-weight: bold; font-size: 14px');
+console.log('Available gradients:', Object.keys(GRADIENTS));

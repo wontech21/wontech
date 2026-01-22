@@ -26,6 +26,9 @@ td {
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
     min-height: 100vh;
     padding: 1.5vw;
 }
@@ -4753,5 +4756,75 @@ textarea.form-control {
     .product-item-stats {
         width: 100%;
         justify-content: space-between;
+    }
+}
+
+/* ============================================================================
+   BACKGROUND CUSTOMIZATION STYLES
+   ============================================================================ */
+
+.gradient-palette {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.gradient-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.gradient-option:hover {
+    transform: translateY(-3px);
+}
+
+.gradient-option > div {
+    width: 100px;
+    height: 80px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.gradient-option:hover > div {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    border-color: #667eea;
+}
+
+.gradient-option.active > div {
+    border-color: #28a745;
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+.gradient-option span {
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #333;
+    text-align: center;
+}
+
+.gradient-option.active span {
+    color: #28a745;
+}
+
+/* Background Image Preview */
+#backgroundImagePreview {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
