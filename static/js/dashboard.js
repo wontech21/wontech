@@ -7862,6 +7862,14 @@ function loadSavedBackground() {
         const defaultColors = THEME_COLORS.default;
         document.documentElement.style.setProperty('--theme-color-1', defaultColors.color1);
         document.documentElement.style.setProperty('--theme-color-2', defaultColors.color2);
+
+        // Set RGB values too
+        const rgb1 = hexToRgb(defaultColors.color1);
+        const rgb2 = hexToRgb(defaultColors.color2);
+        if (rgb1 && rgb2) {
+            document.documentElement.style.setProperty('--theme-color-1-rgb', `${rgb1.r}, ${rgb1.g}, ${rgb1.b}`);
+            document.documentElement.style.setProperty('--theme-color-2-rgb', `${rgb2.r}, ${rgb2.g}, ${rgb2.b}`);
+        }
     } else if (savedGradient && GRADIENTS[savedGradient]) {
         // Apply saved gradient (which also sets theme colors)
         applyGradient(savedGradient, false);
@@ -7872,6 +7880,18 @@ function loadSavedBackground() {
 
     // Mark active gradient in UI
     updateActiveGradient();
+}
+
+/**
+ * Convert hex color to RGB values
+ */
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
 }
 
 /**
@@ -7898,6 +7918,14 @@ function applyGradient(gradientName, showMsg = true) {
     // Update CSS variables for theme colors (updates all UI elements)
     document.documentElement.style.setProperty('--theme-color-1', themeColors.color1);
     document.documentElement.style.setProperty('--theme-color-2', themeColors.color2);
+
+    // Update RGB versions for rgba() usage
+    const rgb1 = hexToRgb(themeColors.color1);
+    const rgb2 = hexToRgb(themeColors.color2);
+    if (rgb1 && rgb2) {
+        document.documentElement.style.setProperty('--theme-color-1-rgb', `${rgb1.r}, ${rgb1.g}, ${rgb1.b}`);
+        document.documentElement.style.setProperty('--theme-color-2-rgb', `${rgb2.r}, ${rgb2.g}, ${rgb2.b}`);
+    }
 
     // Save to localStorage
     localStorage.setItem('background_gradient', gradientName);
@@ -7978,6 +8006,14 @@ function handleBackgroundImageUpload(event) {
         const defaultColors = THEME_COLORS.default;
         document.documentElement.style.setProperty('--theme-color-1', defaultColors.color1);
         document.documentElement.style.setProperty('--theme-color-2', defaultColors.color2);
+
+        // Set RGB values too
+        const rgb1 = hexToRgb(defaultColors.color1);
+        const rgb2 = hexToRgb(defaultColors.color2);
+        if (rgb1 && rgb2) {
+            document.documentElement.style.setProperty('--theme-color-1-rgb', `${rgb1.r}, ${rgb1.g}, ${rgb1.b}`);
+            document.documentElement.style.setProperty('--theme-color-2-rgb', `${rgb2.r}, ${rgb2.g}, ${rgb2.b}`);
+        }
 
         // Save to localStorage
         localStorage.setItem('background_image', imageData);
