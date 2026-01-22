@@ -24,7 +24,7 @@
    - Charts and visualizations
 
 4. **Infrastructure**
-   - Git version control (8 commits)
+   - Git version control (11 commits)
    - Docker containerization
    - GitHub repository: https://github.com/wontech21/firingup-inventory
    - Cloud deployment: https://firingup-inventory.onrender.com/
@@ -37,6 +37,16 @@
    - Comprehensive format guide with examples
    - Preview before applying changes
    - Validation and error handling
+   - Full audit logging to System History
+
+6. **System History / Audit Trail**
+   - Complete audit log of all system actions
+   - Sales tracking (SALE_RECORDED)
+   - Invoice operations
+   - Inventory counts
+   - Item/Brand/Supplier changes
+   - Filterable by action type and entity
+   - Date range filtering
 
 ### 🚧 In Progress
 - None currently
@@ -47,6 +57,10 @@
 
 ### 🐛 Known Issues
 - None currently
+
+### 🔧 Recently Fixed
+- Sales CSV imports now properly log to System History tab (audit_log)
+- Missing saleTime field causing Parse & Preview to fail
 
 ---
 
@@ -120,6 +134,9 @@ git add . && git commit -m "Description" && git push
 5. Completed Phase 3: Cloud deployment to Render.com
 6. PWA installed on iPad - full mobile access enabled
 7. Added CSV import to Sales tab with comprehensive format guide
+8. Fixed CSV import Parse & Preview button not working (missing saleTime field)
+9. Added comprehensive audit logging for sales CSV imports
+10. Sales now appear in System History tab with full details
 
 ---
 
