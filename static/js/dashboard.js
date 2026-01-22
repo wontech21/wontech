@@ -54,7 +54,7 @@ function formatDateTime(dateString) {
     }
 }
 
-// Helper function to format date only (no time) in the configured timezone
+// Helper function to format date only (no time)
 function formatDateOnly(dateString) {
     if (!dateString) return '-';
 
@@ -422,10 +422,6 @@ function changeHistoryPage(direction) {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize timezone settings
-    updateHeaderTimezoneIndicator();
-    initializeTimezoneSettings();
-
     loadHeaderStats();
     loadInventory();
     loadFilters();
@@ -3847,63 +3843,6 @@ window.addEventListener('click', function(event) {
 
     // Count modals do NOT close on outside click to prevent accidental data loss
 });
-
-// ========== TIMEZONE MANAGEMENT ==========
-
-// Initialize timezone settings
-function initializeTimezoneSettings() {
-    const timezoneSelect = document.getElementById('timezoneSelect');
-    const currentTimezoneDisplay = document.getElementById('currentTimezone');
-
-    if (timezoneSelect) {
-        // Set current timezone in dropdown
-        timezoneSelect.value = APP_TIMEZONE;
-
-        // Update current timezone display
-        updateTimezoneDisplay();
-
-        // Start timezone preview clock
-        updateTimezonePreview();
-        setInterval(updateTimezonePreview, 1000); // Update every second
-    }
-}
-
-// Update current timezone display
-function updateTimezoneDisplay() {
-    const currentTimezoneDisplay = document.getElementById('currentTimezone');
-    if (currentTimezoneDisplay) {
-        const now = new Date();
-        const tzAbbr = now.toLocaleString('en-US', {
-            timeZone: APP_TIMEZONE,
-            timeZoneName: 'short'
-        }).split(' ').pop();
-
-        const tzName = APP_TIMEZONE.replace('America/', '')
-                                   .replace('Europe/', '')
-                                   .replace('Asia/', '')
-                                   .replace('Australia/', '')
-                                   .replace('Pacific/', '')
-                                   .replace('Africa/', '')
-                                   .replace('_', ' ');
-
-        currentTimezoneDisplay.innerHTML = `<strong>${tzName}</strong> (${tzAbbr})`;
-    }
-}
-
-
-
-// Update header timezone indicator
-function updateHeaderTimezoneIndicator() {
-    const timezoneIndicator = document.getElementById('timezoneIndicator');
-    if (timezoneIndicator) {
-        const now = new Date();
-        const tzAbbr = now.toLocaleString('en-US', {
-            timeZone: APP_TIMEZONE,
-            timeZoneName: 'short'
-        }).split(' ').pop();
-        timezoneIndicator.textContent = `🕐 All times shown in ${APP_TIMEZONE.replace('America/', '').replace('_', ' ')} (${tzAbbr})`;
-    }
-}
 
 // ========== DATE FILTER CLEAR FUNCTIONS ==========
 

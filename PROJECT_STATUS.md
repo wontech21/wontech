@@ -37,12 +37,11 @@
    - Live preview for uploaded images
    - Preferences saved in localStorage
    - Reset to default option
-   - **Glassmorphism UI**: Entire dashboard has frosted glass effect
-   - Semi-transparent panels float over background
-   - Backdrop blur filters (20px on main container)
-   - Subtle borders and inner glow effects
-   - Shimmer animation on hover
-   - Background shows through all elements
+   - **Minimal Glassmorphism UI**: Main container has frosted glass overlay
+   - Backdrop blur filters (20px on main container only)
+   - All other UI elements are bold and opaque for readability
+   - Table headers, tabs, and modals have bold purple gradient
+   - Background shows through main container only
 
 6. **CSV Import**
    - Sales CSV import in Sales tab
@@ -158,6 +157,18 @@ git add . && git commit -m "Description" && git push
 11. Removed timezone settings (simplified to local time)
 12. Added background customization with 10 gradient themes and custom image upload
 13. Implemented comprehensive glassmorphism (frosted glass) effect across entire dashboard
+
+### 2026-01-22 (Session 2)
+1. **REVERSED comprehensive glassmorphism** - User feedback: text was washed out and unreadable
+2. **Kept minimal glass effect** - Only main container has frosted glass overlay
+3. **Fixed perpetually loading header stats** - Removed orphaned timezone function calls from DOMContentLoaded
+4. **Applied bold opaque colors to all UI elements**:
+   - Active tabs now have purple gradient background with white text
+   - All table headers have bold purple gradient with white text
+   - Modal headers have purple gradient with white text
+   - Close buttons updated for dark backgrounds
+5. **Removed all remaining timezone code** - Cleaned up unused timezone functions
+6. **Ensured proper contrast** - All text elements now have good readability
 
 ---
 
