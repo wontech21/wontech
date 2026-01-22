@@ -74,9 +74,20 @@ function clearCsvUpload() {
  */
 async function parseSalesCSV() {
     console.log('📝 parseSalesCSV called');
-    const csvText = document.getElementById('salesCsvText').value.trim();
-    const saleDate = document.getElementById('saleDate').value || new Date().toISOString().split('T')[0];
-    const saleTime = document.getElementById('saleTime').value || '';
+
+    const csvTextElement = document.getElementById('salesCsvText');
+    const saleDateElement = document.getElementById('saleDate');
+    const saleTimeElement = document.getElementById('saleTime');
+
+    if (!csvTextElement) {
+        console.error('salesCsvText element not found!');
+        showMessage('Error: CSV text field not found', 'error');
+        return;
+    }
+
+    const csvText = csvTextElement.value.trim();
+    const saleDate = saleDateElement ? (saleDateElement.value || new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0];
+    const saleTime = saleTimeElement ? saleTimeElement.value : '';
 
     if (!csvText) {
         console.warn('No CSV text entered');
