@@ -24,17 +24,17 @@
    - Charts and visualizations
 
 4. **Infrastructure**
-   - Git version control (5 commits)
+   - Git version control (6 commits)
    - Docker containerization
    - GitHub repository: https://github.com/wontech21/firingup-inventory
    - Cloud deployment: https://firingup-inventory.onrender.com/
    - Automatic deployment pipeline (git push → Render auto-deploys)
+   - PWA installed on iPad
 
 ### 🚧 In Progress
 - None currently
 
 ### 📋 Pending
-- Install PWA on iPad
 - Optional: Set up Render Disk for persistent database
 - Optional: Upgrade to Starter plan ($7/month) for always-on
 
@@ -111,6 +111,7 @@ git add . && git commit -m "Description" && git push
 3. Completed Phase 1: Git setup
 4. Completed Phase 2: Docker containerization
 5. Completed Phase 3: Cloud deployment to Render.com
+6. PWA installed on iPad - full mobile access enabled
 
 ---
 
