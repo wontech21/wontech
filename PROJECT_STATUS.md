@@ -24,14 +24,21 @@
    - Charts and visualizations
 
 4. **Infrastructure**
-   - Git version control (11 commits)
+   - Git version control (13 commits)
    - Docker containerization
    - GitHub repository: https://github.com/wontech21/firingup-inventory
    - Cloud deployment: https://firingup-inventory.onrender.com/
    - Automatic deployment pipeline (git push → Render auto-deploys)
    - PWA installed on iPad
 
-5. **CSV Import**
+5. **Background Customization**
+   - 10 gradient themes (Default, Sunset, Ocean, Forest, Lavender, Fire, Midnight, Cherry, Mint, Gold)
+   - Custom image upload (JPEG, PNG, GIF up to 5MB)
+   - Live preview for uploaded images
+   - Preferences saved in localStorage
+   - Reset to default option
+
+6. **CSV Import**
    - Sales CSV import in Sales tab
    - File upload and copy/paste support
    - Comprehensive format guide with examples
@@ -39,7 +46,7 @@
    - Validation and error handling
    - Full audit logging to System History
 
-6. **System History / Audit Trail**
+7. **System History / Audit Trail**
    - Complete audit log of all system actions
    - Sales tracking (SALE_RECORDED)
    - Invoice operations
@@ -61,6 +68,11 @@
 ### 🔧 Recently Fixed
 - Sales CSV imports now properly log to System History tab (audit_log)
 - Missing saleTime field causing Parse & Preview to fail
+
+### ⚙️ Settings & Customization
+- Brand management (rename across all items)
+- Supplier management (rename across all items)
+- Background customization (10 gradients + custom images)
 
 ---
 
@@ -137,6 +149,8 @@ git add . && git commit -m "Description" && git push
 8. Fixed CSV import Parse & Preview button not working (missing saleTime field)
 9. Added comprehensive audit logging for sales CSV imports
 10. Sales now appear in System History tab with full details
+11. Removed timezone settings (simplified to local time)
+12. Added background customization with 10 gradient themes and custom image upload
 
 ---
 
