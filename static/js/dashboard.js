@@ -138,6 +138,24 @@ function formatCategoryBadge(category, itemId) {
             </span>`;
 }
 
+// ========== SALES CSV HELPER FUNCTIONS ==========
+
+/**
+ * Toggle the CSV format guide visibility
+ */
+function toggleFormatGuide() {
+    const guide = document.getElementById('format-guide');
+    if (!guide) return;
+
+    if (guide.style.display === 'none' || guide.style.display === '') {
+        guide.style.display = 'block';
+        event.target.textContent = '📋 Hide Format Guide';
+    } else {
+        guide.style.display = 'none';
+        event.target.textContent = '📋 Show Format Guide';
+    }
+}
+
 // ========== PAGINATION HELPER FUNCTIONS ==========
 
 /**

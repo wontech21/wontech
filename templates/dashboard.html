@@ -326,69 +326,108 @@
                 </div>
             </div>
 
-            <!-- Hidden: Old CSV input section (keep for future use if needed) -->
-            <div id="csv-input-section-hidden" style="display: none;">
-            <div class="card" style="margin-bottom: 30px;">
-                <h3>📝 Enter Sales Data</h3>
-                <p class="form-help-text">Paste CSV data or manually enter sales</p>
+            <!-- CSV Sales Import Section -->
+            <div style="margin-top: 30px;">
+                <div class="card" style="margin-bottom: 30px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div>
+                            <h3 style="margin: 0;">📝 Import Sales Data</h3>
+                            <p class="form-help-text" style="margin: 5px 0 0 0;">Upload or paste CSV sales data to process</p>
+                        </div>
+                        <button onclick="toggleFormatGuide()" style="padding: 8px 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                            📋 Show Format Guide
+                        </button>
+                    </div>
 
-                <div class="sales-input-section">
-                    <!-- CSV Input -->
-                    <div id="csv-input" class="input-method-content">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <label for="salesCsvText">Sales Data (CSV):</label>
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <label for="csvFileUpload" class="btn-upload" style="cursor: pointer; padding: 8px 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 6px; font-weight: 600; font-size: 0.9em; display: inline-flex; align-items: center; gap: 8px;">
-                                    📁 Upload CSV File
-                                    <input type="file" id="csvFileUpload" accept=".csv" style="display: none;" onchange="handleCsvFileUpload(event)">
-                                </label>
-                                <span id="uploadedFileName" style="font-size: 0.85em; color: #28a745;"></span>
-                                <button id="clearUploadBtn" class="btn-clear-upload" onclick="clearCsvUpload()" style="display: none; padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em;">
-                                    ✕ Clear
+                    <!-- Format Guide (Collapsible) -->
+                    <div id="format-guide" style="display: none; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 10px; padding: 20px; margin-bottom: 20px; border-left: 5px solid #667eea;">
+                        <h4 style="margin-top: 0; color: #667eea;">📊 CSV Format Guide</h4>
+
+                        <div style="background: white; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                            <strong style="color: #28a745;">✓ Required Format:</strong>
+                            <pre style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; overflow-x: auto; font-size: 0.9em;">Product, Quantity, Retail_Price, Time
+Cheese Pizza, 100, 14.99, 14:30:00
+Beef Tacos, 250, 9.99, 14:35:00
+Chicken Burrito, 75, 11.99, 15:00:00</pre>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+                            <div style="background: white; border-radius: 8px; padding: 15px;">
+                                <strong style="color: #667eea;">📋 Column Details:</strong>
+                                <ul style="margin: 10px 0 0 0; padding-left: 20px; line-height: 1.8;">
+                                    <li><strong>Product:</strong> Product name (must match database)</li>
+                                    <li><strong>Quantity:</strong> Number sold</li>
+                                    <li><strong>Retail_Price:</strong> Actual sale price (optional, uses DB price if blank)</li>
+                                    <li><strong>Time:</strong> Sale time HH:MM:SS (optional)</li>
+                                </ul>
+                            </div>
+
+                            <div style="background: white; border-radius: 8px; padding: 15px;">
+                                <strong style="color: #f5576c;">💡 Important Notes:</strong>
+                                <ul style="margin: 10px 0 0 0; padding-left: 20px; line-height: 1.8;">
+                                    <li>Headers are optional but recommended</li>
+                                    <li>If Retail_Price is blank, uses database price</li>
+                                    <li>Revenue = retail_price × quantity</li>
+                                    <li>Product names must exactly match your products</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div style="background: #fff3cd; border-radius: 8px; padding: 15px; margin-top: 15px; border-left: 4px solid #ffc107;">
+                            <strong style="color: #856404;">⚡ Quick Example:</strong>
+                            <pre style="background: white; padding: 10px; border-radius: 5px; margin: 10px 0; font-size: 0.85em;">Margherita Pizza, 50, 13.99, 16:00:00
+Veggie Burrito, 30, , 16:15:00    ← Blank price uses database price
+Hawaiian Pizza, 25, 15.99</pre>
+                        </div>
+                    </div>
+
+                    <div class="sales-input-section">
+                        <!-- CSV Input -->
+                        <div id="csv-input" class="input-method-content">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <label for="salesCsvText" style="font-weight: 600; font-size: 1.05em;">Sales Data (CSV):</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <label for="csvFileUpload" class="btn-upload" style="cursor: pointer; padding: 10px 18px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 6px; font-weight: 600; font-size: 0.95em; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3); transition: all 0.3s ease;">
+                                        📁 Upload CSV File
+                                        <input type="file" id="csvFileUpload" accept=".csv" style="display: none;" onchange="handleCsvFileUpload(event)">
+                                    </label>
+                                    <span id="uploadedFileName" style="font-size: 0.9em; color: #28a745; font-weight: 600;"></span>
+                                    <button id="clearUploadBtn" class="btn-clear-upload" onclick="clearCsvUpload()" style="display: none; padding: 8px 14px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em; font-weight: 600;">
+                                        ✕ Clear
+                                    </button>
+                                </div>
+                            </div>
+                            <textarea id="salesCsvText" rows="10" style="width: 100%; padding: 15px; border: 2px solid #e9ecef; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.95em;" placeholder="Paste or upload CSV data here...
+
+Example:
+Product, Quantity, Retail_Price, Time
+Cheese Pizza, 100, 14.99, 14:30:00
+Beef Tacos, 250, 9.99, 14:35:00"></textarea>
+                            <div style="margin-top: 15px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                                <label style="font-weight: 600;">Sale Date:</label>
+                                <input type="date" id="saleDate" value="" style="padding: 10px; border: 2px solid #667eea; border-radius: 6px; font-size: 0.95em;">
+                                <button class="btn-create-inline" onclick="parseSalesCSV()" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 1em; cursor: pointer; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); transition: all 0.3s ease;">
+                                    🔍 Parse & Preview
                                 </button>
                             </div>
                         </div>
-                        <p class="form-help-text" style="margin: 5px 0 10px 0; font-size: 0.9em; color: #666;">
-                            <strong>Format:</strong> Product, Quantity, Retail_Price (optional), Time (optional)<br>
-                            Revenue = retail_price × quantity
-                        </p>
-                        <textarea id="salesCsvText" rows="12" placeholder="With headers (recommended):
-Product, Quantity, Retail_Price, Time
-Cheese Pizza, 100, 14.99, 14:30:00
-Beef Tacos, 250, 9.99, 14:35:00
-Chicken Burrito, 75, 11.99, 15:00:00
+                    </div>
+                </div>
 
-Without headers (same order):
-Margherita Pizza, 50, 13.99, 16:00:00
-Veggie Burrito, 30, , 16:15:00
-
-(If retail_price is blank, uses database price)"></textarea>
-                        <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                            <label style="font-weight: 600;">Default Date:</label>
-                            <input type="date" id="saleDate" value="" style="flex: 0 0 auto;">
-                            <button class="btn-create-inline" onclick="parseSalesCSV()">
-                                🔍 Parse & Preview
-                            </button>
+                <!-- Preview Section -->
+                <div id="preview-section" style="display: none;">
+                    <div class="card" style="margin-bottom: 20px;">
+                        <h3>👁️ Preview Changes</h3>
+                        <div id="preview-summary" class="sales-summary-cards"></div>
+                        <div id="preview-details" class="sales-preview-details"></div>
+                        <div id="preview-warnings" class="sales-warnings"></div>
+                        <div style="margin-top: 20px; text-align: right;">
+                            <button class="btn-secondary" onclick="cancelPreview()">Cancel</button>
+                            <button class="btn-success" onclick="applySales()">✓ Apply to Inventory</button>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Preview Section -->
-            <div id="preview-section" style="display: none;">
-                <div class="card" style="margin-bottom: 20px;">
-                    <h3>👁️ Preview Changes</h3>
-                    <div id="preview-summary" class="sales-summary-cards"></div>
-                    <div id="preview-details" class="sales-preview-details"></div>
-                    <div id="preview-warnings" class="sales-warnings"></div>
-                    <div style="margin-top: 20px; text-align: right;">
-                        <button class="btn-secondary" onclick="cancelPreview()">Cancel</button>
-                        <button class="btn-success" onclick="applySales()">✓ Apply to Inventory</button>
-                    </div>
-                </div>
-            </div>
-            </div>
-            <!-- End of hidden CSV input section -->
         </div>
 
         <!-- Invoices Tab -->
