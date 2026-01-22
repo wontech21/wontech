@@ -1,6 +1,5 @@
 // Firing Up Inventory Dashboard JavaScript
 
-
 // ========== PAGINATION STATE ==========
 const paginationState = {
     inventory: {
@@ -424,6 +423,16 @@ function changeHistoryPage(direction) {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize timezone settings
+    updateHeaderTimezoneIndicator();
+    initializeTimezoneSettings();
+
+    loadHeaderStats();
+    loadInventory();
+    loadFilters();
+    loadCategoriesList();  // Load available categories for dropdowns
+});
+
+// Tab switching
 function showTab(tabName) {
     // Hide all tabs
     document.querySelectorAll('.tab-content').forEach(tab => {
@@ -3851,6 +3860,53 @@ function initializeTimezoneSettings() {
         timezoneSelect.value = APP_TIMEZONE;
 
         // Update current timezone display
+        updateTimezoneDisplay();
+
+        // Start timezone preview clock
+        updateTimezonePreview();
+        setInterval(updateTimezonePreview, 1000); // Update every second
+    }
+}
+
+// Update current timezone display
+function updateTimezoneDisplay() {
+    const currentTimezoneDisplay = document.getElementById('currentTimezone');
+    if (currentTimezoneDisplay) {
+        const now = new Date();
+        const tzAbbr = now.toLocaleString('en-US', {
+            timeZone: APP_TIMEZONE,
+            timeZoneName: 'short'
+        }).split(' ').pop();
+
+        const tzName = APP_TIMEZONE.replace('America/', '')
+                                   .replace('Europe/', '')
+                                   .replace('Asia/', '')
+                                   .replace('Australia/', '')
+                                   .replace('Pacific/', '')
+                                   .replace('Africa/', '')
+                                   .replace('_', ' ');
+
+        currentTimezoneDisplay.innerHTML = `<strong>${tzName}</strong> (${tzAbbr})`;
+    }
+}
+
+
+
+// Update header timezone indicator
+function updateHeaderTimezoneIndicator() {
+    const timezoneIndicator = document.getElementById('timezoneIndicator');
+    if (timezoneIndicator) {
+        const now = new Date();
+        const tzAbbr = now.toLocaleString('en-US', {
+            timeZone: APP_TIMEZONE,
+            timeZoneName: 'short'
+        }).split(' ').pop();
+        timezoneIndicator.textContent = `🕐 All times shown in ${APP_TIMEZONE.replace('America/', '').replace('_', ' ')} (${tzAbbr})`;
+    }
+}
+
+// ========== DATE FILTER CLEAR FUNCTIONS ==========
+
 function clearInvoiceDateFilters() {
     document.getElementById('invoiceDateFrom').value = '';
     document.getElementById('invoiceDateTo').value = '';
