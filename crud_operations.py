@@ -137,6 +137,40 @@ def register_crud_routes(app):
         except Exception as e:
             return jsonify({'success': False, 'error': str(e)}), 500
 
+    @app.route('/api/ingredients/<int:ingredient_id>', methods=['DELETE'])
+    def delete_ingredient(ingredient_id):
+        """Delete an ingredient"""
+        try:
+            conn = get_db_connection(INVENTORY_DB)
+            cursor = conn.cursor()
+
+            # Check if ingredient exists
+            cursor.execute("SELECT ingredient_name FROM ingredients WHERE id = ?", (ingredient_id,))
+            ingredient = cursor.fetchone()
+
+            if not ingredient:
+                conn.close()
+                return jsonify({'success': False, 'error': 'Ingredient not found'}), 404
+
+            ingredient_name = ingredient['ingredient_name']
+
+            # Delete associated composite recipe entries first (if any)
+            cursor.execute("DELETE FROM ingredient_recipes WHERE composite_ingredient_id = ?", (ingredient_id,))
+
+            # Delete the ingredient
+            cursor.execute("DELETE FROM ingredients WHERE id = ?", (ingredient_id,))
+
+            conn.commit()
+            conn.close()
+
+            return jsonify({
+                'success': True,
+                'message': f'Ingredient "{ingredient_name}" deleted successfully'
+            })
+
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+
     @app.route('/api/ingredients/<int:ingredient_id>/recipe', methods=['POST'])
     def save_composite_recipe(ingredient_id):
         """Save or update composite ingredient recipe"""

@@ -812,8 +812,8 @@ function expandVariantsWithData(item) {
                 <td style="padding: 8px; border-bottom: 1px solid #ddd;"><small>${v.date_received || '-'}</small></td>
                 <td style="padding: 8px; border-bottom: 1px solid #ddd;"><small>${v.lot_number || '-'}</small></td>
                 <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">
-                    <button class="btn-edit-dark" onclick="closeModal(); openEditIngredientModal(${v.id})" title="Edit" style="margin-right: 5px;"><span style="font-weight: 700;">✏️</span></button>
-                    <button class="btn-delete-dark" onclick="closeModal(); confirmDeleteIngredient(${v.id}, '${escapedName.replace(/'/g, "\\'")}')" title="Delete"><span style="font-weight: 700;">🗑️</span></button>
+                    <button class="btn-edit-dark" onclick="openEditIngredientModal(${v.id})" title="Edit" style="margin-right: 5px;"><span style="font-weight: 700;">✏️</span></button>
+                    <button class="btn-delete-dark" onclick="confirmDeleteIngredient(${v.id}, '${escapedName.replace(/'/g, "\\'")}')" title="Delete"><span style="font-weight: 700;">🗑️</span></button>
                 </td>
             </tr>
         `;
@@ -7029,6 +7029,35 @@ async function updateIngredient() {
     } catch (error) {
         console.error('Error updating ingredient:', error);
         showMessage('Failed to update ingredient. Please try again.', 'error');
+    }
+}
+
+/**
+ * Confirm and delete an ingredient
+ */
+async function confirmDeleteIngredient(ingredientId, ingredientName) {
+    // Show confirmation dialog
+    if (!confirm(`Are you sure you want to delete "${ingredientName}"?\n\nThis action cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/ingredients/${ingredientId}`, {
+            method: 'DELETE'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showMessage(`✅ ${result.message}`, 'success');
+            closeModal(); // Close the variants modal
+            loadInventory(); // Refresh inventory table
+        } else {
+            showMessage(`Failed to delete ingredient: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting ingredient:', error);
+        showMessage('Failed to delete ingredient. Please try again.', 'error');
     }
 }
 
