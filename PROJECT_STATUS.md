@@ -214,6 +214,11 @@ git add . && git commit -m "Description" && git push
    - **Category Spending improvements**: Changed from area chart to pie chart showing total spending distribution by category; removed category filter UI for simpler visualization
    - **Date filter additions**: Supplier Performance and Cost Variance now respect date range filters
    - **Remaining analytics**: Vendor Spend Distribution, Category Spending Distribution (pie), Price Trend Analysis, Supplier Performance (with date filter), Invoice Activity, Cost Variance (with date filter), Product Profitability, Inventory Value Distribution, Price Volatility Index, Dead Stock Analysis, Waste & Shrinkage, Supplier Price Correlation, Cost Driver Analysis
+5. **Fixed category spending to show ALL categories**:
+   - Was limited to only 5 categories, now shows all 18 categories with spending data
+   - Optimized query from multiple category queries to single aggregation
+   - Extended color palette from 10 to 20 colors with dynamic cycling
+   - Pie chart now provides complete spending visibility across all categories
 
 ---
 
