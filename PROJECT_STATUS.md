@@ -219,6 +219,10 @@ git add . && git commit -m "Description" && git push
    - Optimized query from multiple category queries to single aggregation
    - Extended color palette from 10 to 20 colors with dynamic cycling
    - Pie chart now provides complete spending visibility across all categories
+6. **Fixed price trends chart not showing selected products**:
+   - Price trends widget was rendering twice, overwriting user selections with default data
+   - Fixed by returning early after populatePriceTrendItems() completes
+   - Chart now correctly displays the products users select
 
 ---
 
