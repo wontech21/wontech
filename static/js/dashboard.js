@@ -4101,6 +4101,7 @@ async function renderWidget(widget) {
         // Special handling for price_trends - populate item selector
         if (widget.widget_key === 'price_trends') {
             await populatePriceTrendItems();
+            return;
         }
 
         // Special handling for supplier_performance - use pagination
