@@ -45,8 +45,6 @@ instance/
 flask.log
 
 # Database files (keep tracked for now, will use volumes in production)
-# inventory.db
-# invoices.db
 
 # Logs
 *.log
@@ -113,5 +111,3 @@ coverage.xml
 # docker-compose.override.yml
 
 # Database files - too large for GitHub
-inventory.db
-invoices.db
