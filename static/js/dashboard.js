@@ -4189,8 +4189,8 @@ function createWidgetElement(widget) {
     let controlsHTML = '';
     if (widget.widget_key === 'price_trends') {
         controlsHTML = `
-            <div class="widget-controls" id="controls-${widget.widget_key}">
-                <div style="display: flex; gap: 15px; margin-bottom: 10px; align-items: center;">
+            <div class="widget-controls" id="controls-${widget.widget_key}" style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; gap: 15px; align-items: center;">
                     <label style="font-weight: 600;">Frequency:</label>
                     <label style="cursor: pointer;">
                         <input type="radio" name="pricetrend-frequency" value="all" checked onchange="filterPriceTrendDropdown()"> All
@@ -4205,17 +4205,20 @@ function createWidgetElement(widget) {
                         <input type="radio" name="pricetrend-frequency" value="monthly" onchange="filterPriceTrendDropdown()"> Monthly (&gt;10 days)
                     </label>
                 </div>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <label>Select Item:</label>
-                    <input type="text" id="pricetrend-search" placeholder="Search items..." style="width: 300px; padding: 6px;">
-                    <select id="pricetrend-item" style="width: 400px; padding: 6px;">
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <label style="font-weight: 600;">Item:</label>
+                    <input type="text" id="pricetrend-search" placeholder="Search items..." style="width: 300px; padding: 8px; font-size: 14px;">
+                    <select id="pricetrend-item" onchange="updatePriceTrend()" style="width: 450px; padding: 8px; font-size: 14px;">
                         <option value="">Loading items...</option>
                     </select>
-                    <label style="margin-left: 20px;">From:</label>
-                    <input type="date" id="pricetrend-date-from" style="padding: 6px; margin: 0 10px;">
+                </div>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <label style="font-weight: 600;">Date Range:</label>
+                    <label>From:</label>
+                    <input type="date" id="pricetrend-date-from" style="padding: 8px; font-size: 14px;" onchange="updatePriceTrend()">
                     <label>To:</label>
-                    <input type="date" id="pricetrend-date-to" style="padding: 6px; margin: 0 10px;">
-                    <button onclick="updatePriceTrend()" style="padding: 6px 16px;">Update Chart</button>
+                    <input type="date" id="pricetrend-date-to" style="padding: 8px; font-size: 14px;" onchange="updatePriceTrend()">
+                    <button onclick="updatePriceTrend()" style="padding: 8px 20px; font-size: 14px; font-weight: 600;">Update Chart</button>
                 </div>
             </div>
         `;

@@ -245,6 +245,13 @@ git add . && git commit -m "Description" && git push
    - Backend endpoint `/api/analytics/purchase-frequency` calculates frequency for all items
    - Dropdown dynamically filters items by both search term and frequency category
    - Helps users quickly find items based on how often they're purchased
+10. **Improved Price Trend Analysis widget layout and size**:
+   - Widget now spans full width of analytics dashboard for better visibility
+   - Added `size` column to `analytics_widgets` table
+   - Restructured controls into 3 clear rows: Frequency filters, Item selection, Date range
+   - Date filters now prominently displayed on dedicated row
+   - Auto-update chart when changing item selection or dates
+   - Increased font sizes and padding for better readability
 
 ---
 
