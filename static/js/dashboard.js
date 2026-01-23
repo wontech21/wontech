@@ -4218,6 +4218,22 @@ function renderPieChart(widgetKey, data, canvas) {
         analyticsCharts[widgetKey].destroy();
     }
 
+    // Generate colors for all categories
+    const baseColors = [
+        '#667eea', '#764ba2', '#f093fb', '#4facfe',
+        '#43e97b', '#fa709a', '#fee140', '#30cfd0',
+        '#a8edea', '#fed6e3', '#eb3349', '#f45c43',
+        '#ffd89b', '#19547b', '#2c3e50', '#3498db',
+        '#e74c3c', '#9b59b6', '#1abc9c', '#f39c12'
+    ];
+
+    // Extend colors if we have more categories than base colors
+    const numCategories = (data.labels || []).length;
+    const colors = [];
+    for (let i = 0; i < numCategories; i++) {
+        colors.push(baseColors[i % baseColors.length]);
+    }
+
     const ctx = canvas.getContext('2d');
     analyticsCharts[widgetKey] = new Chart(ctx, {
         type: 'doughnut',
@@ -4225,11 +4241,7 @@ function renderPieChart(widgetKey, data, canvas) {
             labels: data.labels || [],
             datasets: [{
                 data: data.values || [],
-                backgroundColor: [
-                    '#667eea', '#764ba2', '#f093fb', '#4facfe',
-                    '#43e97b', '#fa709a', '#fee140', '#30cfd0',
-                    '#a8edea', '#fed6e3'
-                ],
+                backgroundColor: colors,
                 borderWidth: 2,
                 borderColor: '#fff'
             }]

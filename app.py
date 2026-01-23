@@ -2905,75 +2905,62 @@ def analytics_product_profitability():
 
 @app.route('/api/analytics/category-spending')
 def analytics_category_spending():
-    """Total spending by category"""
+    """Category spending distribution (pie chart) - shows ALL categories"""
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
-    selected_categories = request.args.get('categories', '')
 
-    conn_inv = get_db_connection(INVENTORY_DB)
+    conn_inv = get_db_connection(INVOICES_DB)
+    conn_ing = get_db_connection(INVENTORY_DB)
     cursor_inv = conn_inv.cursor()
+    cursor_ing = conn_ing.cursor()
 
-    # Get all categories
-    cursor_inv.execute("SELECT DISTINCT category FROM ingredients WHERE active = 1 ORDER BY category")
-    all_categories = [row['category'] for row in cursor_inv.fetchall() if row['category']]
+    # Get category mapping from ingredients table
+    cursor_ing.execute("SELECT ingredient_code, category FROM ingredients")
+    category_map = {row['ingredient_code']: row['category'] for row in cursor_ing.fetchall()}
 
-    # Determine which categories to show
-    if selected_categories:
-        # User selected specific categories
-        categories = [cat.strip() for cat in selected_categories.split(',') if cat.strip() in all_categories]
-    else:
-        # Default to first 5 categories
-        categories = all_categories[:5]
+    # Get total spending by ingredient code from invoices
+    query = """
+        SELECT
+            ili.ingredient_code,
+            SUM(ili.total_price) as amount
+        FROM invoice_line_items ili
+        JOIN invoices i ON ili.invoice_id = i.id
+        WHERE 1=1
+    """
+    params = []
 
-    # Get ingredient-to-category mapping
-    category_map = {}
-    for category in categories:
-        cursor_inv.execute("SELECT ingredient_name FROM ingredients WHERE category = ? AND active = 1", (category,))
-        ingredients = [row['ingredient_name'] for row in cursor_inv.fetchall()]
-        category_map[category] = ingredients
+    if date_from:
+        query += " AND i.invoice_date >= ?"
+        params.append(date_from)
+    if date_to:
+        query += " AND i.invoice_date <= ?"
+        params.append(date_to)
+
+    query += " GROUP BY ili.ingredient_code"
+
+    cursor_inv.execute(query, params)
+    data = [dict(row) for row in cursor_inv.fetchall()]
+
+    # Aggregate by category
+    category_totals = {}
+    for row in data:
+        category = category_map.get(row['ingredient_code'], 'Unknown')
+        amount = row['amount']
+
+        if category not in category_totals:
+            category_totals[category] = 0
+
+        category_totals[category] += amount
 
     conn_inv.close()
+    conn_ing.close()
 
-    # Now query invoices for total spending per category
-    conn = get_db_connection(INVOICES_DB)
-    cursor = conn.cursor()
-
-    labels = []
-    values = []
-
-    for category in categories:
-        ingredients_in_cat = category_map.get(category, [])
-        if not ingredients_in_cat:
-            continue
-
-        placeholders = ','.join('?' * len(ingredients_in_cat))
-        query = f"""
-            SELECT SUM(ili.total_price) as total
-            FROM invoice_line_items ili
-            JOIN invoices i ON ili.invoice_id = i.id
-            WHERE ili.ingredient_name IN ({placeholders})
-        """
-        params = ingredients_in_cat[:]
-        if date_from:
-            query += " AND i.invoice_date >= ?"
-            params.append(date_from)
-        if date_to:
-            query += " AND i.invoice_date <= ?"
-            params.append(date_to)
-
-        cursor.execute(query, params)
-        result = cursor.fetchone()
-
-        total = float(result['total'] or 0)
-        if total > 0:
-            labels.append(category)
-            values.append(round(total, 2))
-
-    conn.close()
+    # Sort by amount descending and return in pie chart format
+    sorted_categories = sorted(category_totals.items(), key=lambda x: x[1], reverse=True)
 
     return jsonify({
-        'labels': labels,
-        'values': values
+        'labels': [category for category, _ in sorted_categories],
+        'values': [round(amount, 2) for _, amount in sorted_categories]
     })
 
 @app.route('/api/analytics/inventory-value')

@@ -336,16 +336,14 @@ def analytics_category_spending():
     conn_inv.close()
     conn_ing.close()
 
-    # Convert to list format for pie chart
-    result = [
-        {'category': category, 'amount': round(amount, 2)}
-        for category, amount in category_totals.items()
-    ]
-
     # Sort by amount descending
-    result.sort(key=lambda x: x['amount'], reverse=True)
+    sorted_categories = sorted(category_totals.items(), key=lambda x: x[1], reverse=True)
 
-    return jsonify(result)
+    # Return in format expected by pie chart: {labels: [...], values: [...]}
+    return jsonify({
+        'labels': [category for category, _ in sorted_categories],
+        'values': [round(amount, 2) for _, amount in sorted_categories]
+    })
 
 @app.route('/api/analytics/inventory-value')
 def analytics_inventory_value():
