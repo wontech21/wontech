@@ -4206,11 +4206,19 @@ function createWidgetElement(widget) {
                     </label>
                 </div>
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                    <label style="font-weight: 600;">Item:</label>
-                    <input type="text" id="pricetrend-search" placeholder="Search items..." style="width: 300px; padding: 8px; font-size: 14px;">
-                    <select id="pricetrend-item" onchange="updatePriceTrend()" style="width: 450px; padding: 8px; font-size: 14px;">
-                        <option value="">Loading items...</option>
-                    </select>
+                    <label style="font-weight: 600;">Search & Select Item:</label>
+                    <div style="position: relative; flex: 1; max-width: 600px;">
+                        <input type="text" id="pricetrend-search" placeholder="Type to search items..."
+                               style="width: 100%; padding: 10px; font-size: 14px; border: 2px solid #ddd; border-radius: 6px;"
+                               onfocus="showPriceTrendDropdown()"
+                               oninput="filterPriceTrendDropdown()">
+                        <div id="pricetrend-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 300px; overflow-y: auto; background: white; border: 2px solid var(--theme-color-1); border-top: none; border-radius: 0 0 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000;">
+                        </div>
+                        <input type="hidden" id="pricetrend-selected-code" value="">
+                    </div>
+                    <div id="pricetrend-selected-item" style="padding: 10px; font-weight: 600; color: var(--theme-color-1); min-width: 200px;">
+                        No item selected
+                    </div>
                 </div>
                 <div style="display: flex; gap: 15px; align-items: center;">
                     <label style="font-weight: 600;">Date Range:</label>
@@ -4837,12 +4845,9 @@ async function exportWidget(widgetKey) {
             }
         }
     } else if (widgetKey === 'price_trends') {
-        const select = document.getElementById('pricetrend-items');
-        if (select) {
-            const selected = Array.from(select.selectedOptions).map(opt => opt.value);
-            if (selected.length > 0) {
-                url += `&ingredients=${selected.join(',')}`;
-            }
+        const hiddenInput = document.getElementById('pricetrend-selected-code');
+        if (hiddenInput && hiddenInput.value) {
+            url += `&ingredient_code=${hiddenInput.value}`;
         }
     }
 
@@ -4881,47 +4886,61 @@ async function loadPriceTrendItems() {
             }))
             .sort((a, b) => a.name.localeCompare(b.name));
 
-        // Populate the dropdown
-        const select = document.getElementById('pricetrend-item');
-        if (select) {
-            select.innerHTML = '<option value="">-- Select an item --</option>' +
-                allPriceTrendItems.map(item =>
-                    `<option value="${item.code}">${item.name}</option>`
-                ).join('');
+        // Set default date range (last 90 days)
+        const today = new Date();
+        const ninetyDaysAgo = new Date(today);
+        ninetyDaysAgo.setDate(today.getDate() - 90);
 
-            // Set up search functionality
+        const dateFrom = document.getElementById('pricetrend-date-from');
+        const dateTo = document.getElementById('pricetrend-date-to');
+        if (dateFrom) dateFrom.value = ninetyDaysAgo.toISOString().split('T')[0];
+        if (dateTo) dateTo.value = today.toISOString().split('T')[0];
+
+        // Set up click-outside to close dropdown
+        document.addEventListener('click', function(e) {
             const searchInput = document.getElementById('pricetrend-search');
-            if (searchInput) {
-                searchInput.addEventListener('input', filterPriceTrendDropdown);
+            const dropdown = document.getElementById('pricetrend-dropdown');
+            if (dropdown && searchInput && !searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
             }
+        });
 
-            // Set default date range (last 90 days)
-            const today = new Date();
-            const ninetyDaysAgo = new Date(today);
-            ninetyDaysAgo.setDate(today.getDate() - 90);
-
-            const dateFrom = document.getElementById('pricetrend-date-from');
-            const dateTo = document.getElementById('pricetrend-date-to');
-            if (dateFrom) dateFrom.value = ninetyDaysAgo.toISOString().split('T')[0];
-            if (dateTo) dateTo.value = today.toISOString().split('T')[0];
-
-            // Select first item and render
-            if (allPriceTrendItems.length > 0) {
-                select.value = allPriceTrendItems[0].code;
-                await updatePriceTrend();
-            }
+        // Auto-select first item and render
+        if (allPriceTrendItems.length > 0) {
+            selectPriceTrendItem(allPriceTrendItems[0].code, allPriceTrendItems[0].name);
         }
     } catch (error) {
         console.error('Error loading price trend items:', error);
-        const select = document.getElementById('pricetrend-item');
-        if (select) select.innerHTML = '<option value="">Error loading items</option>';
+        const selectedItemDiv = document.getElementById('pricetrend-selected-item');
+        if (selectedItemDiv) selectedItemDiv.textContent = 'Error loading items';
     }
+}
+
+function showPriceTrendDropdown() {
+    const dropdown = document.getElementById('pricetrend-dropdown');
+    if (dropdown && allPriceTrendItems.length > 0) {
+        filterPriceTrendDropdown();
+    }
+}
+
+function selectPriceTrendItem(code, name) {
+    const hiddenInput = document.getElementById('pricetrend-selected-code');
+    const selectedItemDiv = document.getElementById('pricetrend-selected-item');
+    const dropdown = document.getElementById('pricetrend-dropdown');
+    const searchInput = document.getElementById('pricetrend-search');
+
+    if (hiddenInput) hiddenInput.value = code;
+    if (selectedItemDiv) selectedItemDiv.textContent = name;
+    if (dropdown) dropdown.style.display = 'none';
+    if (searchInput) searchInput.value = '';
+
+    updatePriceTrend();
 }
 
 function filterPriceTrendDropdown() {
     const searchInput = document.getElementById('pricetrend-search');
-    const select = document.getElementById('pricetrend-item');
-    if (!searchInput || !select) return;
+    const dropdown = document.getElementById('pricetrend-dropdown');
+    if (!searchInput || !dropdown) return;
 
     // Get selected frequency
     const frequencyRadios = document.querySelectorAll('input[name="pricetrend-frequency"]');
@@ -4944,29 +4963,37 @@ function filterPriceTrendDropdown() {
         filtered = filtered.filter(item => item.frequency === selectedFrequency);
     }
 
-    const currentValue = select.value;
-    select.innerHTML = '<option value="">-- Select an item --</option>' +
-        filtered.map(item =>
-            `<option value="${item.code}">${item.name}</option>`
-        ).join('');
+    // Limit to first 50 results for performance
+    filtered = filtered.slice(0, 50);
 
-    // Restore selection if still in filtered results
-    if (filtered.some(item => item.code === currentValue)) {
-        select.value = currentValue;
+    // Populate dropdown with clickable results
+    if (filtered.length === 0) {
+        dropdown.innerHTML = '<div style="padding: 12px; color: #999;">No items found</div>';
+    } else {
+        dropdown.innerHTML = filtered.map(item => `
+            <div onclick="selectPriceTrendItem('${item.code}', '${item.name.replace(/'/g, "\\'")}');"
+                 style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #eee;"
+                 onmouseover="this.style.background='var(--theme-color-1)'; this.style.color='white';"
+                 onmouseout="this.style.background='white'; this.style.color='inherit';">
+                ${item.name}
+            </div>
+        `).join('');
     }
+
+    dropdown.style.display = 'block';
 }
 
 async function updatePriceTrend() {
-    const select = document.getElementById('pricetrend-item');
+    const hiddenInput = document.getElementById('pricetrend-selected-code');
     const dateFrom = document.getElementById('pricetrend-date-from');
     const dateTo = document.getElementById('pricetrend-date-to');
 
-    if (!select || !select.value) {
+    if (!hiddenInput || !hiddenInput.value) {
         showMessage('Please select an item', 'warning');
         return;
     }
 
-    const ingredientCode = select.value;
+    const ingredientCode = hiddenInput.value;
     const bodyElement = document.getElementById('widget-body-price_trends');
     bodyElement.innerHTML = '<div class="widget-loading">Loading...</div>';
 
