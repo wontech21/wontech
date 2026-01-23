@@ -2336,14 +2336,21 @@ textarea.form-control {
 }
 
 .stat-label {
-    font-size: 0.9em;
-    opacity: 0.9;
+    font-size: 0.95em;
+    font-weight: 600;
+    opacity: 1;
     margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: white;
+    display: block;
 }
 
 .stat-value {
     font-size: 2em;
     font-weight: bold;
+    color: white;
+    display: block;
 }
 
 /* Inactive item styling */

@@ -111,3 +111,7 @@ coverage.xml
 
 # Docker (will add these files later)
 # docker-compose.override.yml
+
+# Database files - too large for GitHub
+inventory.db
+invoices.db

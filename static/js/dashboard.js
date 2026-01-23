@@ -2649,40 +2649,103 @@ window.addEventListener('click', function(event) {
 // Supplier Management Functions
 // ============================================================
 
+// Suppliers table pagination state
+const suppliersTableState = {
+    allData: [],
+    currentPage: 1,
+    pageSize: 10
+};
+
 async function loadSuppliersTable() {
     try {
         const response = await fetch('/api/suppliers/all');
         const suppliers = await response.json();
 
-        const tbody = document.getElementById('suppliersTableBody');
+        suppliersTableState.allData = suppliers;
+        suppliersTableState.currentPage = 1;
 
-        if (suppliers.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No suppliers found. Create your first supplier!</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = suppliers.map(supplier => {
-            const escapedName = (supplier.supplier_name || '').replace(/'/g, "\\'");
-            return `
-                <tr>
-                    <td><strong>${supplier.supplier_name || '-'}</strong></td>
-                    <td>${supplier.contact_person || '-'}</td>
-                    <td>${supplier.phone || '-'}</td>
-                    <td>${supplier.email || '-'}</td>
-                    <td>${supplier.address || '-'}</td>
-                    <td>${supplier.payment_terms || '-'}</td>
-                    <td class="actions-cell">
-                        <button class="btn-edit-dark" onclick="editSupplierProfile(${supplier.id})" title="Edit"><span style="font-weight: 700;">✏️</span></button>
-                        <button class="btn-delete-dark" onclick="deleteSupplierProfile(${supplier.id}, '${escapedName}')" title="Delete"><span style="font-weight: 700;">🗑️</span></button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        renderSuppliersTable();
     } catch (error) {
         console.error('Error loading suppliers:', error);
         document.getElementById('suppliersTableBody').innerHTML =
             '<tr><td colspan="7" class="text-center text-danger">Error loading suppliers</td></tr>';
     }
+}
+
+function renderSuppliersTable() {
+    const tbody = document.getElementById('suppliersTableBody');
+    const { allData, currentPage, pageSize } = suppliersTableState;
+
+    if (allData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No suppliers found. Create your first supplier!</td></tr>';
+        updateSuppliersPagination();
+        return;
+    }
+
+    // Calculate pagination
+    const totalPages = Math.ceil(allData.length / pageSize);
+    const startIdx = (currentPage - 1) * pageSize;
+    const endIdx = startIdx + pageSize;
+    const pageData = allData.slice(startIdx, endIdx);
+
+    // Render table rows
+    tbody.innerHTML = pageData.map(supplier => {
+        const escapedName = (supplier.supplier_name || '').replace(/'/g, "\\'");
+        return `
+            <tr>
+                <td><strong>${supplier.supplier_name || '-'}</strong></td>
+                <td>${supplier.contact_person || '-'}</td>
+                <td>${supplier.phone || '-'}</td>
+                <td>${supplier.email || '-'}</td>
+                <td>${supplier.address || '-'}</td>
+                <td>${supplier.payment_terms || '-'}</td>
+                <td class="actions-cell">
+                    <button class="btn-edit-dark" onclick="editSupplierProfile(${supplier.id})" title="Edit"><span style="font-weight: 700;">✏️</span></button>
+                    <button class="btn-delete-dark" onclick="deleteSupplierProfile(${supplier.id}, '${escapedName}')" title="Delete"><span style="font-weight: 700;">🗑️</span></button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    updateSuppliersPagination();
+}
+
+function updateSuppliersPagination() {
+    const { allData, currentPage, pageSize } = suppliersTableState;
+    const totalPages = Math.ceil(allData.length / pageSize);
+    const startIdx = (currentPage - 1) * pageSize;
+    const endIdx = Math.min(startIdx + pageSize, allData.length);
+
+    const paginationDiv = document.getElementById('suppliersPagination');
+    if (!paginationDiv) return;
+
+    if (allData.length === 0) {
+        paginationDiv.innerHTML = '';
+        return;
+    }
+
+    paginationDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; border-radius: 8px;">
+            <div>Showing ${startIdx + 1}-${endIdx} of ${allData.length} suppliers</div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="btn btn-secondary" onclick="changeSuppliersPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                    ← Previous
+                </button>
+                <span>Page ${currentPage} of ${totalPages}</span>
+                <button class="btn btn-secondary" onclick="changeSuppliersPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                    Next →
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function changeSuppliersPage(newPage) {
+    const totalPages = Math.ceil(suppliersTableState.allData.length / suppliersTableState.pageSize);
+    if (newPage < 1 || newPage > totalPages) return;
+
+    suppliersTableState.currentPage = newPage;
+    renderSuppliersTable();
 }
 
 function openCreateSupplierModal() {
@@ -3111,56 +3174,119 @@ window.addEventListener('click', function(event) {
 // Category Management Functions (Settings Tab)
 // ============================================================
 
+// Categories table pagination state
+const categoriesTableState = {
+    allData: [],
+    currentPage: 1,
+    pageSize: 10
+};
+
 async function loadCategoriesTable() {
     try {
         const response = await fetch('/api/categories/all');
         const categories = await response.json();
 
-        const tbody = document.getElementById('categoriesTableBody');
+        categoriesTableState.allData = categories;
+        categoriesTableState.currentPage = 1;
 
-        if (categories.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center">No categories found</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = categories.map(category => {
-            const escapedName = (category.category_name || '').replace(/'/g, "\\'");
-            const isUncategorized = category.category_name === 'Uncategorized';
-            const canDelete = category.item_count === 0 && !isUncategorized;
-            const canEdit = !isUncategorized;
-
-            // Edit button
-            const editButton = canEdit
-                ? `<button class="btn-edit-dark" onclick="editCategoryFromSettings(${category.id}, '${escapedName}')" title="Edit"><span style="font-weight: 700;">✏️</span></button>`
-                : `<button class="btn-edit-dark btn-disabled" title="Cannot edit Uncategorized"><span style="font-weight: 700;">✏️</span></button>`;
-
-            // Delete button
-            let deleteButton;
-            if (isUncategorized) {
-                deleteButton = `<button class="btn-delete-dark btn-disabled" title="Cannot delete Uncategorized"><span style="font-weight: 700;">🗑️</span></button>`;
-            } else if (category.item_count > 0) {
-                deleteButton = `<button class="btn-delete-dark btn-disabled" title="Category in use by ${category.item_count} item(s) - reassign them first"><span style="font-weight: 700;">🗑️</span></button>`;
-            } else {
-                deleteButton = `<button class="btn-delete-dark" onclick="deleteCategoryFromSettings(${category.id}, '${escapedName}')" title="Delete"><span style="font-weight: 700;">🗑️</span></button>`;
-            }
-
-            return `
-                <tr>
-                    <td><strong>${category.category_name}</strong></td>
-                    <td class="text-center">${category.item_count}</td>
-                    <td><small>${formatDateTime(category.created_at)}</small></td>
-                    <td class="actions-cell">
-                        ${editButton}
-                        ${deleteButton}
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        renderCategoriesTable();
     } catch (error) {
         console.error('Error loading categories:', error);
         document.getElementById('categoriesTableBody').innerHTML =
             '<tr><td colspan="4" class="text-center text-danger">Error loading categories</td></tr>';
     }
+}
+
+function renderCategoriesTable() {
+    const tbody = document.getElementById('categoriesTableBody');
+    const { allData, currentPage, pageSize } = categoriesTableState;
+
+    if (allData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center">No categories found</td></tr>';
+        updateCategoriesPagination();
+        return;
+    }
+
+    // Calculate pagination
+    const totalPages = Math.ceil(allData.length / pageSize);
+    const startIdx = (currentPage - 1) * pageSize;
+    const endIdx = startIdx + pageSize;
+    const pageData = allData.slice(startIdx, endIdx);
+
+    // Render table rows
+    tbody.innerHTML = pageData.map(category => {
+        const escapedName = (category.category_name || '').replace(/'/g, "\\'");
+        const isUncategorized = category.category_name === 'Uncategorized';
+        const canDelete = category.item_count === 0 && !isUncategorized;
+        const canEdit = !isUncategorized;
+
+        // Edit button
+        const editButton = canEdit
+            ? `<button class="btn-edit-dark" onclick="editCategoryFromSettings(${category.id}, '${escapedName}')" title="Edit"><span style="font-weight: 700;">✏️</span></button>`
+            : `<button class="btn-edit-dark btn-disabled" title="Cannot edit Uncategorized"><span style="font-weight: 700;">✏️</span></button>`;
+
+        // Delete button
+        let deleteButton;
+        if (isUncategorized) {
+            deleteButton = `<button class="btn-delete-dark btn-disabled" title="Cannot delete Uncategorized"><span style="font-weight: 700;">🗑️</span></button>`;
+        } else if (category.item_count > 0) {
+            deleteButton = `<button class="btn-delete-dark btn-disabled" title="Category in use by ${category.item_count} item(s) - reassign them first"><span style="font-weight: 700;">🗑️</span></button>`;
+        } else {
+            deleteButton = `<button class="btn-delete-dark" onclick="deleteCategoryFromSettings(${category.id}, '${escapedName}')" title="Delete"><span style="font-weight: 700;">🗑️</span></button>`;
+        }
+
+        return `
+            <tr>
+                <td><strong>${category.category_name}</strong></td>
+                <td class="text-center">${category.item_count}</td>
+                <td><small>${formatDateTime(category.created_at)}</small></td>
+                <td class="actions-cell">
+                    ${editButton}
+                    ${deleteButton}
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    updateCategoriesPagination();
+}
+
+function updateCategoriesPagination() {
+    const { allData, currentPage, pageSize } = categoriesTableState;
+    const totalPages = Math.ceil(allData.length / pageSize);
+    const startIdx = (currentPage - 1) * pageSize;
+    const endIdx = Math.min(startIdx + pageSize, allData.length);
+
+    const paginationDiv = document.getElementById('categoriesPagination');
+    if (!paginationDiv) return;
+
+    if (allData.length === 0) {
+        paginationDiv.innerHTML = '';
+        return;
+    }
+
+    paginationDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; border-radius: 8px;">
+            <div>Showing ${startIdx + 1}-${endIdx} of ${allData.length} categories</div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="btn btn-secondary" onclick="changeCategoriesPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                    ← Previous
+                </button>
+                <span>Page ${currentPage} of ${totalPages}</span>
+                <button class="btn btn-secondary" onclick="changeCategoriesPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                    Next →
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function changeCategoriesPage(newPage) {
+    const totalPages = Math.ceil(categoriesTableState.allData.length / categoriesTableState.pageSize);
+    if (newPage < 1 || newPage > totalPages) return;
+
+    categoriesTableState.currentPage = newPage;
+    renderCategoriesTable();
 }
 
 function openCreateCategoryModal() {
@@ -4821,23 +4947,28 @@ let allPriceTrendItems = []; // Store all items for search filtering
 
 async function loadPriceTrendItems() {
     try {
-        // Load all inventory items (all variants with brand/supplier)
-        const [inventoryResponse, frequencyResponse] = await Promise.all([
+        // Load items with price history and frequency data
+        const [inventoryResponse, frequencyResponse, priceHistoryResponse] = await Promise.all([
             fetch('/api/inventory/detailed?status=active'),
-            fetch('/api/analytics/purchase-frequency')
+            fetch('/api/analytics/purchase-frequency'),
+            fetch('/api/analytics/ingredients-with-price-history')
         ]);
 
         const items = await inventoryResponse.json();
         const frequencyData = await frequencyResponse.json();
+        const priceHistoryData = await priceHistoryResponse.json();
 
-        // Create a map of ingredient_code -> frequency
+        // Create sets for faster lookup
         const frequencyMap = {};
         frequencyData.ingredients.forEach(item => {
             frequencyMap[item.code] = item.frequency;
         });
 
-        // Store all items sorted by name with frequency data
+        const itemsWithHistory = new Set(priceHistoryData.ingredient_codes || []);
+
+        // Filter to only items with price history, add frequency data
         allPriceTrendItems = items
+            .filter(item => itemsWithHistory.has(item.ingredient_code))
             .map(item => ({
                 code: item.ingredient_code,
                 name: `${item.ingredient_name} - ${item.brand || 'No Brand'} (${item.supplier_name || 'No Supplier'})`,

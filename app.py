@@ -2814,6 +2814,23 @@ def analytics_purchase_frequency():
 
     return jsonify({'ingredients': results})
 
+@app.route('/api/analytics/ingredients-with-price-history')
+def analytics_ingredients_with_price_history():
+    """Get list of ingredient codes that have price history in invoices"""
+    conn_inv = get_db_connection(INVOICES_DB)
+    cursor = conn_inv.cursor()
+
+    cursor.execute("""
+        SELECT DISTINCT ingredient_code
+        FROM invoice_line_items
+        ORDER BY ingredient_code
+    """)
+
+    codes = [row['ingredient_code'] for row in cursor.fetchall()]
+    conn_inv.close()
+
+    return jsonify({'ingredient_codes': codes})
+
 @app.route('/api/analytics/product-profitability')
 def analytics_product_profitability():
     """Product profitability analysis"""

@@ -297,6 +297,34 @@ git add . && git commit -m "Description" && git push
    - **Scripts**:
      * `generate_historical_data.py` - Full 90-day data generation
      * `generate_recent_invoices.py` - Supplement with recent invoice data
+14. **Fixed Price Trend Analysis "no price history" issue**:
+   - Problem: Dropdown showed all 970 ingredients but only ~50 had invoice data
+   - Solution: Filter dropdown to only show ingredients with actual price history
+   - New endpoint: `/api/analytics/ingredients-with-price-history` returns list of ingredient codes with invoice data
+   - Widget now loads 3 data sources in parallel: inventory, frequency, and price history filter
+   - Dropdown only displays items that have historical pricing data
+   - User can now successfully view price trends for any item in the dropdown
+15. **Added pagination to Supplier and Category Management tables**:
+   - Both tables now show 10 items per page (previously showed all)
+   - Pagination controls: Previous/Next buttons with page numbers
+   - Shows "Showing X-Y of Z" counter
+   - Improves performance for large datasets
+   - Consistent UX across all tables in the system
+16. **Backfilled audit logs for all simulated historical data**:
+   - Created `backfill_audit_logs.py` script
+   - Added 30,814 sales audit entries (SALE_RECORDED)
+   - Added 105 invoice audit entries (INVOICE_CREATED + payment status)
+   - Added 26 inventory count audit entries (COUNT_CREATED)
+   - Total audit log entries: 32,113
+   - System History tab now shows complete activity from Oct 25, 2025 to present
+   - All simulated data now visible in audit trail for analysis
+17. **Enhanced System History stat card labels**:
+   - Made stat labels more visible and prominent
+   - Increased font weight to 600 (semi-bold)
+   - Added uppercase text transform with letter spacing
+   - Forced white color and full opacity for better visibility
+   - Added explicit display:block to prevent layout issues
+   - Labels now clearly show "TOTAL EVENTS" and "LAST 7 DAYS"
 
 ---
 
