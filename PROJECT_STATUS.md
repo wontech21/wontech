@@ -194,6 +194,18 @@ git add . && git commit -m "Description" && git push
    - Created new CSS classes: btn-format-guide, format-guide-box, btn-upload-csv, csv-date-input, btn-parse-csv
    - All previously stubborn elements now sync perfectly with selected theme
 
+### 2026-01-23 (Session 3)
+1. **Fixed header gradient not updating with theme changes**:
+   - Discovered browser limitation: CSS variables referencing other variables don't auto-recalculate
+   - Explicitly calculate gradient string in JavaScript and set all CSS variables
+   - Header background now properly syncs with selected theme
+2. **Rebranded to "Firing Up Data Center"**:
+   - Changed dashboard title from "Firing Up Inventory Dashboard"
+   - Added company logo image (firinguplogo.png) to header
+   - Logo displays inline with title using flexbox
+   - Responsive logo sizing with clamp() for all screen sizes
+   - Updated page title tag to match new branding
+
 ---
 
 ## Next Session Checklist
