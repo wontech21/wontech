@@ -205,6 +205,15 @@ git add . && git commit -m "Description" && git push
    - Logo displays inline with title using flexbox
    - Responsive logo sizing with clamp() for all screen sizes
    - Updated page title tag to match new branding
+3. **Disabled auto-refresh for analytics**:
+   - Removed 60-second auto-refresh interval
+   - Analytics now only load when user manually clicks Analytics tab
+   - Manual refresh still available via Refresh button
+4. **Analytics dashboard cleanup** - Removed 7 widgets and improved UX:
+   - **Deleted widgets**: Usage & Forecast, Ingredient Substitution, Recipe Cost Trajectory, Break-Even Analysis, Menu Engineering Matrix, Seasonal Demand Patterns, Order Frequency Optimizer (EOQ)
+   - **Category Spending improvements**: Changed from area chart to pie chart showing total spending distribution by category; removed category filter UI for simpler visualization
+   - **Date filter additions**: Supplier Performance and Cost Variance now respect date range filters
+   - **Remaining analytics**: Vendor Spend Distribution, Category Spending Distribution (pie), Price Trend Analysis, Supplier Performance (with date filter), Invoice Activity, Cost Variance (with date filter), Product Profitability, Inventory Value Distribution, Price Volatility Index, Dead Stock Analysis, Waste & Shrinkage, Supplier Price Correlation, Cost Driver Analysis
 
 ---
 
