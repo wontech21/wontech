@@ -2693,62 +2693,47 @@ def analytics_vendor_spend():
 
 @app.route('/api/analytics/price-trends')
 def analytics_price_trends():
-    """Price trends for selected ingredients"""
-    ingredient_codes = request.args.get('ingredients', '').split(',')
+    """Price trend for a single ingredient"""
+    ingredient_code = request.args.get('ingredient_code', '')
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    if not ingredient_codes or ingredient_codes == ['']:
-        # Get top 5 most purchased ingredients by default
-        conn_inv = get_db_connection(INVOICES_DB)
-        cursor = conn_inv.cursor()
-        cursor.execute("""
-            SELECT ingredient_code, SUM(quantity_received) as total_qty
-            FROM invoice_line_items
-            GROUP BY ingredient_code
-            ORDER BY total_qty DESC
-            LIMIT 5
-        """)
-        ingredient_codes = [row['ingredient_code'] for row in cursor.fetchall()]
-        conn_inv.close()
+    if not ingredient_code:
+        return jsonify({'error': 'ingredient_code parameter required'}), 400
 
     conn_inv = get_db_connection(INVOICES_DB)
     cursor = conn_inv.cursor()
 
-    results = {}
-    for ing_code in ingredient_codes:
-        query = """
-            SELECT
-                i.invoice_date as date,
-                ili.unit_price as price,
-                ili.ingredient_name
-            FROM invoice_line_items ili
-            JOIN invoices i ON ili.invoice_id = i.id
-            WHERE ili.ingredient_code = ?
-        """
-        params = [ing_code]
+    query = """
+        SELECT
+            i.invoice_date as date,
+            ili.unit_price as price,
+            ili.ingredient_name
+        FROM invoice_line_items ili
+        JOIN invoices i ON ili.invoice_id = i.id
+        WHERE ili.ingredient_code = ?
+    """
+    params = [ingredient_code]
 
-        if date_from:
-            query += " AND i.invoice_date >= ?"
-            params.append(date_from)
-        if date_to:
-            query += " AND i.invoice_date <= ?"
-            params.append(date_to)
+    if date_from:
+        query += " AND i.invoice_date >= ?"
+        params.append(date_from)
+    if date_to:
+        query += " AND i.invoice_date <= ?"
+        params.append(date_to)
 
-        query += " ORDER BY i.invoice_date"
+    query += " ORDER BY i.invoice_date"
 
-        cursor.execute(query, params)
-        data = [dict(row) for row in cursor.fetchall()]
-
-        if data:
-            results[ing_code] = {
-                'name': data[0]['ingredient_name'],
-                'data': data
-            }
-
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
     conn_inv.close()
 
-    return jsonify(results)
+    data = [dict(row) for row in rows]
+
+    return jsonify({
+        'name': data[0]['ingredient_name'] if data else 'Unknown',
+        'data': data
+    })
 
 @app.route('/api/analytics/purchase-frequency')
 def analytics_purchase_frequency():

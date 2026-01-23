@@ -4030,17 +4030,16 @@ function createWidgetElement(widget) {
     if (widget.widget_key === 'price_trends') {
         controlsHTML = `
             <div class="widget-controls" id="controls-${widget.widget_key}">
-                <label>Purchase Frequency:</label>
-                <select id="pricetrend-frequency" onchange="filterPriceTrendItems()">
-                    <option value="all">All Items</option>
-                    <option value="weekly">Weekly Purchases</option>
-                    <option value="monthly">Monthly Purchases</option>
+                <label>Select Item:</label>
+                <input type="text" id="pricetrend-search" placeholder="Search items..." style="width: 300px; padding: 6px; margin-right: 10px;">
+                <select id="pricetrend-item" style="width: 400px; padding: 6px;">
+                    <option value="">Loading items...</option>
                 </select>
-                <label style="margin-left: 20px;">Select Items (max 5):</label>
-                <select id="pricetrend-items" multiple style="min-width: 450px; height: 120px;">
-                    <option value="">Loading...</option>
-                </select>
-                <button onclick="updatePriceTrends()">Update Chart</button>
+                <label style="margin-left: 20px;">From:</label>
+                <input type="date" id="pricetrend-date-from" style="padding: 6px; margin: 0 10px;">
+                <label>To:</label>
+                <input type="date" id="pricetrend-date-to" style="padding: 6px; margin: 0 10px;">
+                <button onclick="updatePriceTrend()" style="padding: 6px 16px;">Update Chart</button>
             </div>
         `;
     } else if (widget.widget_key === 'supplier_performance') {
@@ -4098,9 +4097,9 @@ async function renderWidget(widget) {
             dateFrom = fromDate.toISOString().split('T')[0];
         }
 
-        // Special handling for price_trends - populate item selector
+        // Special handling for price_trends - load all items and show initial chart
         if (widget.widget_key === 'price_trends') {
-            await populatePriceTrendItems();
+            await loadPriceTrendItems();
             return;
         }
 
@@ -4690,111 +4689,103 @@ async function exportWidget(widgetKey) {
 
 // ========== PRICE TRENDS WIDGET FUNCTIONS ==========
 
-let priceTrendAllItems = []; // Store all items with frequency data
+// ========== PRICE TREND ANALYSIS WIDGET ==========
 
-async function populatePriceTrendItems() {
-    const select = document.getElementById('pricetrend-items');
-    if (!select) return;
+let allPriceTrendItems = []; // Store all items for search filtering
 
+async function loadPriceTrendItems() {
     try {
-        // Get purchase frequency data for all ingredients
-        const response = await fetch('/api/analytics/purchase-frequency');
+        // Load all inventory items (all variants with brand/supplier)
+        const response = await fetch('/api/inventory/list?status=active');
         const data = await response.json();
 
-        // Store all items globally
-        priceTrendAllItems = data.ingredients.sort((a, b) => a.name.localeCompare(b.name));
+        // Store all items sorted by name
+        allPriceTrendItems = data.items
+            .map(item => ({
+                code: item.ingredient_code,
+                name: `${item.ingredient_name} - ${item.brand || 'No Brand'} (${item.supplier_name || 'No Supplier'})`
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name));
 
-        // Initially show all items
-        renderPriceTrendItemsList('all');
+        // Populate the dropdown
+        const select = document.getElementById('pricetrend-item');
+        if (select) {
+            select.innerHTML = '<option value="">-- Select an item --</option>' +
+                allPriceTrendItems.map(item =>
+                    `<option value="${item.code}">${item.name}</option>`
+                ).join('');
 
-        // Limit selection to 5 items
-        select.addEventListener('change', function() {
-            const selected = Array.from(this.selectedOptions);
-            if (selected.length > 5) {
-                selected[selected.length - 1].selected = false;
-                showMessage('Maximum 5 items allowed', 'warning');
+            // Set up search functionality
+            const searchInput = document.getElementById('pricetrend-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', filterPriceTrendDropdown);
             }
-        });
 
-        // Trigger initial render
-        await updatePriceTrends();
+            // Set default date range (last 90 days)
+            const today = new Date();
+            const ninetyDaysAgo = new Date(today);
+            ninetyDaysAgo.setDate(today.getDate() - 90);
+
+            const dateFrom = document.getElementById('pricetrend-date-from');
+            const dateTo = document.getElementById('pricetrend-date-to');
+            if (dateFrom) dateFrom.value = ninetyDaysAgo.toISOString().split('T')[0];
+            if (dateTo) dateTo.value = today.toISOString().split('T')[0];
+
+            // Select first item and render
+            if (allPriceTrendItems.length > 0) {
+                select.value = allPriceTrendItems[0].code;
+                await updatePriceTrend();
+            }
+        }
     } catch (error) {
         console.error('Error loading price trend items:', error);
-        select.innerHTML = '<option value="">Error loading items</option>';
+        const select = document.getElementById('pricetrend-item');
+        if (select) select.innerHTML = '<option value="">Error loading items</option>';
     }
 }
 
-function renderPriceTrendItemsList(frequency) {
-    const select = document.getElementById('pricetrend-items');
-    if (!select) return;
+function filterPriceTrendDropdown() {
+    const searchInput = document.getElementById('pricetrend-search');
+    const select = document.getElementById('pricetrend-item');
+    if (!searchInput || !select) return;
 
-    // Filter items based on frequency
-    let filteredItems = priceTrendAllItems;
-    if (frequency !== 'all') {
-        filteredItems = priceTrendAllItems.filter(item => item.frequency === frequency);
-    }
+    const searchTerm = searchInput.value.toLowerCase();
+    const filtered = searchTerm === ''
+        ? allPriceTrendItems
+        : allPriceTrendItems.filter(item => item.name.toLowerCase().includes(searchTerm));
 
-    if (filteredItems.length === 0) {
-        select.innerHTML = '<option value="">No items match this frequency</option>';
-        return;
-    }
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">-- Select an item --</option>' +
+        filtered.map(item =>
+            `<option value="${item.code}">${item.name}</option>`
+        ).join('');
 
-    // Populate the select with frequency info
-    select.innerHTML = filteredItems.map(item => {
-        let displayText = item.name;
-        if (item.purchase_count > 1) {
-            displayText += ` (${item.purchase_count} purchases, ~${Math.round(item.avg_days_between)} days apart)`;
-        } else {
-            displayText += ` (purchased once)`;
-        }
-        return `<option value="${item.code}">${displayText}</option>`;
-    }).join('');
-
-    // Auto-select first 5 items
-    for (let i = 0; i < Math.min(5, select.options.length); i++) {
-        select.options[i].selected = true;
+    // Restore selection if still in filtered results
+    if (filtered.some(item => item.code === currentValue)) {
+        select.value = currentValue;
     }
 }
 
-function filterPriceTrendItems() {
-    const frequencySelect = document.getElementById('pricetrend-frequency');
-    const frequency = frequencySelect.value;
-    renderPriceTrendItemsList(frequency);
-    // Don't auto-update chart, let user click Update button
-}
+async function updatePriceTrend() {
+    const select = document.getElementById('pricetrend-item');
+    const dateFrom = document.getElementById('pricetrend-date-from');
+    const dateTo = document.getElementById('pricetrend-date-to');
 
-async function updatePriceTrends() {
-    const select = document.getElementById('pricetrend-items');
-    const selected = Array.from(select.selectedOptions).map(opt => opt.value);
-
-    if (selected.length === 0) {
-        showMessage('Please select at least one item', 'warning');
+    if (!select || !select.value) {
+        showMessage('Please select an item', 'warning');
         return;
     }
 
-    if (selected.length > 5) {
-        showMessage('Maximum 5 items allowed', 'warning');
-        return;
-    }
-
+    const ingredientCode = select.value;
     const bodyElement = document.getElementById('widget-body-price_trends');
     bodyElement.innerHTML = '<div class="widget-loading">Loading...</div>';
 
     try {
-        const dateRange = document.getElementById('analyticsDateRange').value;
-        let dateFrom = '';
-        let dateTo = '';
+        let url = `/api/analytics/price-trends?ingredient_code=${ingredientCode}`;
+        if (dateFrom && dateFrom.value) url += `&date_from=${dateFrom.value}`;
+        if (dateTo && dateTo.value) url += `&date_to=${dateTo.value}`;
 
-        if (dateRange !== 'all') {
-            const today = new Date();
-            dateTo = today.toISOString().split('T')[0];
-            const fromDate = new Date(today);
-            fromDate.setDate(fromDate.getDate() - parseInt(dateRange));
-            dateFrom = fromDate.toISOString().split('T')[0];
-        }
-
-        const params = `ingredients=${selected.join(',')}&date_from=${dateFrom}&date_to=${dateTo}`;
-        const response = await fetch(`/api/analytics/price-trends?${params}`);
+        const response = await fetch(url);
         const data = await response.json();
 
         bodyElement.innerHTML = '';
@@ -4804,7 +4795,7 @@ async function updatePriceTrends() {
 
         renderPriceTrendChart(data, canvas);
     } catch (error) {
-        console.error('Error updating price trends:', error);
+        console.error('Error updating price trend:', error);
         bodyElement.innerHTML = '<div class="widget-error">Failed to load data</div>';
     }
 }
@@ -4814,95 +4805,81 @@ function renderPriceTrendChart(data, canvas) {
         analyticsCharts['price_trends'].destroy();
     }
 
-    // Transform data from object format to datasets
-    const datasets = [];
-    const colors = ['#667eea', '#43e97b', '#fa709a', '#fee140', '#30cfd0'];
-    let colorIndex = 0;
-
-    for (const [code, itemData] of Object.entries(data)) {
-        if (itemData.data && itemData.data.length > 0) {
-            datasets.push({
-                label: itemData.name,
-                data: itemData.data.map(d => ({
-                    x: d.date,
-                    y: d.price
-                })),
-                borderColor: colors[colorIndex % colors.length],
-                backgroundColor: 'transparent',
-                borderWidth: 2,
-                tension: 0.4,
-                pointRadius: 3,
-                pointHoverRadius: 5
-            });
-            colorIndex++;
-        }
-    }
-
-    // Check if we have any data to display
-    if (datasets.length === 0) {
-        canvas.parentElement.innerHTML = '<div class="widget-placeholder"><p>No price history available for selected items</p></div>';
+    if (!data.data || data.data.length === 0) {
+        canvas.parentElement.innerHTML = '<div class="widget-placeholder"><p>No price history available for this item in the selected date range</p></div>';
         return;
     }
 
     const ctx = canvas.getContext('2d');
 
-    // Get saved zoom state
-    const savedZoom = getChartZoomState('price_trends');
-    const scalesConfig = {
-        x: {
-            type: 'time',
-            time: {
-                unit: 'day',
-                displayFormats: {
-                    day: 'MMM d'
-                }
-            },
-            title: { display: true, text: 'Date' }
-        },
-        y: {
-            beginAtZero: false,
-            title: { display: true, text: 'Unit Price ($)' },
-            ticks: {
-                callback: function(value) {
-                    return '$' + value.toFixed(2);
-                }
-            }
-        }
-    };
-
-    // Restore saved zoom if available
-    if (savedZoom) {
-        if (savedZoom.x) {
-            scalesConfig.x = { ...scalesConfig.x, min: savedZoom.x.min, max: savedZoom.x.max };
-        }
-        if (savedZoom.y) {
-            scalesConfig.y = { ...scalesConfig.y, min: savedZoom.y.min, max: savedZoom.y.max };
-        }
-    }
+    // Prepare chart data
+    const chartData = data.data.map(d => ({
+        x: d.date,
+        y: d.price
+    }));
 
     analyticsCharts['price_trends'] = new Chart(ctx, {
         type: 'line',
-        data: { datasets: datasets },
+        data: {
+            datasets: [{
+                label: data.name || 'Price',
+                data: chartData,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderWidth: 3,
+                tension: 0.1,
+                fill: true,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#667eea',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
         options: {
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
                 legend: {
-                    position: 'top',
-                    labels: { font: { size: 11 } }
+                    display: true,
+                    position: 'top'
                 },
                 tooltip: {
-                    mode: 'index',
-                    intersect: false,
                     callbacks: {
                         label: function(context) {
-                            return `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
+                            return `Price: $${context.parsed.y.toFixed(2)}`;
                         }
                     }
                 },
                 zoom: getZoomPanConfig('price_trends')
             },
-            scales: scalesConfig
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'day',
+                        displayFormats: {
+                            day: 'MMM d, yyyy'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Date'
+                    }
+                },
+                y: {
+                    beginAtZero: false,
+                    title: {
+                        display: true,
+                        text: 'Unit Price ($)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        }
+                    }
+                }
+            }
         }
     });
 }
