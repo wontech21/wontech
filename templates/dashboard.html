@@ -696,16 +696,39 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
         <div id="analytics-tab" class="tab-content">
             <div class="section-header">
                 <h2>📈 Analytics Dashboard</h2>
-                <div class="analytics-controls">
-                    <select id="analyticsDateRange" onchange="refreshAnalytics()">
-                        <option value="7">Last 7 Days</option>
-                        <option value="30" selected>Last 30 Days</option>
-                        <option value="90">Last Quarter</option>
-                        <option value="365">Last Year</option>
-                        <option value="all">All Time</option>
-                    </select>
-                    <button class="btn btn-secondary" onclick="refreshAnalytics()">🔄 Refresh</button>
-                    <button class="btn btn-primary" onclick="openCustomizeWidgets()">⚙️ Customize</button>
+            </div>
+
+            <!-- Time Period Selection (matching Sales layout) -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn-time-filter" data-period="today" onclick="changeAnalyticsPeriod('today')">Today</button>
+                        <button class="btn-time-filter" data-period="7days" onclick="changeAnalyticsPeriod('7days')">Last 7 Days</button>
+                        <button class="btn-time-filter" data-period="week" onclick="changeAnalyticsPeriod('week')">This Week</button>
+                        <button class="btn-time-filter" data-period="month" onclick="changeAnalyticsPeriod('month')">This Month</button>
+                        <button class="btn-time-filter active" data-period="30days" onclick="changeAnalyticsPeriod('30days')">Last 30 Days</button>
+                        <button class="btn-time-filter" data-period="90days" onclick="changeAnalyticsPeriod('90days')">Last Quarter</button>
+                        <button class="btn-time-filter" data-period="365days" onclick="changeAnalyticsPeriod('365days')">Last Year</button>
+                        <button class="btn-time-filter" data-period="all" onclick="changeAnalyticsPeriod('all')">All Time</button>
+                        <button class="btn-time-filter" data-period="custom" onclick="showAnalyticsCustomDateRange()">Custom Range</button>
+                    </div>
+                    <div id="analytics-custom-date-range" style="display: none; gap: 10px; align-items: center;">
+                        <input type="date" id="analytics-start-date" class="csv-date-input">
+                        <span>to</span>
+                        <input type="date" id="analytics-end-date" class="csv-date-input">
+                        <button class="btn-success" onclick="applyAnalyticsCustomDateRange()" style="padding: 10px 20px; font-weight: 600; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);">
+                            ✓ Apply Range
+                        </button>
+                    </div>
+                    <div style="display: flex; gap: 15px; align-items: center; justify-content: space-between;">
+                        <div id="analytics-period-display" style="color: var(--theme-color-1); font-weight: 600;">
+                            Last 30 Days
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-secondary" onclick="refreshAnalytics()">🔄 Refresh</button>
+                            <button class="btn btn-primary" onclick="openCustomizeWidgets()">⚙️ Customize</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 

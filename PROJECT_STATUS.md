@@ -228,6 +228,17 @@ git add . && git commit -m "Description" && git push
    - Chart auto-scales both axes based on actual price data and selected date range
    - Removed confusing "purchase frequency" categorization
    - Cleaner single-line chart for better price trend visualization
+7. **Fixed Price Trend Analysis loading error**:
+   - Updated to use correct endpoint `/api/inventory/detailed?status=active`
+   - Previous endpoint `/api/inventory/list?status=active` didn't exist
+   - Dropdown now successfully loads all inventory items with brand/supplier info
+8. **Converted Analytics dashboard to match Sales section layout**:
+   - Replaced dropdown time selector with button-based period selection
+   - Added period buttons: Today, Last 7 Days, This Week, This Month, Last 30 Days (default), Last Quarter, Last Year, All Time, Custom Range
+   - Custom range shows date picker inputs with Apply button
+   - Current period displayed prominently above widgets
+   - All 7 references to old dropdown replaced with new date variables
+   - All analytics widgets now use new period selection system
 
 ---
 

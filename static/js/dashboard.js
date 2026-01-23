@@ -3953,6 +3953,175 @@ function applyHistoryDateFilter() {
 
 let analyticsCharts = {};
 let analyticsRefreshInterval = null;
+let currentAnalyticsPeriod = '30days';
+let currentAnalyticsStartDate = null;
+let currentAnalyticsEndDate = null;
+
+/**
+ * Change time period for analytics dashboard
+ */
+function changeAnalyticsPeriod(period) {
+    // Update active button
+    document.querySelectorAll('#analytics-tab .btn-time-filter').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.period === period) {
+            btn.classList.add('active');
+        }
+    });
+
+    // Hide custom date range
+    document.getElementById('analytics-custom-date-range').style.display = 'none';
+
+    currentAnalyticsPeriod = period;
+
+    // Calculate date range
+    const today = new Date();
+    let startDate, endDate, displayText;
+
+    switch (period) {
+        case 'today':
+            startDate = endDate = formatDate(today);
+            displayText = "Today's Analytics";
+            break;
+
+        case '7days':
+            const days7Ago = new Date(today);
+            days7Ago.setDate(today.getDate() - 7);
+            startDate = formatDate(days7Ago);
+            endDate = formatDate(today);
+            displayText = "Last 7 Days";
+            break;
+
+        case 'week':
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - today.getDay());
+            startDate = formatDate(weekStart);
+            endDate = formatDate(today);
+            displayText = "This Week";
+            break;
+
+        case 'month':
+            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            startDate = formatDate(monthStart);
+            endDate = formatDate(today);
+            displayText = "This Month";
+            break;
+
+        case '30days':
+            const days30Ago = new Date(today);
+            days30Ago.setDate(today.getDate() - 30);
+            startDate = formatDate(days30Ago);
+            endDate = formatDate(today);
+            displayText = "Last 30 Days";
+            break;
+
+        case '90days':
+            const days90Ago = new Date(today);
+            days90Ago.setDate(today.getDate() - 90);
+            startDate = formatDate(days90Ago);
+            endDate = formatDate(today);
+            displayText = "Last Quarter";
+            break;
+
+        case '365days':
+            const days365Ago = new Date(today);
+            days365Ago.setDate(today.getDate() - 365);
+            startDate = formatDate(days365Ago);
+            endDate = formatDate(today);
+            displayText = "Last Year";
+            break;
+
+        case 'all':
+            startDate = null;
+            endDate = null;
+            displayText = "All Time";
+            break;
+    }
+
+    currentAnalyticsStartDate = startDate;
+    currentAnalyticsEndDate = endDate;
+
+    document.getElementById('analytics-period-display').textContent = displayText;
+
+    // Reload analytics data
+    refreshAnalytics();
+}
+
+/**
+ * Show custom date range inputs for analytics
+ */
+function showAnalyticsCustomDateRange() {
+    document.getElementById('analytics-custom-date-range').style.display = 'flex';
+
+    // Set default values
+    const today = new Date();
+    const monthAgo = new Date(today);
+    monthAgo.setDate(today.getDate() - 30);
+
+    document.getElementById('analytics-start-date').value = formatDate(monthAgo);
+    document.getElementById('analytics-end-date').value = formatDate(today);
+}
+
+/**
+ * Apply custom date range for analytics
+ */
+function applyAnalyticsCustomDateRange() {
+    const startDate = document.getElementById('analytics-start-date').value;
+    const endDate = document.getElementById('analytics-end-date').value;
+    const applyBtn = event.target;
+
+    if (!startDate || !endDate) {
+        showMessage('Please select both start and end dates', 'error');
+        return;
+    }
+
+    // Validate date range
+    if (new Date(endDate) < new Date(startDate)) {
+        showMessage('End date must be after or equal to start date', 'error');
+        return;
+    }
+
+    // Show loading state
+    const originalText = applyBtn.innerHTML;
+    applyBtn.innerHTML = '⏳ Loading...';
+    applyBtn.disabled = true;
+
+    currentAnalyticsStartDate = startDate;
+    currentAnalyticsEndDate = endDate;
+
+    document.querySelectorAll('#analytics-tab .btn-time-filter').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.period === 'custom') {
+            btn.classList.add('active');
+        }
+    });
+
+    // Format dates for display
+    const startFormatted = new Date(startDate).toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric'
+    });
+    const endFormatted = new Date(endDate).toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric'
+    });
+
+    document.getElementById('analytics-period-display').textContent =
+        `${startFormatted} - ${endFormatted}`;
+
+    // Hide custom date range section after applying
+    document.getElementById('analytics-custom-date-range').style.display = 'none';
+
+    refreshAnalytics().then(() => {
+        // Restore button state
+        applyBtn.innerHTML = '✓ Applied!';
+        setTimeout(() => {
+            applyBtn.innerHTML = originalText;
+            applyBtn.disabled = false;
+        }, 1500);
+    }).catch(() => {
+        applyBtn.innerHTML = originalText;
+        applyBtn.disabled = false;
+    });
+}
 
 async function loadAnalytics() {
     console.log('loadAnalytics() called');
@@ -3968,17 +4137,8 @@ async function loadAnalytics() {
 }
 
 async function loadAnalyticsKPIs() {
-    const dateRange = document.getElementById('analyticsDateRange').value;
-    let dateFrom = '';
-    let dateTo = '';
-
-    if (dateRange !== 'all') {
-        const today = new Date();
-        dateTo = today.toISOString().split('T')[0];
-        const fromDate = new Date(today);
-        fromDate.setDate(fromDate.getDate() - parseInt(dateRange));
-        dateFrom = fromDate.toISOString().split('T')[0];
-    }
+    let dateFrom = currentAnalyticsStartDate || '';
+    let dateTo = currentAnalyticsEndDate || '';
 
     const response = await fetch(`/api/analytics/summary?date_from=${dateFrom}&date_to=${dateTo}`);
     const data = await response.json();
@@ -4085,17 +4245,8 @@ async function renderWidget(widget) {
     const bodyElement = document.getElementById(`widget-body-${widget.widget_key}`);
 
     try {
-        const dateRange = document.getElementById('analyticsDateRange').value;
-        let dateFrom = '';
-        let dateTo = '';
-
-        if (dateRange !== 'all') {
-            const today = new Date();
-            dateTo = today.toISOString().split('T')[0];
-            const fromDate = new Date(today);
-            fromDate.setDate(fromDate.getDate() - parseInt(dateRange));
-            dateFrom = fromDate.toISOString().split('T')[0];
-        }
+        let dateFrom = currentAnalyticsStartDate || '';
+        let dateTo = currentAnalyticsEndDate || '';
 
         // Special handling for price_trends - load all items and show initial chart
         if (widget.widget_key === 'price_trends') {
@@ -4650,17 +4801,8 @@ function filterWidgets() {
 }
 
 async function exportWidget(widgetKey) {
-    const dateRange = document.getElementById('analyticsDateRange').value;
-    let dateFrom = '';
-    let dateTo = '';
-
-    if (dateRange !== 'all') {
-        const today = new Date();
-        dateTo = today.toISOString().split('T')[0];
-        const fromDate = new Date(today);
-        fromDate.setDate(fromDate.getDate() - parseInt(dateRange));
-        dateFrom = fromDate.toISOString().split('T')[0];
-    }
+    let dateFrom = currentAnalyticsStartDate || '';
+    let dateTo = currentAnalyticsEndDate || '';
 
     // Build base URL
     let url = `/api/analytics/${widgetKey.replace(/_/g, '-')}/export?date_from=${dateFrom}&date_to=${dateTo}&format=csv`;
@@ -4696,11 +4838,11 @@ let allPriceTrendItems = []; // Store all items for search filtering
 async function loadPriceTrendItems() {
     try {
         // Load all inventory items (all variants with brand/supplier)
-        const response = await fetch('/api/inventory/list?status=active');
-        const data = await response.json();
+        const response = await fetch('/api/inventory/detailed?status=active');
+        const items = await response.json();
 
         // Store all items sorted by name
-        allPriceTrendItems = data.items
+        allPriceTrendItems = items
             .map(item => ({
                 code: item.ingredient_code,
                 name: `${item.ingredient_name} - ${item.brand || 'No Brand'} (${item.supplier_name || 'No Supplier'})`
@@ -4926,17 +5068,8 @@ async function updateCategorySpending() {
     bodyElement.innerHTML = '<div class="widget-loading">Loading...</div>';
 
     try {
-        const dateRange = document.getElementById('analyticsDateRange').value;
-        let dateFrom = '';
-        let dateTo = '';
-
-        if (dateRange !== 'all') {
-            const today = new Date();
-            dateTo = today.toISOString().split('T')[0];
-            const fromDate = new Date(today);
-            fromDate.setDate(fromDate.getDate() - parseInt(dateRange));
-            dateFrom = fromDate.toISOString().split('T')[0];
-        }
+        let dateFrom = currentAnalyticsStartDate || '';
+        let dateTo = currentAnalyticsEndDate || '';
 
         const params = `categories=${selected.join(',')}&date_from=${dateFrom}&date_to=${dateTo}`;
         const response = await fetch(`/api/analytics/category-spending?${params}`);
@@ -4988,17 +5121,8 @@ async function renderSupplierPerformancePaginated() {
     bodyElement.innerHTML = '<div class="widget-loading">Loading...</div>';
 
     try {
-        const dateRange = document.getElementById('analyticsDateRange').value;
-        let dateFrom = '';
-        let dateTo = '';
-
-        if (dateRange !== 'all') {
-            const today = new Date();
-            dateTo = today.toISOString().split('T')[0];
-            const fromDate = new Date(today);
-            fromDate.setDate(fromDate.getDate() - parseInt(dateRange));
-            dateFrom = fromDate.toISOString().split('T')[0];
-        }
+        let dateFrom = currentAnalyticsStartDate || '';
+        let dateTo = currentAnalyticsEndDate || '';
 
         const response = await fetch(`/api/analytics/supplier-performance?date_from=${dateFrom}&date_to=${dateTo}`);
         const data = await response.json();
