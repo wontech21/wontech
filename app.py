@@ -2795,12 +2795,12 @@ def analytics_purchase_frequency():
             avg_days = total_days / (len(dates) - 1)
 
         # Categorize frequency
-        if avg_days <= 10:
+        if avg_days < 3:
+            frequency = 'daily'
+        elif avg_days <= 10:
             frequency = 'weekly'
-        elif avg_days <= 45:
-            frequency = 'monthly'
         else:
-            frequency = 'rarely'
+            frequency = 'monthly'
 
         results.append({
             'code': code,

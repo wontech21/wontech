@@ -239,6 +239,12 @@ git add . && git commit -m "Description" && git push
    - Current period displayed prominently above widgets
    - All 7 references to old dropdown replaced with new date variables
    - All analytics widgets now use new period selection system
+9. **Added purchase frequency filter to Price Trend Analysis**:
+   - New radio button filters: All, Daily (<3 days), Weekly (3-10 days), Monthly (>10 days)
+   - Frequency calculated based on average days between purchases from invoice data
+   - Backend endpoint `/api/analytics/purchase-frequency` calculates frequency for all items
+   - Dropdown dynamically filters items by both search term and frequency category
+   - Helps users quickly find items based on how often they're purchased
 
 ---
 

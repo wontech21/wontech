@@ -4190,16 +4190,33 @@ function createWidgetElement(widget) {
     if (widget.widget_key === 'price_trends') {
         controlsHTML = `
             <div class="widget-controls" id="controls-${widget.widget_key}">
-                <label>Select Item:</label>
-                <input type="text" id="pricetrend-search" placeholder="Search items..." style="width: 300px; padding: 6px; margin-right: 10px;">
-                <select id="pricetrend-item" style="width: 400px; padding: 6px;">
-                    <option value="">Loading items...</option>
-                </select>
-                <label style="margin-left: 20px;">From:</label>
-                <input type="date" id="pricetrend-date-from" style="padding: 6px; margin: 0 10px;">
-                <label>To:</label>
-                <input type="date" id="pricetrend-date-to" style="padding: 6px; margin: 0 10px;">
-                <button onclick="updatePriceTrend()" style="padding: 6px 16px;">Update Chart</button>
+                <div style="display: flex; gap: 15px; margin-bottom: 10px; align-items: center;">
+                    <label style="font-weight: 600;">Frequency:</label>
+                    <label style="cursor: pointer;">
+                        <input type="radio" name="pricetrend-frequency" value="all" checked onchange="filterPriceTrendDropdown()"> All
+                    </label>
+                    <label style="cursor: pointer;">
+                        <input type="radio" name="pricetrend-frequency" value="daily" onchange="filterPriceTrendDropdown()"> Daily (&lt;3 days)
+                    </label>
+                    <label style="cursor: pointer;">
+                        <input type="radio" name="pricetrend-frequency" value="weekly" onchange="filterPriceTrendDropdown()"> Weekly (3-10 days)
+                    </label>
+                    <label style="cursor: pointer;">
+                        <input type="radio" name="pricetrend-frequency" value="monthly" onchange="filterPriceTrendDropdown()"> Monthly (&gt;10 days)
+                    </label>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <label>Select Item:</label>
+                    <input type="text" id="pricetrend-search" placeholder="Search items..." style="width: 300px; padding: 6px;">
+                    <select id="pricetrend-item" style="width: 400px; padding: 6px;">
+                        <option value="">Loading items...</option>
+                    </select>
+                    <label style="margin-left: 20px;">From:</label>
+                    <input type="date" id="pricetrend-date-from" style="padding: 6px; margin: 0 10px;">
+                    <label>To:</label>
+                    <input type="date" id="pricetrend-date-to" style="padding: 6px; margin: 0 10px;">
+                    <button onclick="updatePriceTrend()" style="padding: 6px 16px;">Update Chart</button>
+                </div>
             </div>
         `;
     } else if (widget.widget_key === 'supplier_performance') {
@@ -4838,14 +4855,26 @@ let allPriceTrendItems = []; // Store all items for search filtering
 async function loadPriceTrendItems() {
     try {
         // Load all inventory items (all variants with brand/supplier)
-        const response = await fetch('/api/inventory/detailed?status=active');
-        const items = await response.json();
+        const [inventoryResponse, frequencyResponse] = await Promise.all([
+            fetch('/api/inventory/detailed?status=active'),
+            fetch('/api/analytics/purchase-frequency')
+        ]);
 
-        // Store all items sorted by name
+        const items = await inventoryResponse.json();
+        const frequencyData = await frequencyResponse.json();
+
+        // Create a map of ingredient_code -> frequency
+        const frequencyMap = {};
+        frequencyData.ingredients.forEach(item => {
+            frequencyMap[item.code] = item.frequency;
+        });
+
+        // Store all items sorted by name with frequency data
         allPriceTrendItems = items
             .map(item => ({
                 code: item.ingredient_code,
-                name: `${item.ingredient_name} - ${item.brand || 'No Brand'} (${item.supplier_name || 'No Supplier'})`
+                name: `${item.ingredient_name} - ${item.brand || 'No Brand'} (${item.supplier_name || 'No Supplier'})`,
+                frequency: frequencyMap[item.ingredient_code] || 'monthly'
             }))
             .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -4891,10 +4920,26 @@ function filterPriceTrendDropdown() {
     const select = document.getElementById('pricetrend-item');
     if (!searchInput || !select) return;
 
+    // Get selected frequency
+    const frequencyRadios = document.querySelectorAll('input[name="pricetrend-frequency"]');
+    let selectedFrequency = 'all';
+    frequencyRadios.forEach(radio => {
+        if (radio.checked) selectedFrequency = radio.value;
+    });
+
+    // Filter by search term and frequency
     const searchTerm = searchInput.value.toLowerCase();
-    const filtered = searchTerm === ''
-        ? allPriceTrendItems
-        : allPriceTrendItems.filter(item => item.name.toLowerCase().includes(searchTerm));
+    let filtered = allPriceTrendItems;
+
+    // Apply search filter
+    if (searchTerm !== '') {
+        filtered = filtered.filter(item => item.name.toLowerCase().includes(searchTerm));
+    }
+
+    // Apply frequency filter
+    if (selectedFrequency !== 'all') {
+        filtered = filtered.filter(item => item.frequency === selectedFrequency);
+    }
 
     const currentValue = select.value;
     select.innerHTML = '<option value="">-- Select an item --</option>' +
