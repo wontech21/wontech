@@ -280,18 +280,23 @@ git add . && git commit -m "Description" && git push
      * Random discounts (10% chance of 5-15% off)
      * Realistic timing (11 AM - 10 PM)
      * Top seller: Beef Tacos (16,846 units, $216,689 revenue)
-   - **Invoice data**: 33 invoices totaling $201,000 from 10 suppliers
-     * Deliveries every 2-4 days (realistic vendor schedule)
+     * Last 30 days: 10,524 sales transactions
+   - **Invoice data**: 59 invoices totaling $275,814 from 10 suppliers
+     * Deliveries every 2-3 days throughout entire 90-day period
      * 50 unique ingredients ordered based on sales usage
      * Price variations (±10% realistic market fluctuations)
-     * Top supplier: Shamrock Foods ($89,698 over 3 invoices)
+     * **Last 30 days**: 32 invoices, $79,003 (realistic monthly cycle)
+     * Top recent suppliers: Shamrock Foods ($19,741), Cheney Brothers ($17,371)
      * Lot numbers and expiration dates included
+     * Distribution: Oct ($19k), Nov ($35k), Dec ($179k), Jan ($43k)
    - **Inventory counts**: 26 count sessions (twice weekly)
      * All 970 active ingredients counted each session (25,220 total line items)
      * Realistic variances: 80% minor (±2%), 10% moderate loss (3-8%), 5% significant loss (10-20%), 5% exact
      * Variance reasons: Spillage (1,258), Expired items (1,326), Waste (1,212), Theft (633), Damaged goods (637)
      * Average loss per count: -1.56 units
-   - **Script**: `generate_historical_data.py` for future data generation needs
+   - **Scripts**:
+     * `generate_historical_data.py` - Full 90-day data generation
+     * `generate_recent_invoices.py` - Supplement with recent invoice data
 
 ---
 
