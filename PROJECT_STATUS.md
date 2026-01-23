@@ -260,6 +260,18 @@ git add . && git commit -m "Description" && git push
    - Click outside dropdown to close it
    - Modern, intuitive UX - type to search, click to select
    - Search filters combine with frequency filter for targeted results
+12. **Completely redesigned Price Trend Analysis widget layout**:
+   - **Reordered widgets**: Moved Price Trends down to position 8 (after Cost Variance, before unused widgets)
+   - **Side-by-side layout**: Chart on left (~60% width), controls on right (~40% width)
+   - **Expanded chart**: Fills full height (~500px min) and width of container with maintainAspectRatio: false
+   - **Right-side control panel**: Organized vertically with theme-styled background
+   - **Prioritized controls by function**:
+     1. Purchase Frequency Filter (radio buttons in white box)
+     2. Search & Select Item (autocomplete with selected item display)
+     3. Date Range (from/to in white box)
+     4. Update Chart button (full-width, gradient, prominent)
+   - **Visual theme integration**: Gradient background, themed borders, hover effects
+   - **Better visibility**: Larger chart, organized controls, clear visual hierarchy
 
 ---
 

@@ -4188,48 +4188,7 @@ function createWidgetElement(widget) {
     // Add widget-specific controls
     let controlsHTML = '';
     if (widget.widget_key === 'price_trends') {
-        controlsHTML = `
-            <div class="widget-controls" id="controls-${widget.widget_key}" style="display: flex; flex-direction: column; gap: 12px;">
-                <div style="display: flex; gap: 15px; align-items: center;">
-                    <label style="font-weight: 600;">Frequency:</label>
-                    <label style="cursor: pointer;">
-                        <input type="radio" name="pricetrend-frequency" value="all" checked onchange="filterPriceTrendDropdown()"> All
-                    </label>
-                    <label style="cursor: pointer;">
-                        <input type="radio" name="pricetrend-frequency" value="daily" onchange="filterPriceTrendDropdown()"> Daily (&lt;3 days)
-                    </label>
-                    <label style="cursor: pointer;">
-                        <input type="radio" name="pricetrend-frequency" value="weekly" onchange="filterPriceTrendDropdown()"> Weekly (3-10 days)
-                    </label>
-                    <label style="cursor: pointer;">
-                        <input type="radio" name="pricetrend-frequency" value="monthly" onchange="filterPriceTrendDropdown()"> Monthly (&gt;10 days)
-                    </label>
-                </div>
-                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                    <label style="font-weight: 600;">Search & Select Item:</label>
-                    <div style="position: relative; flex: 1; max-width: 600px;">
-                        <input type="text" id="pricetrend-search" placeholder="Type to search items..."
-                               style="width: 100%; padding: 10px; font-size: 14px; border: 2px solid #ddd; border-radius: 6px;"
-                               onfocus="showPriceTrendDropdown()"
-                               oninput="filterPriceTrendDropdown()">
-                        <div id="pricetrend-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 300px; overflow-y: auto; background: white; border: 2px solid var(--theme-color-1); border-top: none; border-radius: 0 0 6px 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000;">
-                        </div>
-                        <input type="hidden" id="pricetrend-selected-code" value="">
-                    </div>
-                    <div id="pricetrend-selected-item" style="padding: 10px; font-weight: 600; color: var(--theme-color-1); min-width: 200px;">
-                        No item selected
-                    </div>
-                </div>
-                <div style="display: flex; gap: 15px; align-items: center;">
-                    <label style="font-weight: 600;">Date Range:</label>
-                    <label>From:</label>
-                    <input type="date" id="pricetrend-date-from" style="padding: 8px; font-size: 14px;" onchange="updatePriceTrend()">
-                    <label>To:</label>
-                    <input type="date" id="pricetrend-date-to" style="padding: 8px; font-size: 14px;" onchange="updatePriceTrend()">
-                    <button onclick="updatePriceTrend()" style="padding: 8px 20px; font-size: 14px; font-weight: 600;">Update Chart</button>
-                </div>
-            </div>
-        `;
+        controlsHTML = '';
     } else if (widget.widget_key === 'supplier_performance') {
         controlsHTML = `
             <div class="widget-controls" id="controls-${widget.widget_key}">
@@ -4886,6 +4845,73 @@ async function loadPriceTrendItems() {
             }))
             .sort((a, b) => a.name.localeCompare(b.name));
 
+        // Create custom side-by-side layout
+        const bodyElement = document.getElementById('widget-body-price_trends');
+        bodyElement.innerHTML = `
+            <div style="display: flex; gap: 20px; min-height: 500px;">
+                <div id="pricetrend-chart-container" style="flex: 0 0 60%; display: flex; flex-direction: column;">
+                    <canvas id="chart-price_trends" style="flex: 1;"></canvas>
+                </div>
+                <div id="pricetrend-controls-container" style="flex: 0 0 38%; display: flex; flex-direction: column; gap: 20px; padding: 20px; background: linear-gradient(135deg, rgba(var(--theme-color-1-rgb), 0.05), rgba(var(--theme-color-2-rgb), 0.05)); border-radius: 12px; border: 2px solid var(--theme-color-1);">
+                    <div>
+                        <h3 style="margin: 0 0 15px 0; color: var(--theme-color-1); font-size: 18px;">📊 Chart Controls</h3>
+
+                        <div style="margin-bottom: 25px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 10px; font-size: 15px;">Purchase Frequency Filter:</label>
+                            <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px; background: white; border-radius: 8px;">
+                                <label style="cursor: pointer; padding: 6px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='rgba(var(--theme-color-1-rgb), 0.1)'" onmouseout="this.style.background='transparent'">
+                                    <input type="radio" name="pricetrend-frequency" value="all" checked onchange="filterPriceTrendDropdown()"> <strong>All Items</strong>
+                                </label>
+                                <label style="cursor: pointer; padding: 6px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='rgba(var(--theme-color-1-rgb), 0.1)'" onmouseout="this.style.background='transparent'">
+                                    <input type="radio" name="pricetrend-frequency" value="daily" onchange="filterPriceTrendDropdown()"> Daily (&lt;3 days)
+                                </label>
+                                <label style="cursor: pointer; padding: 6px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='rgba(var(--theme-color-1-rgb), 0.1)'" onmouseout="this.style.background='transparent'">
+                                    <input type="radio" name="pricetrend-frequency" value="weekly" onchange="filterPriceTrendDropdown()"> Weekly (3-10 days)
+                                </label>
+                                <label style="cursor: pointer; padding: 6px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='rgba(--theme-color-1-rgb), 0.1)'" onmouseout="this.style.background='transparent'">
+                                    <input type="radio" name="pricetrend-frequency" value="monthly" onchange="filterPriceTrendDropdown()"> Monthly (&gt;10 days)
+                                </label>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 25px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 10px; font-size: 15px;">Search & Select Item:</label>
+                            <div style="position: relative;">
+                                <input type="text" id="pricetrend-search" placeholder="Type to search items..."
+                                       style="width: 100%; padding: 12px; font-size: 14px; border: 2px solid var(--theme-color-1); border-radius: 8px;"
+                                       onfocus="showPriceTrendDropdown()"
+                                       oninput="filterPriceTrendDropdown()">
+                                <div id="pricetrend-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 250px; overflow-y: auto; background: white; border: 2px solid var(--theme-color-1); border-top: none; border-radius: 0 0 8px 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; margin-top: -2px;">
+                                </div>
+                                <input type="hidden" id="pricetrend-selected-code" value="">
+                            </div>
+                            <div id="pricetrend-selected-item" style="margin-top: 12px; padding: 12px; background: white; border-radius: 8px; font-weight: 600; color: var(--theme-color-1); border: 2px solid var(--theme-color-1); min-height: 44px; display: flex; align-items: center;">
+                                No item selected
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; font-weight: 600; margin-bottom: 10px; font-size: 15px;">Date Range:</label>
+                            <div style="background: white; padding: 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 12px;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 6px; color: #666; font-size: 13px;">From Date:</label>
+                                    <input type="date" id="pricetrend-date-from" style="width: 100%; padding: 10px; font-size: 14px; border: 2px solid #ddd; border-radius: 6px;" onchange="updatePriceTrend()">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 6px; color: #666; font-size: 13px;">To Date:</label>
+                                    <input type="date" id="pricetrend-date-to" style="width: 100%; padding: 10px; font-size: 14px; border: 2px solid #ddd; border-radius: 6px;" onchange="updatePriceTrend()">
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="updatePriceTrend()" style="width: 100%; padding: 14px; font-size: 16px; font-weight: 600; background: var(--theme-gradient); color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(var(--theme-color-1-rgb), 0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            📈 Update Chart
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
         // Set default date range (last 90 days)
         const today = new Date();
         const ninetyDaysAgo = new Date(today);
@@ -4911,8 +4937,8 @@ async function loadPriceTrendItems() {
         }
     } catch (error) {
         console.error('Error loading price trend items:', error);
-        const selectedItemDiv = document.getElementById('pricetrend-selected-item');
-        if (selectedItemDiv) selectedItemDiv.textContent = 'Error loading items';
+        const bodyElement = document.getElementById('widget-body-price_trends');
+        if (bodyElement) bodyElement.innerHTML = '<div style="padding: 20px; color: red;">Error loading price trend items</div>';
     }
 }
 
@@ -4994,8 +5020,10 @@ async function updatePriceTrend() {
     }
 
     const ingredientCode = hiddenInput.value;
-    const bodyElement = document.getElementById('widget-body-price_trends');
-    bodyElement.innerHTML = '<div class="widget-loading">Loading...</div>';
+    const chartContainer = document.getElementById('pricetrend-chart-container');
+    if (!chartContainer) return;
+
+    chartContainer.innerHTML = '<div class="widget-loading" style="display: flex; align-items: center; justify-content: center; height: 100%;">Loading chart...</div>';
 
     try {
         let url = `/api/analytics/price-trends?ingredient_code=${ingredientCode}`;
@@ -5005,10 +5033,11 @@ async function updatePriceTrend() {
         const response = await fetch(url);
         const data = await response.json();
 
-        bodyElement.innerHTML = '';
+        chartContainer.innerHTML = '';
         const canvas = document.createElement('canvas');
         canvas.id = 'chart-price_trends';
-        bodyElement.appendChild(canvas);
+        canvas.style.flex = '1';
+        chartContainer.appendChild(canvas);
 
         renderPriceTrendChart(data, canvas);
     } catch (error) {
@@ -5055,11 +5084,17 @@ function renderPriceTrendChart(data, canvas) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     display: true,
-                    position: 'top'
+                    position: 'top',
+                    labels: {
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    }
                 },
                 tooltip: {
                     callbacks: {
