@@ -3960,11 +3960,6 @@ async function loadAnalytics() {
         await loadAnalyticsKPIs();
         await loadAnalyticsWidgets();
 
-        // Set up auto-refresh (60 seconds)
-        if (analyticsRefreshInterval) {
-            clearInterval(analyticsRefreshInterval);
-        }
-        analyticsRefreshInterval = setInterval(refreshAnalytics, 60000);
         console.log('Analytics loaded successfully');
     } catch (error) {
         console.error('Error loading analytics:', error);
