@@ -272,6 +272,26 @@ git add . && git commit -m "Description" && git push
      4. Update Chart button (full-width, gradient, prominent)
    - **Visual theme integration**: Gradient background, themed borders, hover effects
    - **Better visibility**: Larger chart, organized controls, clear visual hierarchy
+13. **Generated comprehensive historical data (90 days)**:
+   - **Sales data**: 30,814 transactions totaling $626,306 in revenue
+     * Generated backward from 2026-01-23 to 2025-10-25
+     * Focused on top 15 products based on recipe complexity
+     * Day-of-week patterns (weekends busier, Mondays slower)
+     * Random discounts (10% chance of 5-15% off)
+     * Realistic timing (11 AM - 10 PM)
+     * Top seller: Beef Tacos (16,846 units, $216,689 revenue)
+   - **Invoice data**: 33 invoices totaling $201,000 from 10 suppliers
+     * Deliveries every 2-4 days (realistic vendor schedule)
+     * 50 unique ingredients ordered based on sales usage
+     * Price variations (±10% realistic market fluctuations)
+     * Top supplier: Shamrock Foods ($89,698 over 3 invoices)
+     * Lot numbers and expiration dates included
+   - **Inventory counts**: 26 count sessions (twice weekly)
+     * All 970 active ingredients counted each session (25,220 total line items)
+     * Realistic variances: 80% minor (±2%), 10% moderate loss (3-8%), 5% significant loss (10-20%), 5% exact
+     * Variance reasons: Spillage (1,258), Expired items (1,326), Waste (1,212), Theft (633), Damaged goods (637)
+     * Average loss per count: -1.56 units
+   - **Script**: `generate_historical_data.py` for future data generation needs
 
 ---
 
