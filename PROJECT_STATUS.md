@@ -219,10 +219,15 @@ git add . && git commit -m "Description" && git push
    - Optimized query from multiple category queries to single aggregation
    - Extended color palette from 10 to 20 colors with dynamic cycling
    - Pie chart now provides complete spending visibility across all categories
-6. **Fixed price trends chart not showing selected products**:
-   - Price trends widget was rendering twice, overwriting user selections with default data
-   - Fixed by returning early after populatePriceTrendItems() completes
-   - Chart now correctly displays the products users select
+6. **Completely rebuilt Price Trend Analysis widget**:
+   - Simplified from complex multi-item (max 5) to single-item focused view
+   - Added search bar for efficient filtering across 900+ inventory items
+   - Shows ALL brand/supplier variants in searchable dropdown
+   - Added dedicated date range filters (From/To) independent of global analytics filter
+   - Default timeframe: last 90 days
+   - Chart auto-scales both axes based on actual price data and selected date range
+   - Removed confusing "purchase frequency" categorization
+   - Cleaner single-line chart for better price trend visualization
 
 ---
 
