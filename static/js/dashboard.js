@@ -4054,18 +4054,6 @@ function createWidgetElement(widget) {
                 </select>
             </div>
         `;
-    } else if (widget.widget_key === 'category_spending') {
-        controlsHTML = `
-            <div class="widget-controls" id="controls-${widget.widget_key}">
-                <label>Select Categories:</label>
-                <select id="category-spending-selector" multiple style="min-width: 400px; height: 120px;">
-                    <option value="">Loading categories...</option>
-                </select>
-                <button onclick="updateCategorySpending()">Update Chart</button>
-                <button onclick="selectAllCategories()">Select All</button>
-                <button onclick="clearCategorySelection()">Clear All</button>
-            </div>
-        `;
     }
 
     // Add reset zoom button for chart widgets
@@ -4113,12 +4101,6 @@ async function renderWidget(widget) {
         // Special handling for price_trends - populate item selector
         if (widget.widget_key === 'price_trends') {
             await populatePriceTrendItems();
-        }
-
-        // Special handling for category_spending - populate category selector
-        if (widget.widget_key === 'category_spending') {
-            await populateCategorySpendingSelector();
-            return;
         }
 
         // Special handling for supplier_performance - use pagination

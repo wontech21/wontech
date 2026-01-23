@@ -45,11 +45,11 @@ WIDGETS = [
     },
     {
         'widget_key': 'category_spending',
-        'widget_name': 'Category Spending Trends',
+        'widget_name': 'Category Spending Distribution',
         'widget_type': 'chart',
-        'chart_type': 'area',
+        'chart_type': 'pie',
         'category': 'cost',
-        'description': 'Monthly spending by category over time',
+        'description': 'Total spending by category',
         'icon': '📊',
         'default_enabled': 1,
         'requires_recipe_data': 0
@@ -109,40 +109,7 @@ WIDGETS = [
         'default_enabled': 1,
         'requires_recipe_data': 0
     },
-    {
-        'widget_key': 'usage_forecast',
-        'widget_name': 'Usage & Forecast',
-        'widget_type': 'chart',
-        'chart_type': 'line',
-        'category': 'forecasting',
-        'description': 'Historical usage with regression forecast',
-        'icon': '🔮',
-        'default_enabled': 1,
-        'requires_recipe_data': 0
-    },
-    # Additional 10
-    {
-        'widget_key': 'recipe_cost_trajectory',
-        'widget_name': 'Recipe Cost Trajectory',
-        'widget_type': 'chart',
-        'chart_type': 'line',
-        'category': 'profitability',
-        'description': 'COGS trend with regression prediction',
-        'icon': '📉',
-        'default_enabled': 0,
-        'requires_recipe_data': 1
-    },
-    {
-        'widget_key': 'substitution_opportunities',
-        'widget_name': 'Ingredient Substitution',
-        'widget_type': 'table',
-        'chart_type': None,
-        'category': 'cost',
-        'description': 'Compare prices of similar ingredients',
-        'icon': '🔄',
-        'default_enabled': 0,
-        'requires_recipe_data': 0
-    },
+    # Additional widgets
     {
         'widget_key': 'dead_stock',
         'widget_name': 'Dead Stock Analysis',
@@ -153,39 +120,6 @@ WIDGETS = [
         'icon': '💀',
         'default_enabled': 0,
         'requires_recipe_data': 0
-    },
-    {
-        'widget_key': 'eoq_optimizer',
-        'widget_name': 'Order Frequency Optimizer',
-        'widget_type': 'table',
-        'chart_type': None,
-        'category': 'inventory',
-        'description': 'Economic Order Quantity analysis',
-        'icon': '🎯',
-        'default_enabled': 0,
-        'requires_recipe_data': 0
-    },
-    {
-        'widget_key': 'seasonal_patterns',
-        'widget_name': 'Seasonal Demand Patterns',
-        'widget_type': 'chart',
-        'chart_type': 'line',
-        'category': 'forecasting',
-        'description': 'Monthly usage with year-over-year overlay',
-        'icon': '🌡️',
-        'default_enabled': 0,
-        'requires_recipe_data': 0
-    },
-    {
-        'widget_key': 'menu_engineering',
-        'widget_name': 'Menu Engineering Matrix',
-        'widget_type': 'chart',
-        'chart_type': 'scatter',
-        'category': 'profitability',
-        'description': 'BCG matrix for product portfolio',
-        'icon': '🎨',
-        'default_enabled': 0,
-        'requires_recipe_data': 1
     },
     {
         'widget_key': 'waste_shrinkage',
@@ -208,17 +142,6 @@ WIDGETS = [
         'icon': '🔗',
         'default_enabled': 0,
         'requires_recipe_data': 0
-    },
-    {
-        'widget_key': 'breakeven_analysis',
-        'widget_name': 'Break-Even Analysis',
-        'widget_type': 'table',
-        'chart_type': None,
-        'category': 'profitability',
-        'description': 'Units needed to break even per product',
-        'icon': '⚖️',
-        'default_enabled': 0,
-        'requires_recipe_data': 1
     },
     {
         'widget_key': 'cost_drivers',

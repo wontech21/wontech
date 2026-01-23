@@ -286,10 +286,9 @@ def analytics_product_profitability():
 
 @app.route('/api/analytics/category-spending')
 def analytics_category_spending():
-    """Category spending over time"""
+    """Category spending distribution (pie chart)"""
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
-    grouping = request.args.get('grouping', 'month')  # day, week, month
 
     conn_inv = get_db_connection(INVOICES_DB)
     conn_ing = get_db_connection(INVENTORY_DB)
@@ -300,17 +299,9 @@ def analytics_category_spending():
     cursor_ing.execute("SELECT ingredient_code, category FROM ingredients")
     category_map = {row['ingredient_code']: row['category'] for row in cursor_ing.fetchall()}
 
-    # Build date grouping
-    if grouping == 'day':
-        date_group = "date(i.invoice_date)"
-    elif grouping == 'week':
-        date_group = "strftime('%Y-W%W', i.invoice_date)"
-    else:  # month
-        date_group = "strftime('%Y-%m', i.invoice_date)"
-
-    query = f"""
+    # Get total spending by ingredient
+    query = """
         SELECT
-            {date_group} as period,
             ili.ingredient_code,
             SUM(ili.total_price) as amount
         FROM invoice_line_items ili
@@ -326,27 +317,33 @@ def analytics_category_spending():
         query += " AND i.invoice_date <= ?"
         params.append(date_to)
 
-    query += f" GROUP BY {date_group}, ili.ingredient_code ORDER BY period"
+    query += " GROUP BY ili.ingredient_code"
 
     cursor_inv.execute(query, params)
     data = [dict(row) for row in cursor_inv.fetchall()]
 
-    # Organize by period and category
-    result = {}
+    # Aggregate by category
+    category_totals = {}
     for row in data:
-        period = row['period']
         category = category_map.get(row['ingredient_code'], 'Unknown')
         amount = row['amount']
 
-        if period not in result:
-            result[period] = {}
-        if category not in result[period]:
-            result[period][category] = 0
+        if category not in category_totals:
+            category_totals[category] = 0
 
-        result[period][category] += amount
+        category_totals[category] += amount
 
     conn_inv.close()
     conn_ing.close()
+
+    # Convert to list format for pie chart
+    result = [
+        {'category': category, 'amount': round(amount, 2)}
+        for category, amount in category_totals.items()
+    ]
+
+    # Sort by amount descending
+    result.sort(key=lambda x: x['amount'], reverse=True)
 
     return jsonify(result)
 
@@ -555,47 +552,84 @@ def analytics_cost_variance():
     """Items with significant price variance"""
     threshold = float(request.args.get('threshold', 15))  # % change
     limit = request.args.get('limit', 50)
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
 
-    conn = get_db_connection(INVENTORY_DB)
-    cursor = conn.cursor()
+    conn_inv = get_db_connection(INVOICES_DB)
+    conn_ing = get_db_connection(INVENTORY_DB)
+    cursor_inv = conn_inv.cursor()
+    cursor_ing = conn_ing.cursor()
 
-    # Get ingredients with both average and last price
-    cursor.execute("""
+    # Build query with date filters
+    query = """
         SELECT
-            ingredient_code,
-            ingredient_name,
-            brand,
-            category,
-            average_unit_price as avg_price,
-            last_unit_price as last_price,
-            date_received as last_purchase_date
+            ili.ingredient_code,
+            ili.ingredient_name,
+            AVG(ili.unit_price) as avg_price,
+            MIN(ili.unit_price) as min_price,
+            MAX(ili.unit_price) as max_price
+        FROM invoice_line_items ili
+        JOIN invoices i ON ili.invoice_id = i.id
+        WHERE 1=1
+    """
+    params = []
+
+    if date_from:
+        query += " AND i.invoice_date >= ?"
+        params.append(date_from)
+    if date_to:
+        query += " AND i.invoice_date <= ?"
+        params.append(date_to)
+
+    query += """
+        GROUP BY ili.ingredient_code, ili.ingredient_name
+        HAVING COUNT(*) >= 2
+    """
+
+    cursor_inv.execute(query, params)
+    price_data = {row['ingredient_code']: dict(row) for row in cursor_inv.fetchall()}
+
+    # Get ingredient details
+    cursor_ing.execute("""
+        SELECT ingredient_code, brand, category
         FROM ingredients
         WHERE active = 1
-          AND average_unit_price > 0
-          AND last_unit_price > 0
-          AND average_unit_price != last_unit_price
     """)
+    ingredient_details = {row['ingredient_code']: dict(row) for row in cursor_ing.fetchall()}
 
     alerts = []
-    for row in cursor.fetchall():
-        avg = row['avg_price']
-        last = row['last_price']
-        change = ((last - avg) / avg * 100) if avg > 0 else 0
+    for code, data in price_data.items():
+        avg = data['avg_price']
+        max_price = data['max_price']
+        min_price = data['min_price']
+
+        # Calculate variance from average to max
+        change_to_max = ((max_price - avg) / avg * 100) if avg > 0 else 0
+        change_to_min = ((min_price - avg) / avg * 100) if avg > 0 else 0
+
+        # Use the larger absolute variance
+        if abs(change_to_max) > abs(change_to_min):
+            change = change_to_max
+            variance_price = max_price
+        else:
+            change = change_to_min
+            variance_price = min_price
 
         if abs(change) >= threshold:
+            details = ingredient_details.get(code, {})
             alerts.append({
-                'ingredient_code': row['ingredient_code'],
-                'ingredient_name': row['ingredient_name'],
-                'brand': row['brand'],
-                'category': row['category'],
+                'ingredient_code': code,
+                'ingredient_name': data['ingredient_name'],
+                'brand': details.get('brand', ''),
+                'category': details.get('category', ''),
                 'avg_price': round(avg, 2),
-                'last_price': round(last, 2),
+                'variance_price': round(variance_price, 2),
                 'change_percent': round(change, 2),
-                'change_direction': 'increase' if change > 0 else 'decrease',
-                'last_purchase_date': row['last_purchase_date']
+                'change_direction': 'increase' if change > 0 else 'decrease'
             })
 
-    conn.close()
+    conn_inv.close()
+    conn_ing.close()
 
     # Sort by absolute change descending
     alerts.sort(key=lambda x: abs(x['change_percent']), reverse=True)
@@ -606,74 +640,3 @@ def analytics_cost_variance():
         'alert_count': len(alerts)
     })
 
-@app.route('/api/analytics/usage-forecast')
-def analytics_usage_forecast():
-    """Usage forecast with linear regression"""
-    ingredient_code = request.args.get('ingredient_code', '')
-    forecast_days = int(request.args.get('forecast_days', 30))
-
-    if not ingredient_code:
-        return jsonify({'error': 'ingredient_code required'}), 400
-
-    conn_inv = get_db_connection(INVOICES_DB)
-    cursor = conn_inv.cursor()
-
-    # Get purchase history
-    cursor.execute("""
-        SELECT
-            i.invoice_date as date,
-            SUM(ili.quantity_received) as quantity
-        FROM invoice_line_items ili
-        JOIN invoices i ON ili.invoice_id = i.id
-        WHERE ili.ingredient_code = ?
-        GROUP BY i.invoice_date
-        ORDER BY i.invoice_date
-    """, (ingredient_code,))
-
-    data = [dict(row) for row in cursor.fetchall()]
-    conn_inv.close()
-
-    if len(data) < 2:
-        return jsonify({'error': 'Insufficient data for forecast'}), 400
-
-    # Simple linear regression
-    from datetime import datetime, timedelta
-    import statistics
-
-    dates = [datetime.strptime(d['date'], '%Y-%m-%d') for d in data]
-    quantities = [d['quantity'] for d in data]
-
-    # Convert to day numbers
-    base_date = dates[0]
-    x = [(d - base_date).days for d in dates]
-    y = quantities
-
-    # Calculate regression
-    n = len(x)
-    sum_x = sum(x)
-    sum_y = sum(y)
-    sum_xy = sum(xi * yi for xi, yi in zip(x, y))
-    sum_x2 = sum(xi * xi for xi in x)
-
-    slope = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x * sum_x)
-    intercept = (sum_y - slope * sum_x) / n
-
-    # Generate forecast
-    last_day = x[-1]
-    forecast = []
-    for i in range(1, forecast_days + 1):
-        forecast_date = base_date + timedelta(days=last_day + i)
-        forecast_qty = slope * (last_day + i) + intercept
-        forecast.append({
-            'date': forecast_date.strftime('%Y-%m-%d'),
-            'quantity': max(0, round(forecast_qty, 2))  # Don't forecast negative
-        })
-
-    return jsonify({
-        'historical': data,
-        'forecast': forecast,
-        'trend': 'increasing' if slope > 0 else 'decreasing',
-        'slope': round(slope, 4)
-    })
-
-# Add remaining analytics endpoints in next part...
