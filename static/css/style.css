@@ -163,6 +163,9 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 3px solid;
+    border-image: linear-gradient(90deg, var(--theme-color-1), var(--theme-color-2)) 1;
     flex-wrap: wrap;
     gap: 15px;
 }
