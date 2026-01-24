@@ -79,8 +79,8 @@ function initializeScanner() {
                 "ean_reader",      // European Article Number (most grocery items)
                 "ean_8_reader",    // EAN-8 (shorter barcodes)
                 "upc_reader",      // Universal Product Code (US/Canada)
-                "upc_e_reader"     // UPC-E (compressed UPC)
-                // Removed Code 128/39 for now - they cause more false positives
+                "upc_e_reader",    // UPC-E (compressed UPC)
+                "code_128_reader"  // Re-added for difficult scans
             ],
             multiple: false,
             debug: {
@@ -96,7 +96,7 @@ function initializeScanner() {
             halfSample: true
         },
         numOfWorkers: 4,
-        frequency: 10,  // Scan every 10 frames (reduce false positives)
+        frequency: 5,  // Scan more frequently (every 5 frames instead of 10)
         debug: false
     }, function(err) {
         if (err) {
@@ -250,6 +250,39 @@ function isValidBarcodeFormat(barcode) {
 
     // Reject anything else
     return false;
+}
+
+/**
+ * Manual barcode entry fallback
+ */
+function lookupManualBarcode() {
+    const input = document.getElementById('manual-barcode-input');
+    const barcode = input.value.trim();
+
+    if (!barcode) {
+        showError('Please enter a barcode');
+        return;
+    }
+
+    // Normalize and validate
+    const normalized = normalizeBarcodeFormat(barcode);
+    if (!isValidBarcodeFormat(normalized)) {
+        showError('Invalid barcode format. Must be 6-13 digits for UPC/EAN codes.');
+        return;
+    }
+
+    // Show results section
+    lastScannedBarcode = normalized;
+    document.getElementById('scanned-barcode-value').textContent = normalized;
+    document.getElementById('barcode-results').style.display = 'block';
+    document.getElementById('barcode-loading').style.display = 'block';
+    document.getElementById('barcode-lookup-results').style.display = 'none';
+
+    // Clear input
+    input.value = '';
+
+    // Lookup
+    lookupBarcode(normalized);
 }
 
 /**

@@ -1667,6 +1667,18 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                     <button class="btn-secondary" onclick="restartScanner()">Scan Another</button>
                     <button class="btn-secondary" onclick="closeBarcodeScanner()">Close</button>
                 </div>
+
+                <!-- Manual Entry Option -->
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <h4 style="margin-top: 0;">Can't scan? Enter barcode manually:</h4>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="manual-barcode-input" placeholder="Enter barcode number" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                        <button class="btn-primary" onclick="lookupManualBarcode()">Lookup</button>
+                    </div>
+                    <p style="font-size: 0.85em; color: #666; margin: 10px 0 0 0;">
+                        <strong>Tip for dark/curved surfaces:</strong> Try better lighting, hold barcode flat, or use a white background behind it.
+                    </p>
+                </div>
             </div>
         </div>
     </div>
