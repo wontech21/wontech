@@ -626,9 +626,9 @@ async function addBarcodeToCountForm(quantity) {
 
                 showSuccess(`✅ Added to count: ${item.ingredient_name}`);
 
-                // Close scanner after short delay
+                // Restart scanner for next item
                 setTimeout(() => {
-                    closeBarcodeScanner();
+                    restartScanner();
                 }, 1500);
             } else {
                 console.error('No last row found after addCountRow()');
@@ -670,9 +670,9 @@ async function addBarcodeToSavedCount(quantity) {
                 setTimeout(() => loadCountItems(currentCountId), 500);
             }
 
-            // Close scanner or scan another
+            // Restart scanner for next item
             setTimeout(() => {
-                closeBarcodeScanner();
+                restartScanner();
             }, 1500);
 
         } else if (data.prompt_create) {
@@ -920,9 +920,9 @@ function addNewlyCreatedItemToCount(ingredientData, countedQty) {
 
             showSuccess(`✅ Added to count: ${ingredientData.ingredient_name} (${countedQty} ${ingredientData.unit_of_measure})`);
 
-            // Close scanner after short delay
+            // Restart scanner for next item
             setTimeout(() => {
-                closeBarcodeScanner();
+                restartScanner();
             }, 1500);
         }
     } else {
@@ -1088,9 +1088,9 @@ async function addScannedItemToInvoice() {
 
                     showSuccess(`✅ Added to invoice: ${item.ingredient_name}`);
 
-                    // Close scanner
+                    // Restart scanner for next item
                     setTimeout(() => {
-                        closeBarcodeScanner();
+                        restartScanner();
                     }, 1500);
                 } else {
                     showError('Failed to add row to invoice');
