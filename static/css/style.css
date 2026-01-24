@@ -5060,10 +5060,10 @@ textarea.form-control {
 /* Scanner targeting guide */
 #scanner-container .targeting-guide {
     position: absolute;
-    top: 30%;
-    left: 10%;
-    right: 10%;
-    bottom: 30%;
+    top: 10%;
+    left: 0%;
+    right: 0%;
+    bottom: 10%;
     border: 3px solid var(--theme-color-1);
     border-radius: 12px;
     pointer-events: none;
@@ -5349,7 +5349,9 @@ textarea.form-control {
 @media (max-width: 768px) {
     #scanner-container {
         max-width: 100%;
-        height: 360px;
+        height: auto;
+        min-height: 400px;
+        aspect-ratio: 4/3;
     }
 
     #barcodeScannerModal .modal-content {

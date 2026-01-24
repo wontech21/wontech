@@ -99,44 +99,36 @@ function initializeScanner() {
             type: "LiveStream",
             target: document.querySelector('#scanner-container'),
             constraints: {
-                width: { min: 640, ideal: 1280, max: 1920 },
-                height: { min: 480, ideal: 720, max: 1080 },
-                facingMode: "environment", // Use rear camera on mobile
-                aspectRatio: { ideal: 1.7777778 }, // 16:9
-                focusMode: "continuous",
-                advanced: [{ torch: true }] // Enable flashlight if available
+                width: 640,  // Fixed lower resolution to reduce zoom
+                height: 480,
+                facingMode: "environment" // Use rear camera on mobile
             },
-            area: { // Focus area in center
-                top: "20%",
-                right: "5%",
-                left: "5%",
-                bottom: "20%"
-            }
+            area: { // Larger scan area for easier targeting
+                top: "10%",
+                right: "0%",
+                left: "0%",
+                bottom: "10%"
+            },
+            singleChannel: false // Use full color for better detection
         },
         decoder: {
             readers: [
+                "upc_reader",      // Universal Product Code (US/Canada) - most common
                 "ean_reader",      // European Article Number (most grocery items)
                 "ean_8_reader",    // EAN-8 (shorter barcodes)
-                "upc_reader",      // Universal Product Code (US/Canada)
                 "upc_e_reader",    // UPC-E (compressed UPC)
                 "code_128_reader", // Code 128 (common for shipping/inventory)
                 "code_39_reader"   // Code 39 (alternative format)
             ],
-            multiple: false,
-            debug: {
-                drawBoundingBox: true,
-                showFrequency: false,
-                drawScanline: true,
-                showPattern: false
-            }
+            multiple: false
         },
         locate: true,
         locator: {
-            patchSize: "large",      // Changed from medium for better detection
-            halfSample: false        // Changed from true for better quality on iPhone
+            patchSize: "medium",
+            halfSample: true  // Better performance on mobile
         },
-        numOfWorkers: navigator.hardwareConcurrency > 2 ? 2 : 0, // Optimize for mobile
-        frequency: 10,  // Scan every frame for better responsiveness
+        numOfWorkers: 0, // Single-threaded for better mobile compatibility
+        frequency: 10,
         debug: false
     }, function(err) {
         if (err) {
