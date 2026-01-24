@@ -94,6 +94,9 @@ def register_barcode_routes(app, get_db_connection, inventory_db):
                 'error': 'count_id and barcode required'
             }), 400
 
+        # Normalize barcode (remove leading zero from EAN-13)
+        barcode = BarcodeAPI.normalize_barcode(barcode)
+
         conn = get_db_connection(inventory_db)
         cursor = conn.cursor()
 
@@ -182,6 +185,9 @@ def register_barcode_routes(app, get_db_connection, inventory_db):
                 'error': f'Missing required fields: {", ".join(missing)}'
             }), 400
 
+        # Normalize barcode (remove leading zero from EAN-13)
+        data['barcode'] = BarcodeAPI.normalize_barcode(data['barcode'])
+
         conn = get_db_connection(inventory_db)
         cursor = conn.cursor()
 
@@ -254,6 +260,9 @@ def register_barcode_routes(app, get_db_connection, inventory_db):
                 'success': False,
                 'error': 'ingredient_id and barcode required'
             }), 400
+
+        # Normalize barcode (remove leading zero from EAN-13)
+        barcode = BarcodeAPI.normalize_barcode(barcode)
 
         conn = get_db_connection(inventory_db)
         cursor = conn.cursor()

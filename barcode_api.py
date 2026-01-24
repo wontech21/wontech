@@ -29,6 +29,21 @@ class BarcodeAPI:
     def __init__(self, db_connection):
         self.conn = db_connection
 
+    @staticmethod
+    def normalize_barcode(barcode: str) -> str:
+        """
+        Normalize barcode format
+        Converts EAN-13 with leading zero to UPC-A (12 digits)
+        Example: 0041220576555 (EAN-13) → 041220576555 (UPC-A)
+        """
+        barcode = barcode.strip()
+
+        # If it's a 13-digit EAN code starting with 0, convert to 12-digit UPC
+        if len(barcode) == 13 and barcode[0] == '0' and barcode.isdigit():
+            return barcode[1:]  # Remove leading zero
+
+        return barcode
+
     def check_api_limit(self, api_name: str) -> bool:
         """Check if we've hit the daily limit for an API"""
         today = datetime.now().strftime('%Y-%m-%d')
@@ -237,6 +252,9 @@ class BarcodeAPI:
         Query all available barcode databases in parallel
         Returns aggregated results from all sources
         """
+        # Normalize barcode (remove leading zero from EAN-13 if applicable)
+        barcode = self.normalize_barcode(barcode)
+
         # Check local inventory first
         local_results = self._check_local_inventory(barcode)
 

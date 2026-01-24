@@ -150,7 +150,7 @@ function updateScannerStatus(message) {
  * Handle barcode detection from QuaggaJS
  */
 function handleBarcodeDetected(result) {
-    const barcode = result.codeResult.code;
+    let barcode = result.codeResult.code;
     const quality = result.codeResult.decodedCodes
         .filter(code => code.error !== undefined)
         .reduce((sum, code) => sum + code.error, 0) / result.codeResult.decodedCodes.length;
@@ -160,6 +160,9 @@ function handleBarcodeDetected(result) {
         console.log('Low quality scan rejected:', barcode, 'quality:', quality);
         return;
     }
+
+    // Normalize barcode (remove leading zero from UPC codes)
+    barcode = normalizeBarcodeFormat(barcode);
 
     // Validate barcode format (must be valid length and digits only for UPC/EAN)
     if (!isValidBarcodeFormat(barcode)) {
@@ -204,6 +207,24 @@ function handleBarcodeDetected(result) {
 }
 
 /**
+ * Normalize barcode format
+ * Converts EAN-13 with leading zero to UPC-A (12 digits)
+ * This fixes the issue where scanners add a leading 0
+ */
+function normalizeBarcodeFormat(barcode) {
+    barcode = barcode.trim();
+
+    // If it's a 13-digit EAN code starting with 0, convert to 12-digit UPC
+    // Example: 0041220576555 (EAN-13) → 041220576555 (UPC-A)
+    if (/^\d{13}$/.test(barcode) && barcode.charAt(0) === '0') {
+        console.log('Converting EAN-13 to UPC-A:', barcode, '→', barcode.substring(1));
+        return barcode.substring(1);  // Remove leading zero
+    }
+
+    return barcode;
+}
+
+/**
  * Validate barcode format
  */
 function isValidBarcodeFormat(barcode) {
@@ -211,12 +232,11 @@ function isValidBarcodeFormat(barcode) {
     barcode = barcode.trim();
 
     // Check for valid barcode lengths
-    // EAN-13: 13 digits
+    // EAN-13: 13 digits (but we normalize to UPC-A if starts with 0)
     // EAN-8: 8 digits
     // UPC-A: 12 digits
     // UPC-E: 6-8 digits
-    // Code 128/39: Variable length alphanumeric
-    const validLengths = [6, 7, 8, 12, 13, 14];
+    const validLengths = [6, 7, 8, 12, 13];
 
     // For numeric barcodes (UPC/EAN), must be digits only and valid length
     if (/^\d+$/.test(barcode)) {
