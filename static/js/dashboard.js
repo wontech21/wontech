@@ -1705,7 +1705,6 @@ function sortTable(tableName, columnIndex, type) {
     const tableId = tableName + 'Table';
     const table = document.getElementById(tableId);
     const tbody = table.querySelector('tbody');
-    const rows = Array.from(tbody.querySelectorAll('tr'));
 
     // Initialize sort state for this table/column if needed
     const key = `${tableName}-${columnIndex}`;
@@ -1721,6 +1720,13 @@ function sortTable(tableName, columnIndex, type) {
     } else {
         sortState[key].direction = 'none';
     }
+
+    // Handle paginated tables specially (suppliers and categories)
+    if (tableName === 'suppliers' || tableName === 'categories') {
+        return sortPaginatedTable(tableName, columnIndex, type, key, table);
+    }
+
+    const rows = Array.from(tbody.querySelectorAll('tr'));
 
     // Clear all sort arrows in this table
     table.querySelectorAll('.sort-arrow').forEach(arrow => {
@@ -1745,6 +1751,19 @@ function sortTable(tableName, columnIndex, type) {
                 break;
             case 'products':
                 loadProducts();
+                break;
+            case 'unreconciled':
+            case 'recentInvoices':
+                loadInvoices();
+                break;
+            case 'counts':
+                loadCounts();
+                break;
+            case 'suppliers':
+                renderSuppliersTable();
+                break;
+            case 'categories':
+                renderCategoriesTable();
                 break;
         }
         return;
@@ -1792,6 +1811,74 @@ function sortTable(tableName, columnIndex, type) {
     // Clear and re-append sorted rows
     tbody.innerHTML = '';
     rows.forEach(row => tbody.appendChild(row));
+}
+
+// Sort paginated tables (suppliers, categories)
+function sortPaginatedTable(tableName, columnIndex, type, key, table) {
+    const tableState = tableName === 'suppliers' ? suppliersTableState : categoriesTableState;
+
+    // Clear all sort arrows
+    table.querySelectorAll('.sort-arrow').forEach(arrow => {
+        arrow.className = 'sort-arrow';
+    });
+
+    // Update the clicked column's arrow
+    const header = table.querySelectorAll('th')[columnIndex];
+    const arrow = header.querySelector('.sort-arrow');
+    if (sortState[key].direction === 'asc') {
+        arrow.className = 'sort-arrow sort-asc';
+    } else if (sortState[key].direction === 'desc') {
+        arrow.className = 'sort-arrow sort-desc';
+    }
+
+    // If direction is 'none', reload original data
+    if (sortState[key].direction === 'none') {
+        if (tableName === 'suppliers') {
+            loadSuppliersTable();
+        } else {
+            loadCategoriesTable();
+        }
+        return;
+    }
+
+    // Sort the state data
+    tableState.allData.sort((a, b) => {
+        let aValue, bValue;
+
+        // Get values based on column index
+        if (tableName === 'suppliers') {
+            const keys = ['supplier_name', 'contact_person', 'phone', 'email', 'address', 'payment_terms'];
+            aValue = a[keys[columnIndex]] || '';
+            bValue = b[keys[columnIndex]] || '';
+        } else { // categories
+            const keys = ['category_name', 'item_count', 'created_at'];
+            aValue = a[keys[columnIndex]] || '';
+            bValue = b[keys[columnIndex]] || '';
+        }
+
+        // Convert to appropriate type for comparison
+        if (type === 'number') {
+            aValue = parseFloat(aValue) || 0;
+            bValue = parseFloat(bValue) || 0;
+            return sortState[key].direction === 'asc' ? aValue - bValue : bValue - aValue;
+        } else if (type === 'date') {
+            aValue = new Date(aValue || 0);
+            bValue = new Date(bValue || 0);
+            return sortState[key].direction === 'asc' ? aValue - bValue : bValue - aValue;
+        } else {
+            // String comparison
+            return sortState[key].direction === 'asc'
+                ? String(aValue).localeCompare(String(bValue))
+                : String(bValue).localeCompare(String(aValue));
+        }
+    });
+
+    // Re-render the table with sorted data
+    if (tableName === 'suppliers') {
+        renderSuppliersTable();
+    } else {
+        renderCategoriesTable();
+    }
 }
 
 // Edit item functionality

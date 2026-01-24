@@ -460,12 +460,12 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                     <table id="unreconciledTable">
                         <thead>
                             <tr>
-                                <th>Invoice #</th>
-                                <th>Supplier</th>
-                                <th>Invoice Date</th>
-                                <th>Received Date</th>
-                                <th>Amount</th>
-                                <th>Payment Status</th>
+                                <th class="sortable" onclick="sortTable('unreconciled', 0, 'string')">Invoice # <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTable('unreconciled', 1, 'string')">Supplier <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTable('unreconciled', 2, 'date')">Invoice Date <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTable('unreconciled', 3, 'date')">Received Date <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTable('unreconciled', 4, 'number')">Amount <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTable('unreconciled', 5, 'string')">Payment Status <span class="sort-arrow"></span></th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -506,12 +506,12 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                     <table id="recentInvoicesTable">
                         <thead>
                             <tr>
-                                <th>Invoice #</th>
-                                <th>Supplier</th>
-                                <th>Date</th>
-                                <th>Amount</th>
-                                <th>Payment</th>
-                                <th>Reconciled</th>
+                                <th class="sortable" onclick="sortTable('recentInvoices', 0, 'string')">Invoice # <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTable('recentInvoices', 1, 'string')">Supplier <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTable('recentInvoices', 2, 'date')">Date <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTable('recentInvoices', 3, 'number')">Amount <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTable('recentInvoices', 4, 'string')">Payment <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTable('recentInvoices', 5, 'string')">Reconciled <span class="sort-arrow"></span></th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -571,12 +571,12 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                     <table id="countsTable">
                         <thead>
                             <tr>
-                                <th>Count #</th>
-                                <th>Count Date</th>
-                                <th>Counted By</th>
-                                <th>Items</th>
-                                <th>Total Variance</th>
-                                <th>Status</th>
+                                <th class="sortable" onclick="sortTable('counts', 0, 'string')">Count # <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTable('counts', 1, 'date')">Count Date <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTable('counts', 2, 'string')">Counted By <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTable('counts', 3, 'number')">Items <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTable('counts', 4, 'number')">Total Variance <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTable('counts', 5, 'string')">Status <span class="sort-arrow"></span></th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -978,12 +978,12 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                 <table id="suppliersTable">
                     <thead>
                         <tr>
-                            <th>Supplier Name</th>
-                            <th>Contact Person</th>
-                            <th>Phone</th>
-                            <th>Email</th>
-                            <th>Address</th>
-                            <th>Payment Terms</th>
+                            <th class="sortable" onclick="sortTable('suppliers', 0, 'string')">Supplier Name <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortTable('suppliers', 1, 'string')">Contact Person <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortTable('suppliers', 2, 'string')">Phone <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortTable('suppliers', 3, 'string')">Email <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortTable('suppliers', 4, 'string')">Address <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortTable('suppliers', 5, 'string')">Payment Terms <span class="sort-arrow"></span></th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -1008,9 +1008,9 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                 <table id="categoriesTable">
                     <thead>
                         <tr>
-                            <th>Category Name</th>
-                            <th>Items Using</th>
-                            <th>Created</th>
+                            <th class="sortable" onclick="sortTable('categories', 0, 'string')">Category Name <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortTable('categories', 1, 'number')">Items Using <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortTable('categories', 2, 'date')">Created <span class="sort-arrow"></span></th>
                             <th>Actions</th>
                         </tr>
                     </thead>
