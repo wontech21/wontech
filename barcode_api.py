@@ -68,6 +68,117 @@ class BarcodeAPI:
         """, (api_name, today))
         self.conn.commit()
 
+    def _query_open_food_facts_no_db(self, barcode: str) -> Optional[Dict]:
+        """
+        Thread-safe version - queries API without database operations
+        Database operations done in main thread after parallel execution
+        """
+        barcodes_to_try = [barcode]
+        if len(barcode) == 12 and barcode.isdigit():
+            barcodes_to_try.append('0' + barcode)
+
+        for bc in barcodes_to_try:
+            try:
+                response = requests.get(
+                    self.OPEN_FOOD_FACTS_URL.format(barcode=bc),
+                    timeout=5
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('status') == 1:
+                        product = data.get('product', {})
+                        return {
+                            'source': 'Open Food Facts',
+                            'source_key': 'openfoodfacts',
+                            'product_name': product.get('product_name') or product.get('product_name_en'),
+                            'brand': product.get('brands'),
+                            'category': product.get('categories'),
+                            'quantity': product.get('quantity'),
+                            'image_url': product.get('image_url') or product.get('image_front_url'),
+                            'ingredients': product.get('ingredients_text'),
+                            'nutrition_grade': product.get('nutrition_grade_fr'),
+                            'confidence': 'high' if product.get('product_name') else 'medium',
+                            'barcode_format_used': bc,
+                            'raw_data': product
+                        }
+            except Exception as e:
+                print(f"Open Food Facts error for {bc}: {e}")
+
+        return None
+
+    def _query_upc_itemdb_no_db(self, barcode: str) -> Optional[Dict]:
+        """Thread-safe version - queries API without database operations"""
+        barcodes_to_try = [barcode]
+        if len(barcode) == 12 and barcode.isdigit():
+            barcodes_to_try.append('0' + barcode)
+
+        for bc in barcodes_to_try:
+            try:
+                response = requests.get(
+                    self.UPC_ITEMDB_URL,
+                    params={'upc': bc},
+                    timeout=5
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('items'):
+                        item = data['items'][0]
+                        return {
+                            'source': 'UPC Item DB',
+                            'source_key': 'upcitemdb',
+                            'product_name': item.get('title'),
+                            'brand': item.get('brand'),
+                            'category': item.get('category'),
+                            'quantity': None,
+                            'image_url': ' '.join(item.get('images', [])) if item.get('images') else None,
+                            'description': item.get('description'),
+                            'confidence': 'high' if item.get('title') else 'low',
+                            'barcode_format_used': bc,
+                            'raw_data': item
+                        }
+            except Exception as e:
+                print(f"UPCitemdb error for {bc}: {e}")
+
+        return None
+
+    def _query_barcode_lookup_no_db(self, barcode: str, api_key: Optional[str] = None) -> Optional[Dict]:
+        """Thread-safe version - queries API without database operations"""
+        if not api_key:
+            import os
+            api_key = os.environ.get('BARCODE_LOOKUP_API_KEY')
+            if not api_key:
+                return None
+
+        try:
+            response = requests.get(
+                self.BARCODE_LOOKUP_URL,
+                params={'barcode': barcode, 'key': api_key},
+                timeout=5
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('products'):
+                    product = data['products'][0]
+                    return {
+                        'source': 'Barcode Lookup',
+                        'source_key': 'barcodelookup',
+                        'product_name': product.get('product_name') or product.get('title'),
+                        'brand': product.get('brand'),
+                        'category': product.get('category'),
+                        'quantity': None,
+                        'image_url': ' '.join(product.get('images', [])) if product.get('images') else None,
+                        'manufacturer': product.get('manufacturer'),
+                        'confidence': 'high' if product.get('product_name') else 'medium',
+                        'raw_data': product
+                    }
+        except Exception as e:
+            print(f"Barcode Lookup error: {e}")
+
+        return None
+
     def query_open_food_facts(self, barcode: str) -> Optional[Dict]:
         """Query Open Food Facts database (unlimited, best for food)"""
         # Try both normalized barcode AND with leading zero (some products stored as EAN-13)
@@ -279,13 +390,15 @@ class BarcodeAPI:
         if use_cache:
             cached_results = self.get_cached_results(barcode)
 
-        # Query all external APIs in parallel
+        # Query all external APIs in parallel (NO database operations in threads)
         external_results = []
+
+        # Use thread-safe wrappers that don't touch the database
         with ThreadPoolExecutor(max_workers=3) as executor:
             futures = {
-                executor.submit(self.query_open_food_facts, barcode): 'openfoodfacts',
-                executor.submit(self.query_upc_itemdb, barcode): 'upcitemdb',
-                executor.submit(self.query_barcode_lookup, barcode): 'barcodelookup'
+                executor.submit(self._query_open_food_facts_no_db, barcode): 'openfoodfacts',
+                executor.submit(self._query_upc_itemdb_no_db, barcode): 'upcitemdb',
+                executor.submit(self._query_barcode_lookup_no_db, barcode): 'barcodelookup'
             }
 
             for future in as_completed(futures):
@@ -295,6 +408,19 @@ class BarcodeAPI:
                         external_results.append(result)
                 except Exception as e:
                     print(f"API query error: {e}")
+
+        # NOW cache results and update usage (in main thread, safe)
+        for result in external_results:
+            source = result.get('source_key')
+            if source == 'openfoodfacts':
+                self._cache_result(barcode, 'openfoodfacts', result.get('raw_data', {}))
+                self.increment_api_usage('openfoodfacts')
+            elif source == 'upcitemdb':
+                self._cache_result(barcode, 'upcitemdb', result.get('raw_data', {}))
+                self.increment_api_usage('upcitemdb')
+            elif source == 'barcodelookup':
+                self._cache_result(barcode, 'barcodelookup', result.get('raw_data', {}))
+                self.increment_api_usage('barcodelookup')
 
         # Aggregate all results
         return {
