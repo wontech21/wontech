@@ -597,22 +597,54 @@ function closeCreateFromBarcodeModal() {
  */
 async function loadCategoriesForBarcode() {
     try {
-        const response = await fetch('/api/categories/list');
+        const response = await fetch('/api/categories/all');
         const categories = await response.json();
 
         const select = document.getElementById('new-ingredient-category');
+        if (!select) {
+            console.error('Category select element not found');
+            return;
+        }
+
         select.innerHTML = '<option value="">Select Category</option>';
 
-        categories.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat.category_name;
-            option.textContent = cat.category_name;
-            select.appendChild(option);
-        });
+        // Response is an array directly
+        if (Array.isArray(categories) && categories.length > 0) {
+            console.log(`Loaded ${categories.length} categories`);
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.category_name;
+                option.textContent = cat.category_name;
+                select.appendChild(option);
+            });
+        } else {
+            console.warn('No categories returned from API, using fallback');
+            useFallbackCategories(select);
+        }
 
     } catch (error) {
         console.error('Failed to load categories:', error);
+        const select = document.getElementById('new-ingredient-category');
+        if (select) {
+            useFallbackCategories(select);
+        }
     }
+}
+
+/**
+ * Use fallback categories if API fails
+ */
+function useFallbackCategories(select) {
+    const commonCategories = [
+        'Produce', 'Meat', 'Dairy', 'Bakery', 'Dry Goods', 'Canned Goods',
+        'Frozen', 'Beverages', 'Condiments', 'Spices', 'Other'
+    ];
+    commonCategories.forEach(catName => {
+        const option = document.createElement('option');
+        option.value = catName;
+        option.textContent = catName;
+        select.appendChild(option);
+    });
 }
 
 /**
