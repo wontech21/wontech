@@ -134,7 +134,8 @@ def get_detailed_inventory():
             last_unit_price,
             average_unit_price,
             units_per_case,
-            active
+            active,
+            barcode
         FROM ingredients
         WHERE 1=1
     """
