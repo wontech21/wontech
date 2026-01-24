@@ -8,6 +8,12 @@ Migration: Add Barcode Support
 import sqlite3
 import os
 
+def column_exists(cursor, table, column):
+    """Check if a column exists in a table"""
+    cursor.execute(f"PRAGMA table_info({table})")
+    columns = [row[1] for row in cursor.fetchall()]
+    return column in columns
+
 def migrate():
     db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'inventory.db')
     conn = sqlite3.connect(db_path)
@@ -16,31 +22,39 @@ def migrate():
     print("Starting barcode support migration...")
 
     try:
-        # Add barcode column to ingredients table
-        print("1. Adding barcode column to ingredients table...")
-        cursor.execute("""
-            ALTER TABLE ingredients ADD COLUMN barcode TEXT
-        """)
+        # Add barcode column to ingredients table (if not exists)
+        print("1. Checking ingredients table...")
+        if not column_exists(cursor, 'ingredients', 'barcode'):
+            print("   Adding barcode column to ingredients table...")
+            cursor.execute("""
+                ALTER TABLE ingredients ADD COLUMN barcode TEXT
+            """)
+            print("   ✓ Ingredients barcode column added")
+        else:
+            print("   ✓ Ingredients barcode column already exists")
 
         # Create index on ingredients barcode
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_ingredients_barcode
             ON ingredients(barcode)
         """)
-        print("   ✓ Ingredients barcode column and index added")
 
-        # Add barcode column to products table
-        print("2. Adding barcode column to products table...")
-        cursor.execute("""
-            ALTER TABLE products ADD COLUMN barcode TEXT
-        """)
+        # Add barcode column to products table (if not exists)
+        print("2. Checking products table...")
+        if not column_exists(cursor, 'products', 'barcode'):
+            print("   Adding barcode column to products table...")
+            cursor.execute("""
+                ALTER TABLE products ADD COLUMN barcode TEXT
+            """)
+            print("   ✓ Products barcode column added")
+        else:
+            print("   ✓ Products barcode column already exists")
 
         # Create index on products barcode
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_products_barcode
             ON products(barcode)
         """)
-        print("   ✓ Products barcode column and index added")
 
         # Create barcode_cache table for external API results
         print("3. Creating barcode_cache table...")
