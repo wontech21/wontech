@@ -12,6 +12,7 @@ import io
 from crud_operations import register_crud_routes
 from sales_operations import register_sales_routes
 from sales_analytics import register_analytics_routes
+from barcode_routes import register_barcode_routes
 from inventory_warnings import (
     preview_quantity_change,
     preview_count_changes,
@@ -5159,6 +5160,9 @@ register_sales_routes(app, get_db_connection, INVENTORY_DB)
 
 # Register Sales Analytics routes
 register_analytics_routes(app, get_db_connection, INVENTORY_DB)
+
+# Register Barcode Scanner routes
+register_barcode_routes(app, get_db_connection, INVENTORY_DB)
 
 if __name__ == '__main__':
     print("\n" + "="*60)

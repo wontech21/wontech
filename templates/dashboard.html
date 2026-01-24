@@ -3,14 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Professional inventory management system for restaurants with barcode scanning">
+    <meta name="theme-color" content="#6f42c1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FIRINGup">
+
     <title>Firing Up Data Center</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <!-- Stylesheets -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/aesthetic-enhancement.css') }}">
+
+    <!-- Chart.js and dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/service-worker.js')
+                    .then(reg => console.log('Service Worker: Registered'))
+                    .catch(err => console.log('Service Worker: Registration failed', err));
+            });
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -1439,7 +1463,10 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
 
                     <div class="section-header" style="margin-bottom: 15px;">
                         <h3>Count Items</h3>
-                        <button type="button" class="btn btn-secondary" onclick="addCountRow()">+ Add Item</button>
+                        <div>
+                            <button type="button" class="btn btn-secondary" onclick="addCountRow()">+ Add Item</button>
+                            <button type="button" class="btn btn-primary" onclick="openBarcodeScannerForCount()" style="margin-left: 10px;">📱 Scan Barcode</button>
+                        </div>
                     </div>
 
                     <div class="table-container" style="max-height: 400px; overflow-y: auto;">
@@ -1571,9 +1598,156 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
         </div>
     </div>
 
+    <!-- Barcode Scanner Modal -->
+    <div id="barcodeScannerModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📱 Scan Barcode</h2>
+                <button class="modal-close" onclick="closeBarcodeScanner()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="scanner-container" style="position: relative; width: 100%; max-width: 640px; height: 480px; margin: 0 auto; background: #000; border-radius: 8px; overflow: hidden;">
+                    <canvas class="drawing-buffer" style="position: absolute; top: 0; left: 0;"></canvas>
+                    <div id="scanner-status" style="position: absolute; top: 10px; left: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 4px; text-align: center;">
+                        <span id="scanner-message">Initializing camera...</span>
+                    </div>
+                </div>
+
+                <div id="barcode-results" style="margin-top: 20px; display: none;">
+                    <h3>Scanned Barcode: <span id="scanned-barcode-value"></span></h3>
+
+                    <!-- Loading indicator -->
+                    <div id="barcode-loading" style="text-align: center; padding: 20px;">
+                        <div class="spinner"></div>
+                        <p>Looking up barcode in all databases...</p>
+                    </div>
+
+                    <!-- Results container -->
+                    <div id="barcode-lookup-results" style="display: none;">
+                        <!-- Inventory match -->
+                        <div id="inventory-match-section" style="display: none;">
+                            <div class="success-message" style="margin: 15px 0; padding: 15px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;">
+                                <h4 style="margin-top: 0; color: #155724;">✅ Found in Inventory</h4>
+                                <div id="inventory-match-details"></div>
+                            </div>
+                            <div id="add-to-count-section" style="margin-top: 15px;">
+                                <label>Quantity Counted:</label>
+                                <input type="number" id="barcode-quantity" step="0.01" min="0" value="1" style="width: 150px; padding: 8px; margin-right: 10px;">
+                                <button class="btn-success" onclick="addBarcodeItemToCount()">Add to Count</button>
+                            </div>
+                        </div>
+
+                        <!-- External sources results -->
+                        <div id="external-sources-section" style="display: none;">
+                            <h4>🌐 External Database Results</h4>
+                            <div id="external-sources-list" style="display: grid; gap: 15px; margin-top: 15px;"></div>
+                            <button class="btn-primary" onclick="showCreateFromBarcodeModal()" style="margin-top: 15px;">Create New Ingredient from Barcode</button>
+                        </div>
+
+                        <!-- Not found -->
+                        <div id="barcode-not-found" style="display: none;">
+                            <div class="warning-message" style="margin: 15px 0; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
+                                <h4 style="margin-top: 0; color: #856404;">⚠️ Barcode Not Recognized</h4>
+                                <p>This barcode was not found in our inventory or external databases.</p>
+                                <button class="btn-primary" onclick="showCreateManualModal()">Create Item Manually</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="btn-secondary" onclick="restartScanner()">Scan Another</button>
+                    <button class="btn-secondary" onclick="closeBarcodeScanner()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Ingredient from Barcode Modal -->
+    <div id="createFromBarcodeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Ingredient from Barcode</h2>
+                <button class="modal-close" onclick="closeCreateFromBarcodeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-from-barcode-form">
+                    <input type="hidden" id="new-item-barcode" />
+                    <input type="hidden" id="new-item-external-data" />
+
+                    <div class="form-group">
+                        <label>Barcode:</label>
+                        <input type="text" id="display-barcode" readonly style="background: #f5f5f5;" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ingredient Code: <span style="color: red;">*</span></label>
+                        <input type="text" id="new-ingredient-code" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ingredient Name: <span style="color: red;">*</span></label>
+                        <input type="text" id="new-ingredient-name" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Brand:</label>
+                        <input type="text" id="new-ingredient-brand" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Category: <span style="color: red;">*</span></label>
+                        <select id="new-ingredient-category" required>
+                            <option value="">Select Category</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Unit of Measure: <span style="color: red;">*</span></label>
+                        <select id="new-ingredient-uom" required>
+                            <option value="">Select Unit</option>
+                            <option value="lbs">lbs</option>
+                            <option value="kg">kg</option>
+                            <option value="oz">oz</option>
+                            <option value="grams">grams</option>
+                            <option value="each">each</option>
+                            <option value="dozen">dozen</option>
+                            <option value="case">case</option>
+                            <option value="gallons">gallons</option>
+                            <option value="liters">liters</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Unit Cost: <span style="color: red;">*</span></label>
+                        <input type="number" id="new-ingredient-cost" step="0.01" min="0" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Initial Quantity:</label>
+                        <input type="number" id="new-ingredient-quantity" step="0.01" min="0" value="0" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Supplier:</label>
+                        <input type="text" id="new-ingredient-supplier" />
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-success" onclick="saveIngredientFromBarcode()">Create Ingredient</button>
+                <button class="btn-secondary" onclick="closeCreateFromBarcodeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include QuaggaJS for barcode scanning -->
+    <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
+
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sales_tracking_ui.js') }}"></script>
     <script src="{{ url_for('static', filename='js/layer4_sales.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sales_analytics.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/barcode_scanner.js') }}"></script>
 </body>
 </html>
