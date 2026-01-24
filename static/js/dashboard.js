@@ -4611,15 +4611,25 @@ function renderBarChart(widgetKey, data, canvas) {
 
     const ctx = canvas.getContext('2d');
 
+    // Determine if this is a percentage chart
+    const isPercentage = (data.dataset_label || '').includes('%');
+
+    // Format function based on data type
+    const formatValue = function(value) {
+        if (isPercentage) {
+            return value.toFixed(1) + '%';
+        } else {
+            return '$' + value.toLocaleString();
+        }
+    };
+
     // Get saved zoom state
     const savedZoom = getChartZoomState(widgetKey);
     const scalesConfig = {
         y: {
             beginAtZero: true,
             ticks: {
-                callback: function(value) {
-                    return '$' + value.toLocaleString();
-                }
+                callback: formatValue
             }
         }
     };
@@ -4654,7 +4664,7 @@ function renderBarChart(widgetKey, data, canvas) {
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return '$' + context.parsed.y.toLocaleString();
+                            return formatValue(context.parsed.y);
                         }
                     }
                 },
