@@ -1058,22 +1058,26 @@ async function addScannedItemToInvoice() {
                 const lastRow = tbody ? tbody.lastElementChild : null;
 
                 if (lastRow) {
-                    // Fill in the values
-                    const codeInput = lastRow.querySelector('.invoice-ingredient-code');
-                    const brandInput = lastRow.querySelector('.invoice-brand');
-                    const casesReceivedInput = lastRow.querySelector('.invoice-cases-received');
-                    const casesOrderedInput = lastRow.querySelector('.invoice-cases-ordered');
-                    const unitPriceInput = lastRow.querySelector('.invoice-unit-price');
+                    // Fill in the values - using correct class names from invoice form
+                    const codeInput = lastRow.querySelector('.ingredient-input');
+                    const brandInput = lastRow.querySelector('.brand-input');
+                    const qtyReceivedInput = lastRow.querySelector('.qty-received-input');
+                    const qtyOrderedInput = lastRow.querySelector('.qty-ordered-input');
+                    const unitPriceInput = lastRow.querySelector('.unit-price-input');
 
                     if (codeInput) codeInput.value = item.ingredient_code;
                     if (brandInput) brandInput.value = item.brand || '';
-                    if (casesReceivedInput) casesReceivedInput.value = quantity;
-                    if (casesOrderedInput) casesOrderedInput.value = quantity;
+                    if (qtyReceivedInput) qtyReceivedInput.value = quantity;
+                    if (qtyOrderedInput) qtyOrderedInput.value = quantity;
                     if (unitPriceInput) unitPriceInput.value = item.unit_cost || 0;
 
-                    // Trigger calculation
-                    if (typeof calculateInvoiceRowTotal === 'function') {
-                        calculateInvoiceRowTotal(lastRow);
+                    // Trigger calculation using the row ID from the last row
+                    const rowIdMatch = lastRow.id.match(/lineItem-(\d+)/);
+                    if (rowIdMatch) {
+                        const rowId = parseInt(rowIdMatch[1]);
+                        if (typeof calculateLineTotal === 'function') {
+                            calculateLineTotal(rowId);
+                        }
                     }
 
                     showSuccess(`✅ Added to invoice: ${item.ingredient_name}`);
