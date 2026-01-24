@@ -2831,79 +2831,80 @@ def analytics_ingredients_with_price_history():
 
     return jsonify({'ingredient_codes': codes})
 
-@app.route('/api/analytics/product-profitability')
-def analytics_product_profitability():
-    """Product profitability analysis"""
-    conn = get_db_connection(INVENTORY_DB)
-    cursor = conn.cursor()
-
-    # Helper function to calculate product ingredient cost recursively
-    def calculate_cost(product_id, visited=None):
-        if visited is None:
-            visited = set()
-        if product_id in visited:
-            return 0
-        visited.add(product_id)
-
-        cost_cursor = conn.cursor()
-        cost_cursor.execute("""
-            SELECT r.source_type, r.ingredient_id as source_id, r.quantity_needed
-            FROM recipes r
-            WHERE r.product_id = ?
-        """, (product_id,))
-
-        recipe_items = cost_cursor.fetchall()
-        total_cost = 0
-
-        for row in recipe_items:
-            source_type = row['source_type']
-            source_id = row['source_id']
-            quantity = row['quantity_needed']
-
-            if source_type == 'ingredient':
-                ing_cursor = conn.cursor()
-                ing_cursor.execute("""
-                    SELECT COALESCE(unit_cost, 0) as unit_cost
-                    FROM ingredients WHERE id = ?
-                """, (source_id,))
-                ing_result = ing_cursor.fetchone()
-                if ing_result:
-                    total_cost += quantity * ing_result['unit_cost']
-            elif source_type == 'product':
-                nested_cost = calculate_cost(source_id, visited)
-                total_cost += quantity * nested_cost
-
-        return total_cost
-
-    # Get all products
-    cursor.execute("""
-        SELECT p.id, p.product_name, p.selling_price
-        FROM products p
-        WHERE EXISTS (SELECT 1 FROM recipes WHERE product_id = p.id)
-    """)
-
-    products = cursor.fetchall()
-
-    labels = []
-    margins = []
-
-    for product in products:
-        product_id = product['id']
-        sale_price = float(product['selling_price'] or 0)
-        cost = calculate_cost(product_id)
-
-        if sale_price > 0:
-            margin = ((sale_price - cost) / sale_price) * 100
-            labels.append(product['product_name'])
-            margins.append(round(margin, 1))
-
-    conn.close()
-
-    return jsonify({
-        'labels': labels,
-        'values': margins,
-        'dataset_label': 'Profit Margin %'
-    })
+# Removed: Product Profitability widget deleted per user request
+# @app.route('/api/analytics/product-profitability')
+# def analytics_product_profitability():
+#     """Product profitability analysis"""
+#     conn = get_db_connection(INVENTORY_DB)
+#     cursor = conn.cursor()
+#
+#     # Helper function to calculate product ingredient cost recursively
+#     def calculate_cost(product_id, visited=None):
+#         if visited is None:
+#             visited = set()
+#         if product_id in visited:
+#             return 0
+#         visited.add(product_id)
+#
+#         cost_cursor = conn.cursor()
+#         cost_cursor.execute("""
+#             SELECT r.source_type, r.ingredient_id as source_id, r.quantity_needed
+#             FROM recipes r
+#             WHERE r.product_id = ?
+#         """, (product_id,))
+#
+#         recipe_items = cost_cursor.fetchall()
+#         total_cost = 0
+#
+#         for row in recipe_items:
+#             source_type = row['source_type']
+#             source_id = row['source_id']
+#             quantity = row['quantity_needed']
+#
+#             if source_type == 'ingredient':
+#                 ing_cursor = conn.cursor()
+#                 ing_cursor.execute("""
+#                     SELECT COALESCE(unit_cost, 0) as unit_cost
+#                     FROM ingredients WHERE id = ?
+#                 """, (source_id,))
+#                 ing_result = ing_cursor.fetchone()
+#                 if ing_result:
+#                     total_cost += quantity * ing_result['unit_cost']
+#             elif source_type == 'product':
+#                 nested_cost = calculate_cost(source_id, visited)
+#                 total_cost += quantity * nested_cost
+#
+#         return total_cost
+#
+#     # Get all products
+#     cursor.execute("""
+#         SELECT p.id, p.product_name, p.selling_price
+#         FROM products p
+#         WHERE EXISTS (SELECT 1 FROM recipes WHERE product_id = p.id)
+#     """)
+#
+#     products = cursor.fetchall()
+#
+#     labels = []
+#     margins = []
+#
+#     for product in products:
+#         product_id = product['id']
+#         sale_price = float(product['selling_price'] or 0)
+#         cost = calculate_cost(product_id)
+#
+#         if sale_price > 0:
+#             margin = ((sale_price - cost) / sale_price) * 100
+#             labels.append(product['product_name'])
+#             margins.append(round(margin, 1))
+#
+#     conn.close()
+#
+#     return jsonify({
+#         'labels': labels,
+#         'values': margins,
+#         'dataset_label': 'Profit Margin %'
+#     })
 
 @app.route('/api/analytics/category-spending')
 def analytics_category_spending():
@@ -4017,86 +4018,87 @@ def export_price_trends():
     response.headers['Content-Disposition'] = 'attachment; filename=price_trends.csv'
     return response
 
-@app.route('/api/analytics/product-profitability/export')
-def export_product_profitability():
-    """Export product profitability as CSV"""
-    from flask import make_response
-
-    conn = get_db_connection(INVENTORY_DB)
-
-    # Helper function to calculate product ingredient cost recursively
-    def calculate_cost(product_id, visited=None):
-        if visited is None:
-            visited = set()
-        if product_id in visited:
-            return 0
-        visited.add(product_id)
-
-        cost_cursor = conn.cursor()
-        cost_cursor.execute("""
-            SELECT r.source_type, r.ingredient_id as source_id, r.quantity_needed
-            FROM recipes r
-            WHERE r.product_id = ?
-        """, (product_id,))
-
-        recipe_items = cost_cursor.fetchall()
-        total_cost = 0
-
-        for row in recipe_items:
-            source_type = row['source_type']
-            source_id = row['source_id']
-            quantity = row['quantity_needed']
-
-            if source_type == 'ingredient':
-                ing_cursor = conn.cursor()
-                ing_cursor.execute("""
-                    SELECT COALESCE(unit_cost, 0) as unit_cost
-                    FROM ingredients WHERE id = ?
-                """, (source_id,))
-                ing_result = ing_cursor.fetchone()
-                if ing_result:
-                    total_cost += quantity * ing_result['unit_cost']
-            elif source_type == 'product':
-                nested_cost = calculate_cost(source_id, visited)
-                total_cost += quantity * nested_cost
-
-        return total_cost
-
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT p.id, p.product_name, p.selling_price
-        FROM products p
-        WHERE EXISTS (SELECT 1 FROM recipes WHERE product_id = p.id)
-        ORDER BY p.product_name
-    """)
-
-    products = cursor.fetchall()
-
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['Product Name', 'Selling Price', 'Ingredient Cost', 'Profit', 'Margin %'])
-
-    for product in products:
-        product_id = product['id']
-        cost = calculate_cost(product_id)
-        selling_price = float(product['selling_price'] or 0)
-        profit = selling_price - cost
-        margin = (profit / selling_price * 100) if selling_price > 0 else 0
-
-        writer.writerow([
-            product['product_name'],
-            f"${selling_price:.2f}",
-            f"${cost:.2f}",
-            f"${profit:.2f}",
-            f"{margin:.1f}%"
-        ])
-
-    conn.close()
-
-    response = make_response(output.getvalue())
-    response.headers['Content-Type'] = 'text/csv'
-    response.headers['Content-Disposition'] = 'attachment; filename=product_profitability.csv'
-    return response
+# Removed: Product Profitability export endpoint
+# @app.route('/api/analytics/product-profitability/export')
+# def export_product_profitability():
+#     """Export product profitability as CSV"""
+#     from flask import make_response
+#
+#     conn = get_db_connection(INVENTORY_DB)
+#
+#     # Helper function to calculate product ingredient cost recursively
+#     def calculate_cost(product_id, visited=None):
+#         if visited is None:
+#             visited = set()
+#         if product_id in visited:
+#             return 0
+#         visited.add(product_id)
+#
+#         cost_cursor = conn.cursor()
+#         cost_cursor.execute("""
+#             SELECT r.source_type, r.ingredient_id as source_id, r.quantity_needed
+#             FROM recipes r
+#             WHERE r.product_id = ?
+#         """, (product_id,))
+#
+#         recipe_items = cost_cursor.fetchall()
+#         total_cost = 0
+#
+#         for row in recipe_items:
+#             source_type = row['source_type']
+#             source_id = row['source_id']
+#             quantity = row['quantity_needed']
+#
+#             if source_type == 'ingredient':
+#                 ing_cursor = conn.cursor()
+#                 ing_cursor.execute("""
+#                     SELECT COALESCE(unit_cost, 0) as unit_cost
+#                     FROM ingredients WHERE id = ?
+#                 """, (source_id,))
+#                 ing_result = ing_cursor.fetchone()
+#                 if ing_result:
+#                     total_cost += quantity * ing_result['unit_cost']
+#             elif source_type == 'product':
+#                 nested_cost = calculate_cost(source_id, visited)
+#                 total_cost += quantity * nested_cost
+#
+#         return total_cost
+#
+#     cursor = conn.cursor()
+#     cursor.execute("""
+#         SELECT p.id, p.product_name, p.selling_price
+#         FROM products p
+#         WHERE EXISTS (SELECT 1 FROM recipes WHERE product_id = p.id)
+#         ORDER BY p.product_name
+#     """)
+#
+#     products = cursor.fetchall()
+#
+#     output = io.StringIO()
+#     writer = csv.writer(output)
+#     writer.writerow(['Product Name', 'Selling Price', 'Ingredient Cost', 'Profit', 'Margin %'])
+#
+#     for product in products:
+#         product_id = product['id']
+#         cost = calculate_cost(product_id)
+#         selling_price = float(product['selling_price'] or 0)
+#         profit = selling_price - cost
+#         margin = (profit / selling_price * 100) if selling_price > 0 else 0
+#
+#         writer.writerow([
+#             product['product_name'],
+#             f"${selling_price:.2f}",
+#             f"${cost:.2f}",
+#             f"${profit:.2f}",
+#             f"{margin:.1f}%"
+#         ])
+#
+#     conn.close()
+#
+#     response = make_response(output.getvalue())
+#     response.headers['Content-Type'] = 'text/csv'
+#     response.headers['Content-Disposition'] = 'attachment; filename=product_profitability.csv'
+#     return response
 
 @app.route('/api/analytics/category-spending/export')
 def export_category_spending():

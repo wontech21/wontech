@@ -33,17 +33,6 @@ WIDGETS = [
         'requires_recipe_data': 0
     },
     {
-        'widget_key': 'product_profitability',
-        'widget_name': 'Product Profitability',
-        'widget_type': 'chart',
-        'chart_type': 'bar',
-        'category': 'profitability',
-        'description': 'Margin % and profit per product',
-        'icon': '💰',
-        'default_enabled': 1,
-        'requires_recipe_data': 1
-    },
-    {
         'widget_key': 'category_spending',
         'widget_name': 'Category Spending Distribution',
         'widget_type': 'chart',

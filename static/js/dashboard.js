@@ -5486,7 +5486,7 @@ function showAnalyticsPage(category) {
     const widgetCategories = {
         'spending': ['vendor_spend', 'category_spending', 'invoice_activity'],
         'pricing': ['price_trends', 'price_volatility', 'cost_variance'],
-        'performance': ['supplier_performance', 'product_profitability', 'inventory_value', 'usage_forecast'],
+        'performance': ['supplier_performance', 'inventory_value', 'usage_forecast'],
         'all': [] // Empty means show all
     };
 
