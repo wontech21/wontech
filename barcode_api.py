@@ -70,35 +70,44 @@ class BarcodeAPI:
 
     def query_open_food_facts(self, barcode: str) -> Optional[Dict]:
         """Query Open Food Facts database (unlimited, best for food)"""
-        try:
-            response = requests.get(
-                self.OPEN_FOOD_FACTS_URL.format(barcode=barcode),
-                timeout=5
-            )
+        # Try both normalized barcode AND with leading zero (some products stored as EAN-13)
+        barcodes_to_try = [barcode]
 
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('status') == 1:  # Product found
-                    product = data.get('product', {})
+        # If 12-digit UPC, also try as 13-digit EAN with leading zero
+        if len(barcode) == 12 and barcode.isdigit():
+            barcodes_to_try.append('0' + barcode)
 
-                    # Cache the result
-                    self._cache_result(barcode, 'openfoodfacts', product)
-                    self.increment_api_usage('openfoodfacts')
+        for bc in barcodes_to_try:
+            try:
+                response = requests.get(
+                    self.OPEN_FOOD_FACTS_URL.format(barcode=bc),
+                    timeout=5
+                )
 
-                    return {
-                        'source': 'Open Food Facts',
-                        'product_name': product.get('product_name') or product.get('product_name_en'),
-                        'brand': product.get('brands'),
-                        'category': product.get('categories'),
-                        'quantity': product.get('quantity'),
-                        'image_url': product.get('image_url') or product.get('image_front_url'),
-                        'ingredients': product.get('ingredients_text'),
-                        'nutrition_grade': product.get('nutrition_grade_fr'),
-                        'confidence': 'high' if product.get('product_name') else 'medium',
-                        'raw_data': product
-                    }
-        except Exception as e:
-            print(f"Open Food Facts error: {e}")
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('status') == 1:  # Product found
+                        product = data.get('product', {})
+
+                        # Cache the result (use original barcode as key)
+                        self._cache_result(barcode, 'openfoodfacts', product)
+                        self.increment_api_usage('openfoodfacts')
+
+                        return {
+                            'source': 'Open Food Facts',
+                            'product_name': product.get('product_name') or product.get('product_name_en'),
+                            'brand': product.get('brands'),
+                            'category': product.get('categories'),
+                            'quantity': product.get('quantity'),
+                            'image_url': product.get('image_url') or product.get('image_front_url'),
+                            'ingredients': product.get('ingredients_text'),
+                            'nutrition_grade': product.get('nutrition_grade_fr'),
+                            'confidence': 'high' if product.get('product_name') else 'medium',
+                            'barcode_format_used': bc,  # Show which format worked
+                            'raw_data': product
+                        }
+            except Exception as e:
+                print(f"Open Food Facts error for {bc}: {e}")
 
         return None
 
@@ -108,35 +117,42 @@ class BarcodeAPI:
             print("UPCitemdb daily limit reached")
             return None
 
-        try:
-            response = requests.get(
-                self.UPC_ITEMDB_URL,
-                params={'upc': barcode},
-                timeout=5
-            )
+        # Try both normalized barcode AND with leading zero
+        barcodes_to_try = [barcode]
+        if len(barcode) == 12 and barcode.isdigit():
+            barcodes_to_try.append('0' + barcode)
 
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('items'):
-                    item = data['items'][0]
+        for bc in barcodes_to_try:
+            try:
+                response = requests.get(
+                    self.UPC_ITEMDB_URL,
+                    params={'upc': bc},
+                    timeout=5
+                )
 
-                    # Cache the result
-                    self._cache_result(barcode, 'upcitemdb', item)
-                    self.increment_api_usage('upcitemdb')
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('items'):
+                        item = data['items'][0]
 
-                    return {
-                        'source': 'UPC Item DB',
-                        'product_name': item.get('title'),
-                        'brand': item.get('brand'),
-                        'category': item.get('category'),
-                        'quantity': None,
-                        'image_url': ' '.join(item.get('images', [])) if item.get('images') else None,
-                        'description': item.get('description'),
-                        'confidence': 'high' if item.get('title') else 'low',
-                        'raw_data': item
-                    }
-        except Exception as e:
-            print(f"UPCitemdb error: {e}")
+                        # Cache the result (use original barcode as key)
+                        self._cache_result(barcode, 'upcitemdb', item)
+                        self.increment_api_usage('upcitemdb')
+
+                        return {
+                            'source': 'UPC Item DB',
+                            'product_name': item.get('title'),
+                            'brand': item.get('brand'),
+                            'category': item.get('category'),
+                            'quantity': None,
+                            'image_url': ' '.join(item.get('images', [])) if item.get('images') else None,
+                            'description': item.get('description'),
+                            'confidence': 'high' if item.get('title') else 'low',
+                            'barcode_format_used': bc,
+                            'raw_data': item
+                        }
+            except Exception as e:
+                print(f"UPCitemdb error for {bc}: {e}")
 
         return None
 

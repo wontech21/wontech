@@ -336,26 +336,37 @@ function displayExternalSources(results, bestMatch) {
 
     let html = '';
 
-    // Show best match prominently
-    if (bestMatch) {
-        html += `
-            <div style="border: 2px solid #28a745; padding: 15px; border-radius: 8px; background: #f8f9fa;">
-                <h5 style="margin-top: 0; color: #28a745;">⭐ Best Match</h5>
-                ${formatExternalResult(bestMatch)}
+    if (results.length === 0) {
+        html = `
+            <div style="padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px;">
+                <p style="margin: 0;"><strong>⚠️ Not found in external databases</strong></p>
+                <p style="margin: 10px 0 0 0; font-size: 0.9em;">
+                    Checked: Open Food Facts, UPC Item DB, Barcode Lookup
+                </p>
             </div>
         `;
-    }
-
-    // Show other sources
-    results.forEach(result => {
-        if (result !== bestMatch) {
+    } else {
+        // Show best match prominently
+        if (bestMatch) {
             html += `
-                <div style="border: 1px solid #dee2e6; padding: 15px; border-radius: 8px;">
-                    ${formatExternalResult(result)}
+                <div style="border: 2px solid #28a745; padding: 15px; border-radius: 8px; background: #f8f9fa;">
+                    <h5 style="margin-top: 0; color: #28a745;">⭐ Best Match</h5>
+                    ${formatExternalResult(bestMatch)}
                 </div>
             `;
         }
-    });
+
+        // Show other sources
+        results.forEach(result => {
+            if (result !== bestMatch) {
+                html += `
+                    <div style="border: 1px solid #dee2e6; padding: 15px; border-radius: 8px;">
+                        ${formatExternalResult(result)}
+                    </div>
+                `;
+            }
+        });
+    }
 
     listDiv.innerHTML = html;
     section.style.display = 'block';
@@ -370,14 +381,25 @@ function displayExternalSources(results, bestMatch) {
  * Format external result for display
  */
 function formatExternalResult(result) {
-    return `
+    let html = `
         <p><strong>Source:</strong> ${result.source || 'Unknown'}${result.cached ? ' (Cached)' : ''}</p>
         <p><strong>Product:</strong> ${result.product_name || 'N/A'}</p>
         <p><strong>Brand:</strong> ${result.brand || 'N/A'}</p>
         <p><strong>Category:</strong> ${result.category || 'N/A'}</p>
         ${result.quantity ? `<p><strong>Quantity:</strong> ${result.quantity}</p>` : ''}
-        ${result.image_url ? `<img src="${result.image_url}" style="max-width: 150px; border-radius: 4px; margin-top: 10px;" alt="Product">` : ''}
     `;
+
+    // Show which barcode format was used (if available)
+    if (result.barcode_format_used) {
+        html += `<p style="font-size: 0.85em; color: #666;"><em>Found using: ${result.barcode_format_used}</em></p>`;
+    }
+
+    // Show image if available
+    if (result.image_url) {
+        html += `<img src="${result.image_url}" style="max-width: 150px; border-radius: 4px; margin-top: 10px;" alt="Product">`;
+    }
+
+    return html;
 }
 
 /**
