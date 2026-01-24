@@ -99,15 +99,18 @@ function initializeScanner() {
             type: "LiveStream",
             target: document.querySelector('#scanner-container'),
             constraints: {
-                width: 640,
-                height: 480,
-                facingMode: "environment" // Use rear camera on mobile
+                width: { min: 640, ideal: 1280, max: 1920 },
+                height: { min: 480, ideal: 720, max: 1080 },
+                facingMode: "environment", // Use rear camera on mobile
+                aspectRatio: { ideal: 1.7777778 }, // 16:9
+                focusMode: "continuous",
+                advanced: [{ torch: true }] // Enable flashlight if available
             },
             area: { // Focus area in center
-                top: "30%",
-                right: "10%",
-                left: "10%",
-                bottom: "30%"
+                top: "20%",
+                right: "5%",
+                left: "5%",
+                bottom: "20%"
             }
         },
         decoder: {
@@ -116,7 +119,8 @@ function initializeScanner() {
                 "ean_8_reader",    // EAN-8 (shorter barcodes)
                 "upc_reader",      // Universal Product Code (US/Canada)
                 "upc_e_reader",    // UPC-E (compressed UPC)
-                "code_128_reader"  // Re-added for difficult scans
+                "code_128_reader", // Code 128 (common for shipping/inventory)
+                "code_39_reader"   // Code 39 (alternative format)
             ],
             multiple: false,
             debug: {
@@ -128,22 +132,32 @@ function initializeScanner() {
         },
         locate: true,
         locator: {
-            patchSize: "medium",
-            halfSample: true
+            patchSize: "large",      // Changed from medium for better detection
+            halfSample: false        // Changed from true for better quality on iPhone
         },
-        numOfWorkers: 4,
-        frequency: 5,  // Scan more frequently (every 5 frames instead of 10)
+        numOfWorkers: navigator.hardwareConcurrency > 2 ? 2 : 0, // Optimize for mobile
+        frequency: 10,  // Scan every frame for better responsiveness
         debug: false
     }, function(err) {
         if (err) {
             console.error('Scanner initialization error:', err);
-            updateScannerStatus('Camera access denied or not available. Please check permissions.');
+            let errorMsg = '❌ Camera error: ';
+            if (err.name === 'NotAllowedError') {
+                errorMsg += 'Please allow camera access in your browser settings.';
+            } else if (err.name === 'NotFoundError') {
+                errorMsg += 'No camera found on this device.';
+            } else if (err.name === 'NotReadableError') {
+                errorMsg += 'Camera is already in use by another app.';
+            } else {
+                errorMsg += 'Unable to access camera. Try refreshing the page.';
+            }
+            updateScannerStatus(errorMsg);
             return;
         }
 
         scannerActive = true;
         Quagga.start();
-        updateScannerStatus('Position barcode in view...');
+        updateScannerStatus('📷 Ready! Position barcode 4-6 inches from camera');
     });
 
     // Handle barcode detection
