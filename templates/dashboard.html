@@ -1280,9 +1280,14 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                                 </tbody>
                             </table>
                         </div>
-                        <button type="button" class="btn btn-secondary" onclick="addInvoiceLineItem()">
-                            ➕ Add Line Item
-                        </button>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button type="button" class="btn btn-secondary" onclick="addInvoiceLineItem()">
+                                ➕ Add Line Item
+                            </button>
+                            <button type="button" class="btn-primary" onclick="openBarcodeScannerForInvoice()">
+                                📱 Scan Barcode
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Invoice Total -->
@@ -1647,7 +1652,9 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                         <div id="external-sources-section" style="display: none;">
                             <h4>🌐 External Database Results</h4>
                             <div id="external-sources-list" style="display: grid; gap: 15px; margin-top: 15px;"></div>
-                            <button class="btn-primary" onclick="showCreateFromBarcodeModal()" style="margin-top: 15px;">Create New Ingredient from Barcode</button>
+                            <div id="external-sources-actions" style="margin-top: 15px;">
+                                <!-- Action buttons will be added dynamically based on context -->
+                            </div>
                         </div>
 
                         <!-- Not found -->

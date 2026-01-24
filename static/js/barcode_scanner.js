@@ -9,6 +9,7 @@ let scannerActive = false;
 let detectionBuffer = [];  // Store recent detections for validation
 const REQUIRED_DETECTIONS = 3;  // Require 3 consistent reads
 const DETECTION_WINDOW = 10;  // Clear buffer after 10 frames without match
+let scannerContext = 'count';  // 'count', 'ingredient', or 'invoice'
 
 /**
  * Open barcode scanner for inventory count (from create count modal)
@@ -22,6 +23,33 @@ function openBarcodeScannerForCount() {
         currentCountId = 'temp_new_count';
     }
 
+    scannerContext = 'count';
+    const modal = document.getElementById('barcodeScannerModal');
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+    document.getElementById('barcode-results').style.display = 'none';
+    initializeScanner();
+}
+
+/**
+ * Open barcode scanner for creating ingredient
+ */
+function openBarcodeScannerForIngredient() {
+    scannerContext = 'ingredient';
+    currentCountId = null;
+    const modal = document.getElementById('barcodeScannerModal');
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+    document.getElementById('barcode-results').style.display = 'none';
+    initializeScanner();
+}
+
+/**
+ * Open barcode scanner for creating invoice
+ */
+function openBarcodeScannerForInvoice() {
+    scannerContext = 'invoice';
+    currentCountId = null;
     const modal = document.getElementById('barcodeScannerModal');
     modal.style.display = 'flex';
     modal.classList.add('active');
@@ -358,11 +386,26 @@ function displayInventoryMatch(item) {
 
     section.style.display = 'block';
 
-    // Show or hide add to count section based on context
-    if (currentCountId) {
-        document.getElementById('add-to-count-section').style.display = 'block';
+    // Show appropriate action section based on context
+    const addToCountSection = document.getElementById('add-to-count-section');
+    if (scannerContext === 'count' && currentCountId) {
+        addToCountSection.style.display = 'block';
+    } else if (scannerContext === 'ingredient') {
+        // For ingredient context, show "Use This Item" button
+        addToCountSection.style.display = 'block';
+        addToCountSection.innerHTML = `
+            <button class="btn-success" onclick="useScannedItemForIngredient()">Use This Item's Data</button>
+        `;
+    } else if (scannerContext === 'invoice') {
+        // For invoice context, show "Add to Invoice" button
+        addToCountSection.style.display = 'block';
+        addToCountSection.innerHTML = `
+            <label>Quantity:</label>
+            <input type="number" id="barcode-quantity" step="0.01" min="0" value="1">
+            <button class="btn-success" onclick="addScannedItemToInvoice()">Add to Invoice</button>
+        `;
     } else {
-        document.getElementById('add-to-count-section').style.display = 'none';
+        addToCountSection.style.display = 'none';
     }
 }
 
@@ -413,6 +456,18 @@ function displayExternalSources(results, bestMatch) {
     // Store best match data for creating ingredient
     if (bestMatch) {
         document.getElementById('new-item-external-data').value = JSON.stringify(bestMatch);
+    }
+
+    // Add context-appropriate action buttons
+    const actionsDiv = document.getElementById('external-sources-actions');
+    if (actionsDiv) {
+        if (scannerContext === 'count') {
+            actionsDiv.innerHTML = '<button class="btn-primary" onclick="showCreateFromBarcodeModal()">Create New Ingredient from Barcode</button>';
+        } else if (scannerContext === 'ingredient') {
+            actionsDiv.innerHTML = '<button class="btn-primary" onclick="useScannedItemForIngredient()">Use This Product Data</button>';
+        } else if (scannerContext === 'invoice') {
+            actionsDiv.innerHTML = '<button class="btn-primary" onclick="showCreateFromBarcodeModal()">Create New Ingredient from Barcode</button>';
+        }
     }
 }
 
@@ -903,3 +958,142 @@ style.textContent = `
 }
 `;
 document.head.appendChild(style);
+
+/**
+ * Use scanned item data to pre-fill ingredient form
+ */
+function useScannedItemForIngredient() {
+    // Get the inventory match details or external data
+    const externalDataEl = document.getElementById('new-item-external-data');
+    let data = null;
+
+    if (externalDataEl && externalDataEl.value) {
+        try {
+            data = JSON.parse(externalDataEl.value);
+        } catch (e) {
+            console.error('Error parsing external data:', e);
+        }
+    }
+
+    if (!data) {
+        showError('No product data available');
+        return;
+    }
+
+    // Close the scanner modal
+    closeBarcodeScanner();
+
+    // Pre-fill the Create Ingredient form
+    setTimeout(() => {
+        if (data.product_name) {
+            const nameInput = document.getElementById('ingredientName');
+            if (nameInput) nameInput.value = data.product_name;
+
+            // Auto-generate ingredient code from name
+            const codeInput = document.getElementById('ingredientCode');
+            if (codeInput && !codeInput.value) {
+                const code = data.product_name
+                    .toUpperCase()
+                    .replace(/[^A-Z0-9]/g, '')
+                    .substring(0, 10);
+                codeInput.value = code;
+            }
+        }
+
+        if (data.brand) {
+            const brandInput = document.getElementById('ingredientBrand');
+            if (brandInput) brandInput.value = data.brand;
+        }
+
+        if (data.category) {
+            // Try to match category
+            const categorySelect = document.getElementById('ingredientCategory');
+            if (categorySelect) {
+                // Look for matching option
+                for (let option of categorySelect.options) {
+                    if (option.text.toLowerCase().includes(data.category.toLowerCase()) ||
+                        data.category.toLowerCase().includes(option.text.toLowerCase())) {
+                        categorySelect.value = option.value;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Store barcode if available
+        if (lastScannedBarcode) {
+            // We'll need to add this when saving the ingredient
+            window.scannedBarcodeForIngredient = lastScannedBarcode;
+        }
+
+        showSuccess(`✅ Pre-filled with: ${data.product_name || 'scanned product'}`);
+    }, 300);
+}
+
+/**
+ * Add scanned item to invoice
+ */
+async function addScannedItemToInvoice() {
+    const quantityInput = document.getElementById('barcode-quantity');
+    const quantity = parseFloat(quantityInput ? quantityInput.value : 1);
+
+    if (isNaN(quantity) || quantity <= 0) {
+        showError('Please enter a valid quantity');
+        return;
+    }
+
+    // Get item details from inventory match or create prompt
+    try {
+        const response = await fetch(`/api/inventory/detailed`);
+        const items = await response.json();
+
+        const item = items.find(i => i.barcode === lastScannedBarcode);
+
+        if (item) {
+            // Add to invoice
+            if (typeof addInvoiceLineItem === 'function') {
+                addInvoiceLineItem();
+
+                // Get the last added row
+                const tbody = document.getElementById('newInvoiceItemsBody');
+                const lastRow = tbody ? tbody.lastElementChild : null;
+
+                if (lastRow) {
+                    // Fill in the values
+                    const codeInput = lastRow.querySelector('.invoice-ingredient-code');
+                    const brandInput = lastRow.querySelector('.invoice-brand');
+                    const casesReceivedInput = lastRow.querySelector('.invoice-cases-received');
+                    const casesOrderedInput = lastRow.querySelector('.invoice-cases-ordered');
+                    const unitPriceInput = lastRow.querySelector('.invoice-unit-price');
+
+                    if (codeInput) codeInput.value = item.ingredient_code;
+                    if (brandInput) brandInput.value = item.brand || '';
+                    if (casesReceivedInput) casesReceivedInput.value = quantity;
+                    if (casesOrderedInput) casesOrderedInput.value = quantity;
+                    if (unitPriceInput) unitPriceInput.value = item.unit_cost || 0;
+
+                    // Trigger calculation
+                    if (typeof calculateInvoiceRowTotal === 'function') {
+                        calculateInvoiceRowTotal(lastRow);
+                    }
+
+                    showSuccess(`✅ Added to invoice: ${item.ingredient_name}`);
+
+                    // Close scanner
+                    setTimeout(() => {
+                        closeBarcodeScanner();
+                    }, 1500);
+                } else {
+                    showError('Failed to add row to invoice');
+                }
+            } else {
+                showError('Invoice form not available');
+            }
+        } else {
+            showError('Item not found in inventory. Please create it first.');
+        }
+    } catch (error) {
+        console.error('Error adding to invoice:', error);
+        showError('Failed to add item to invoice');
+    }
+}
