@@ -156,6 +156,12 @@ body {
     margin-top: 0;
 }
 
+.page-title::before,
+.page-title::after {
+    content: none !important;
+    display: none !important;
+}
+
 /* Page Header with Action Button */
 .page-header {
     display: flex;
