@@ -439,12 +439,25 @@ function formatExternalResult(result) {
  * Add barcode item to count
  */
 async function addBarcodeItemToCount() {
+    console.log('addBarcodeItemToCount called');
+    console.log('currentCountId:', currentCountId);
+    console.log('lastScannedBarcode:', lastScannedBarcode);
+
     if (!currentCountId || !lastScannedBarcode) {
         showError('No active count or barcode');
+        console.error('Missing currentCountId or lastScannedBarcode');
         return;
     }
 
-    const quantity = parseFloat(document.getElementById('barcode-quantity').value);
+    const quantityInput = document.getElementById('barcode-quantity');
+    if (!quantityInput) {
+        showError('Quantity input field not found');
+        console.error('barcode-quantity input element not found');
+        return;
+    }
+
+    const quantity = parseFloat(quantityInput.value);
+    console.log('Quantity to add:', quantity);
 
     if (isNaN(quantity) || quantity < 0) {
         showError('Please enter a valid quantity');
@@ -453,11 +466,13 @@ async function addBarcodeItemToCount() {
 
     // Check if we're in create count modal (temp ID) or editing existing count
     if (currentCountId.toString().startsWith('temp_')) {
+        console.log('Adding to create count form (temp ID)');
         // Adding to create count form - add a row directly
-        addBarcodeToCountForm(quantity);
+        await addBarcodeToCountForm(quantity);
     } else {
+        console.log('Adding to existing saved count');
         // Adding to existing saved count - use API
-        addBarcodeToSavedCount(quantity);
+        await addBarcodeToSavedCount(quantity);
     }
 }
 
@@ -465,41 +480,58 @@ async function addBarcodeItemToCount() {
  * Add barcode item to the create count form (before count is saved)
  */
 async function addBarcodeToCountForm(quantity) {
+    console.log('addBarcodeToCountForm called with quantity:', quantity);
+
     // Get item details from the displayed inventory match
     const detailsDiv = document.getElementById('inventory-match-details');
+    console.log('inventory-match-details div:', detailsDiv);
+    console.log('innerHTML:', detailsDiv ? detailsDiv.innerHTML : 'null');
+
     if (!detailsDiv || !detailsDiv.innerHTML) {
+        console.error('No item details div or empty');
         showError('No item details available');
         return;
     }
 
     // Fetch ingredient details by barcode to get all info
     try {
+        console.log('Fetching detailed inventory...');
         const response = await fetch(`/api/inventory/detailed`);
         const items = await response.json();
+        console.log('Total items fetched:', items.length);
 
+        console.log('Looking for barcode:', lastScannedBarcode);
         const item = items.find(i => i.barcode === lastScannedBarcode);
+        console.log('Found item:', item);
 
         if (!item) {
-            showError('Item not found');
+            console.error('Item not found in detailed inventory');
+            showError('Item not found in inventory');
             return;
         }
 
         // Add row to count items table
+        console.log('Checking addCountRow function:', typeof addCountRow);
         if (typeof addCountRow === 'function') {
+            console.log('Calling addCountRow()');
             addCountRow();
 
             // Get the last added row
             const tbody = document.getElementById('countItemsTableBody');
-            const lastRow = tbody.lastElementChild;
+            console.log('Count items tbody:', tbody);
+
+            const lastRow = tbody ? tbody.lastElementChild : null;
+            console.log('Last row:', lastRow);
 
             if (lastRow) {
+                console.log('Filling row with data...');
                 // Fill in the values
                 lastRow.querySelector('.count-ingredient-code-input').value = item.ingredient_code;
                 lastRow.querySelector('.count-ingredient-name-input').value = item.ingredient_name;
                 lastRow.querySelector('.count-expected-input').value = item.quantity_on_hand;
                 lastRow.querySelector('.count-counted-input').value = quantity;
                 lastRow.querySelector('.count-uom-input').value = item.unit_of_measure;
-                lastRow.querySelector('.count-notes-input').value = `Scanned: ${lastScannedBarcode}`;
+                lastRow.querySelector('.count-notes-input').value = `Scanned: ${lastScannedBarcode} | Brand: ${item.brand || 'N/A'}`;
 
                 // Store data
                 lastRow.dataset.ingredientName = item.ingredient_name;
@@ -509,23 +541,32 @@ async function addBarcodeToCountForm(quantity) {
                 const variance = quantity - item.quantity_on_hand;
                 lastRow.querySelector('.count-variance-input').value = variance.toFixed(2);
 
+                console.log('Row filled successfully');
+
                 // Update summary
                 if (typeof updateCountSummary === 'function') {
+                    console.log('Updating count summary');
                     updateCountSummary();
                 }
+
+                showSuccess(`✅ Added to count: ${item.ingredient_name}`);
+
+                // Close scanner after short delay
+                setTimeout(() => {
+                    closeBarcodeScanner();
+                }, 1500);
+            } else {
+                console.error('No last row found after addCountRow()');
+                showError('Failed to add row to count table');
             }
+        } else {
+            console.error('addCountRow is not a function');
+            showError('Count table not available');
         }
-
-        showSuccess(`✅ Added to count: ${item.ingredient_name}`);
-
-        // Close scanner after short delay
-        setTimeout(() => {
-            closeBarcodeScanner();
-        }, 1500);
 
     } catch (error) {
         console.error('Error adding to count form:', error);
-        showError('Failed to add item');
+        showError('Failed to add item: ' + error.message);
     }
 }
 
