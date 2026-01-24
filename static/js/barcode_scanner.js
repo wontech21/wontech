@@ -6,6 +6,9 @@
 let currentCountId = null;
 let lastScannedBarcode = null;
 let scannerActive = false;
+let detectionBuffer = [];  // Store recent detections for validation
+const REQUIRED_DETECTIONS = 3;  // Require 3 consistent reads
+const DETECTION_WINDOW = 10;  // Clear buffer after 10 frames without match
 
 /**
  * Open barcode scanner for inventory count (from create count modal)
@@ -63,6 +66,12 @@ function initializeScanner() {
                 width: 640,
                 height: 480,
                 facingMode: "environment" // Use rear camera on mobile
+            },
+            area: { // Focus area in center
+                top: "30%",
+                right: "10%",
+                left: "10%",
+                bottom: "30%"
             }
         },
         decoder: {
@@ -70,17 +79,25 @@ function initializeScanner() {
                 "ean_reader",      // European Article Number (most grocery items)
                 "ean_8_reader",    // EAN-8 (shorter barcodes)
                 "upc_reader",      // Universal Product Code (US/Canada)
-                "upc_e_reader",    // UPC-E (compressed UPC)
-                "code_128_reader", // Common in warehouses
-                "code_39_reader"   // Alphanumeric barcodes
+                "upc_e_reader"     // UPC-E (compressed UPC)
+                // Removed Code 128/39 for now - they cause more false positives
             ],
-            multiple: false
+            multiple: false,
+            debug: {
+                drawBoundingBox: true,
+                showFrequency: false,
+                drawScanline: true,
+                showPattern: false
+            }
         },
         locate: true,
         locator: {
             patchSize: "medium",
             halfSample: true
-        }
+        },
+        numOfWorkers: 4,
+        frequency: 10,  // Scan every 10 frames (reduce false positives)
+        debug: false
     }, function(err) {
         if (err) {
             console.error('Scanner initialization error:', err);
@@ -114,6 +131,7 @@ function stopScanner() {
 function restartScanner() {
     document.getElementById('barcode-results').style.display = 'none';
     lastScannedBarcode = null;
+    detectionBuffer = [];  // Clear detection buffer
     updateScannerStatus('Position barcode in view...');
 
     if (!scannerActive) {
@@ -133,23 +151,85 @@ function updateScannerStatus(message) {
  */
 function handleBarcodeDetected(result) {
     const barcode = result.codeResult.code;
+    const quality = result.codeResult.decodedCodes
+        .filter(code => code.error !== undefined)
+        .reduce((sum, code) => sum + code.error, 0) / result.codeResult.decodedCodes.length;
 
-    // Ignore duplicate detections
-    if (barcode === lastScannedBarcode) {
+    // Quality threshold - reject low quality scans (higher error = lower quality)
+    if (quality > 0.15) {
+        console.log('Low quality scan rejected:', barcode, 'quality:', quality);
         return;
     }
 
-    lastScannedBarcode = barcode;
-    stopScanner();
+    // Validate barcode format (must be valid length and digits only for UPC/EAN)
+    if (!isValidBarcodeFormat(barcode)) {
+        console.log('Invalid barcode format rejected:', barcode);
+        return;
+    }
 
-    updateScannerStatus(`✅ Detected: ${barcode}`);
-    document.getElementById('scanned-barcode-value').textContent = barcode;
-    document.getElementById('barcode-results').style.display = 'block';
-    document.getElementById('barcode-loading').style.display = 'block';
-    document.getElementById('barcode-lookup-results').style.display = 'none';
+    // Add to detection buffer
+    detectionBuffer.push(barcode);
 
-    // Lookup barcode in all sources
-    lookupBarcode(barcode);
+    // Keep only recent detections
+    if (detectionBuffer.length > DETECTION_WINDOW) {
+        detectionBuffer.shift();
+    }
+
+    // Count occurrences of this barcode in buffer
+    const count = detectionBuffer.filter(b => b === barcode).length;
+
+    // Show feedback
+    updateScannerStatus(`Scanning... (${count}/${REQUIRED_DETECTIONS}) ${barcode}`);
+
+    // Require multiple consistent detections to avoid false positives
+    if (count >= REQUIRED_DETECTIONS) {
+        // Ignore if already processed
+        if (barcode === lastScannedBarcode) {
+            return;
+        }
+
+        lastScannedBarcode = barcode;
+        detectionBuffer = [];  // Clear buffer
+        stopScanner();
+
+        updateScannerStatus(`✅ Detected: ${barcode}`);
+        document.getElementById('scanned-barcode-value').textContent = barcode;
+        document.getElementById('barcode-results').style.display = 'block';
+        document.getElementById('barcode-loading').style.display = 'block';
+        document.getElementById('barcode-lookup-results').style.display = 'none';
+
+        // Lookup barcode in all sources
+        lookupBarcode(barcode);
+    }
+}
+
+/**
+ * Validate barcode format
+ */
+function isValidBarcodeFormat(barcode) {
+    // Remove any whitespace
+    barcode = barcode.trim();
+
+    // Check for valid barcode lengths
+    // EAN-13: 13 digits
+    // EAN-8: 8 digits
+    // UPC-A: 12 digits
+    // UPC-E: 6-8 digits
+    // Code 128/39: Variable length alphanumeric
+    const validLengths = [6, 7, 8, 12, 13, 14];
+
+    // For numeric barcodes (UPC/EAN), must be digits only and valid length
+    if (/^\d+$/.test(barcode)) {
+        return validLengths.includes(barcode.length);
+    }
+
+    // For alphanumeric (Code 128/39), length should be reasonable (3-40 chars)
+    if (/^[A-Z0-9\-]+$/i.test(barcode)) {
+        return barcode.length >= 3 && barcode.length <= 40;
+    }
+
+    // Reject anything else
+    return false;
 }
 
 /**
