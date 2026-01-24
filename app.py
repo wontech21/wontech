@@ -61,6 +61,11 @@ def index():
     """Main dashboard"""
     return render_template('dashboard.html')
 
+@app.route('/test-scanner')
+def test_scanner():
+    """Barcode scanner diagnostic page"""
+    return render_template('test_scanner.html')
+
 @app.route('/api/inventory/aggregated')
 def get_aggregated_inventory():
     """Get aggregated inventory (totals across all brands)"""

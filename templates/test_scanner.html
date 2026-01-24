@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Barcode Scanner Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        button {
+            background: #6f42c1;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #5a32a3;
+        }
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔥 Barcode Scanner Test Page</h1>
+
+    <div class="test-box">
+        <h2>Step 1: JavaScript Files Check</h2>
+        <p id="js-check">Checking...</p>
+    </div>
+
+    <div class="test-box">
+        <h2>Step 2: API Connection Test</h2>
+        <button onclick="testAPI()">Test Barcode API</button>
+        <div id="api-result"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>Step 3: Camera Access Test</h2>
+        <button onclick="testCamera()">Test Camera Access</button>
+        <div id="camera-result"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>Diagnostic Info</h2>
+        <div id="diagnostics"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+    <script src="{{ url_for('static', filename='js/barcode_scanner.js') }}?v=2.0"></script>
+
+    <script>
+        // Check if JavaScript files loaded
+        window.onload = function() {
+            const jsCheck = document.getElementById('js-check');
+            if (typeof Quagga !== 'undefined') {
+                jsCheck.innerHTML = '<span class="success">✓ QuaggaJS Loaded</span>';
+            } else {
+                jsCheck.innerHTML = '<span class="error">✗ QuaggaJS Failed to Load</span>';
+            }
+
+            if (typeof openBarcodeScannerForCount === 'function') {
+                jsCheck.innerHTML += '<br><span class="success">✓ Barcode Scanner Functions Loaded</span>';
+            } else {
+                jsCheck.innerHTML += '<br><span class="error">✗ Barcode Scanner Functions NOT Loaded</span>';
+            }
+
+            // Show diagnostic info
+            const diag = document.getElementById('diagnostics');
+            diag.innerHTML = `
+                <strong>Browser:</strong> ${navigator.userAgent}<br>
+                <strong>Screen:</strong> ${window.screen.width}x${window.screen.height}<br>
+                <strong>Time:</strong> ${new Date().toLocaleString()}<br>
+                <strong>HTTPS:</strong> ${location.protocol === 'https:' ? 'Yes' : 'No (camera may not work)'}
+            `;
+        };
+
+        // Test API
+        async function testAPI() {
+            const result = document.getElementById('api-result');
+            result.innerHTML = '<p>Testing barcode lookup for French\'s Mustard (041500000251)...</p>';
+
+            try {
+                const response = await fetch('/api/barcode/lookup/041500000251');
+                const data = await response.json();
+
+                if (data.success && data.best_match) {
+                    result.innerHTML = `
+                        <p class="success">✓ API Working!</p>
+                        <p><strong>Product:</strong> ${data.best_match.product_name}</p>
+                        <p><strong>Brand:</strong> ${data.best_match.brand}</p>
+                    `;
+                } else {
+                    result.innerHTML = '<p class="error">✗ API returned no results</p>';
+                }
+            } catch (error) {
+                result.innerHTML = `<p class="error">✗ API Error: ${error.message}</p>`;
+            }
+        }
+
+        // Test camera
+        async function testCamera() {
+            const result = document.getElementById('camera-result');
+            result.innerHTML = '<p>Requesting camera access...</p>';
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+
+                // Stop the stream immediately
+                stream.getTracks().forEach(track => track.stop());
+
+                result.innerHTML = '<p class="success">✓ Camera Access Granted!</p>';
+            } catch (error) {
+                result.innerHTML = `<p class="error">✗ Camera Access Denied: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
