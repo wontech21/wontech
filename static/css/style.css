@@ -5029,7 +5029,7 @@ textarea.form-control {
 #barcodeScannerModal {
     display: none;
     position: fixed;
-    z-index: 2000;
+    z-index: 3000;
     left: 0;
     top: 0;
     width: 100%;

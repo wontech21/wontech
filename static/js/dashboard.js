@@ -6615,7 +6615,7 @@ async function openCreateIngredientModal(restoreData = null) {
             <div style="margin: 20px 0; padding: 15px; background: linear-gradient(135deg, #e3f2fd 0%, #f5f5f5 100%); border-radius: 8px; border: 2px solid var(--theme-color-1);">
                 <p style="margin: 0 0 10px 0; font-weight: 600; color: var(--theme-color-1);">📱 Scan Product Barcode</p>
                 <p style="margin: 0 0 10px 0; font-size: 0.9em; color: #666;">Have a product with a barcode? Scan it to auto-fill details from product databases!</p>
-                <button type="button" class="btn-primary" onclick="openBarcodeScannerForIngredient()" style="width: 100%;">
+                <button type="button" class="btn btn-primary" onclick="openBarcodeScannerForIngredient()" style="width: 100%;">
                     📱 Scan Barcode
                 </button>
             </div>
