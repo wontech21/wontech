@@ -733,10 +733,30 @@ tbody tr.hoverable-row:hover {
     animation: fadeIn 0.3s;
 }
 
-.modal.active {
-    display: flex;
+.modal.active,
+.modal[style*="display: flex"] {
+    display: flex !important;
     justify-content: center;
     align-items: center;
+}
+
+/* Ensure create from barcode modal is centered */
+#createFromBarcodeModal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    justify-content: center;
+    align-items: center;
+}
+
+#createFromBarcodeModal.active,
+#createFromBarcodeModal[style*="display: flex"] {
+    display: flex !important;
 }
 
 .modal-content {
@@ -5347,5 +5367,122 @@ textarea.form-control {
 
     #barcode-quantity {
         width: 120px;
+    }
+}
+
+/* Create from Barcode Modal Specific Styling */
+#createFromBarcodeModal .modal-content {
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+#createFromBarcodeModal .modal-header {
+    background: var(--theme-gradient);
+    color: white;
+    padding: 20px 30px;
+    border-radius: 12px 12px 0 0;
+}
+
+#createFromBarcodeModal .modal-header h2 {
+    color: white;
+    margin: 0;
+    font-size: 1.5em;
+    font-weight: 600;
+}
+
+#createFromBarcodeModal .modal-close {
+    color: white;
+    background: none;
+    border: none;
+    font-size: 2em;
+    cursor: pointer;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    transition: all 0.2s;
+}
+
+#createFromBarcodeModal .modal-close:hover {
+    transform: scale(1.1);
+    opacity: 0.8;
+}
+
+#createFromBarcodeModal .modal-footer {
+    padding: 20px 30px;
+    border-top: 2px solid #dee2e6;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+#createFromBarcodeModal .modal-footer button {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+#createFromBarcodeModal .modal-footer .btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+#createFromBarcodeModal .modal-footer .btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+#createFromBarcodeModal .modal-footer .btn-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+#createFromBarcodeModal .modal-footer .btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+}
+
+/* Count quantity section styling */
+#count-quantity-section {
+    background: linear-gradient(135deg, #e8f5e9 0%, #f1f8f4 100%);
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 20px;
+    border: 2px solid #28a745;
+}
+
+#count-quantity-section h4 {
+    margin-top: 0;
+    color: #2e7d32;
+    font-size: 1.2em;
+    font-weight: 600;
+}
+
+#count-quantity-section .form-group label {
+    font-weight: 600;
+    color: #2e7d32;
+}
+
+#count-quantity-section input {
+    border: 2px solid #28a745;
+}
+
+#count-quantity-section input:focus {
+    outline: none;
+    border-color: #20c997;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+@media (max-width: 768px) {
+    #createFromBarcodeModal .modal-content {
+        width: 95%;
+        max-height: 95vh;
     }
 }

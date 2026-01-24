@@ -678,14 +678,18 @@ function showCreateFromBarcodeModal() {
         }
     }
 
-    document.getElementById('createFromBarcodeModal').style.display = 'block';
+    const modal = document.getElementById('createFromBarcodeModal');
+    modal.style.display = 'flex';
+    modal.classList.add('active');
 }
 
 /**
  * Close create from barcode modal
  */
 function closeCreateFromBarcodeModal() {
-    document.getElementById('createFromBarcodeModal').style.display = 'none';
+    const modal = document.getElementById('createFromBarcodeModal');
+    modal.style.display = 'none';
+    modal.classList.remove('active');
     document.getElementById('create-from-barcode-form').reset();
     document.getElementById('new-item-external-data').value = '';
     document.getElementById('new-ingredient-counted-qty').value = '';
