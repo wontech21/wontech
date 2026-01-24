@@ -587,6 +587,23 @@ function showCreateFromBarcodeModal() {
     document.getElementById('new-item-barcode').value = lastScannedBarcode;
     document.getElementById('display-barcode').value = lastScannedBarcode;
 
+    // Show/hide count quantity section based on context
+    const countQtySection = document.getElementById('count-quantity-section');
+    const countQtyInput = document.getElementById('new-ingredient-counted-qty');
+    const createButtonText = document.getElementById('create-button-text');
+
+    if (currentCountId) {
+        // We're in a count context
+        countQtySection.style.display = 'block';
+        countQtyInput.setAttribute('required', 'required');
+        createButtonText.textContent = 'Create & Add to Count';
+    } else {
+        // Not in a count
+        countQtySection.style.display = 'none';
+        countQtyInput.removeAttribute('required');
+        createButtonText.textContent = 'Create Ingredient';
+    }
+
     // Pre-fill from external data if available
     const externalDataEl = document.getElementById('new-item-external-data');
     if (externalDataEl.value) {
@@ -623,6 +640,8 @@ function showCreateFromBarcodeModal() {
 function closeCreateFromBarcodeModal() {
     document.getElementById('createFromBarcodeModal').style.display = 'none';
     document.getElementById('create-from-barcode-form').reset();
+    document.getElementById('new-item-external-data').value = '';
+    document.getElementById('new-ingredient-counted-qty').value = '';
 }
 
 /**
@@ -691,16 +710,20 @@ async function saveIngredientFromBarcode() {
         return;
     }
 
+    // Get counted quantity if in count context
+    const countedQty = document.getElementById('new-ingredient-counted-qty').value;
+    const inCountContext = currentCountId && countedQty;
+
     const ingredientData = {
         barcode: document.getElementById('new-item-barcode').value,
         ingredient_code: document.getElementById('new-ingredient-code').value,
         ingredient_name: document.getElementById('new-ingredient-name').value,
-        brand: document.getElementById('new-ingredient-brand').value,
+        brand: document.getElementById('new-ingredient-brand').value || '',
         category: document.getElementById('new-ingredient-category').value,
         unit_of_measure: document.getElementById('new-ingredient-uom').value,
         unit_cost: parseFloat(document.getElementById('new-ingredient-cost').value),
         quantity_on_hand: parseFloat(document.getElementById('new-ingredient-quantity').value) || 0,
-        supplier_name: document.getElementById('new-ingredient-supplier').value
+        supplier_name: document.getElementById('new-ingredient-supplier').value || ''
     };
 
     try {
@@ -721,11 +744,17 @@ async function saveIngredientFromBarcode() {
                 setTimeout(() => loadDetailedInventory(), 500);
             }
 
-            // If in count context, add to count
-            if (currentCountId) {
-                setTimeout(() => addBarcodeItemToCount(), 1000);
+            // If in count context, add to count with the counted quantity
+            if (inCountContext) {
+                // Wait for inventory to reload, then add to count
+                setTimeout(() => {
+                    // Set the quantity in the barcode-quantity field so addBarcodeItemToCount can use it
+                    document.getElementById('barcode-quantity').value = countedQty;
+                    addBarcodeItemToCount();
+                }, 1000);
             } else {
-                closeBarcodeScanner();
+                // Not in count context, just close
+                setTimeout(() => closeBarcodeScanner(), 500);
             }
 
         } else {

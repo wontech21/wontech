@@ -1744,18 +1744,32 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                     </div>
 
                     <div class="form-group">
-                        <label>Initial Quantity:</label>
-                        <input type="number" id="new-ingredient-quantity" step="0.01" min="0" value="0" />
-                    </div>
-
-                    <div class="form-group">
                         <label>Supplier:</label>
                         <input type="text" id="new-ingredient-supplier" />
+                    </div>
+
+                    <div id="count-quantity-section" style="display: none; background: #e8f5e9; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                        <h4 style="margin-top: 0; color: #2e7d32;">📊 Add to Count</h4>
+                        <div class="form-group">
+                            <label>Counted Quantity: <span style="color: red;">*</span></label>
+                            <input type="number" id="new-ingredient-counted-qty" step="0.01" min="0" placeholder="How many did you count?" />
+                            <small style="display: block; margin-top: 5px; color: #666;">This will be added to your inventory count</small>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="background: #f8f9fa; padding: 10px; border-radius: 4px;">
+                        <label>Starting Inventory Quantity:</label>
+                        <input type="number" id="new-ingredient-quantity" step="0.01" min="0" value="0" />
+                        <small style="display: block; margin-top: 5px; color: #666;">
+                            Leave as 0 unless you want to set an initial quantity before the count
+                        </small>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn-success" onclick="saveIngredientFromBarcode()">Create Ingredient</button>
+                <button class="btn-success" onclick="saveIngredientFromBarcode()">
+                    <span id="create-button-text">Create Ingredient</span>
+                </button>
                 <button class="btn-secondary" onclick="closeCreateFromBarcodeModal()">Cancel</button>
             </div>
         </div>
