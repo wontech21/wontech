@@ -3,7 +3,7 @@
  * Provides offline capabilities and improved mobile performance
  */
 
-const CACHE_NAME = 'firingup-v1';
+const CACHE_NAME = 'firingup-v2-scanner';
 const urlsToCache = [
   '/',
   '/static/css/style.css',
