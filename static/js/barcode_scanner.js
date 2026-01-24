@@ -22,7 +22,9 @@ function openBarcodeScannerForCount() {
         currentCountId = 'temp_new_count';
     }
 
-    document.getElementById('barcodeScannerModal').style.display = 'block';
+    const modal = document.getElementById('barcodeScannerModal');
+    modal.style.display = 'flex';
+    modal.classList.add('active');
     document.getElementById('barcode-results').style.display = 'none';
     initializeScanner();
 }
@@ -32,7 +34,9 @@ function openBarcodeScannerForCount() {
  */
 function openBarcodeScanner(countId) {
     currentCountId = countId;
-    document.getElementById('barcodeScannerModal').style.display = 'block';
+    const modal = document.getElementById('barcodeScannerModal');
+    modal.style.display = 'flex';
+    modal.classList.add('active');
     document.getElementById('barcode-results').style.display = 'none';
     initializeScanner();
 }
@@ -42,7 +46,9 @@ function openBarcodeScanner(countId) {
  */
 function closeBarcodeScanner() {
     stopScanner();
-    document.getElementById('barcodeScannerModal').style.display = 'none';
+    const modal = document.getElementById('barcodeScannerModal');
+    modal.style.display = 'none';
+    modal.classList.remove('active');
     currentCountId = null;
     lastScannedBarcode = null;
 }
