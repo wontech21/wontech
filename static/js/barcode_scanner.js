@@ -10,6 +10,7 @@ let detectionBuffer = [];  // Store recent detections for validation
 const REQUIRED_DETECTIONS = 3;  // Require 3 consistent reads
 const DETECTION_WINDOW = 10;  // Clear buffer after 10 frames without match
 let scannerContext = 'count';  // 'count', 'ingredient', or 'invoice'
+let scannedExternalData = null;  // Store external API data for ingredient/invoice creation
 
 /**
  * Open barcode scanner for inventory count (from create count modal)
@@ -79,6 +80,7 @@ function closeBarcodeScanner() {
     modal.classList.remove('active');
     currentCountId = null;
     lastScannedBarcode = null;
+    scannedExternalData = null;  // Clear external data
 }
 
 /**
@@ -455,7 +457,13 @@ function displayExternalSources(results, bestMatch) {
 
     // Store best match data for creating ingredient
     if (bestMatch) {
-        document.getElementById('new-item-external-data').value = JSON.stringify(bestMatch);
+        scannedExternalData = bestMatch;  // Store in global variable for all contexts
+
+        // Also store in DOM element if it exists (for count context)
+        const externalDataEl = document.getElementById('new-item-external-data');
+        if (externalDataEl) {
+            externalDataEl.value = JSON.stringify(bestMatch);
+        }
     }
 
     // Add context-appropriate action buttons
@@ -963,17 +971,8 @@ document.head.appendChild(style);
  * Use scanned item data to pre-fill ingredient form
  */
 function useScannedItemForIngredient() {
-    // Get the inventory match details or external data
-    const externalDataEl = document.getElementById('new-item-external-data');
-    let data = null;
-
-    if (externalDataEl && externalDataEl.value) {
-        try {
-            data = JSON.parse(externalDataEl.value);
-        } catch (e) {
-            console.error('Error parsing external data:', e);
-        }
-    }
+    // Get the external data from global variable
+    const data = scannedExternalData;
 
     if (!data) {
         showError('No product data available');
