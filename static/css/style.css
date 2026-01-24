@@ -203,7 +203,7 @@ body {
     gap: 12px;
     margin-top: 0;
     margin-bottom: 20px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
 }
 
@@ -215,8 +215,9 @@ body {
     background: white;
     cursor: pointer;
     transition: all 0.2s;
-    min-width: clamp(140px, 15vw, 180px);
-    flex: 1 1 auto;
+    min-width: 0;
+    flex: 1 1 0;
+    max-width: none;
 }
 
 .filters select:hover {
