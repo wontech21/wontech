@@ -711,7 +711,7 @@ async function saveIngredientFromBarcode() {
     }
 
     // Get counted quantity if in count context
-    const countedQty = document.getElementById('new-ingredient-counted-qty').value;
+    const countedQty = parseFloat(document.getElementById('new-ingredient-counted-qty').value);
     const inCountContext = currentCountId && countedQty;
 
     const ingredientData = {
@@ -746,12 +746,8 @@ async function saveIngredientFromBarcode() {
 
             // If in count context, add to count with the counted quantity
             if (inCountContext) {
-                // Wait for inventory to reload, then add to count
-                setTimeout(() => {
-                    // Set the quantity in the barcode-quantity field so addBarcodeItemToCount can use it
-                    document.getElementById('barcode-quantity').value = countedQty;
-                    addBarcodeItemToCount();
-                }, 1000);
+                // Add directly to count form using the ingredient data we already have
+                addNewlyCreatedItemToCount(ingredientData, countedQty);
             } else {
                 // Not in count context, just close
                 setTimeout(() => closeBarcodeScanner(), 500);
@@ -764,6 +760,53 @@ async function saveIngredientFromBarcode() {
     } catch (error) {
         console.error('Create ingredient error:', error);
         showError('Failed to create ingredient');
+    }
+}
+
+/**
+ * Add newly created ingredient directly to count
+ * (different from addBarcodeToCountForm which expects existing inventory item)
+ */
+function addNewlyCreatedItemToCount(ingredientData, countedQty) {
+    // Add row to count items table
+    if (typeof addCountRow === 'function') {
+        addCountRow();
+
+        // Get the last added row
+        const tbody = document.getElementById('countItemsTableBody');
+        const lastRow = tbody.lastElementChild;
+
+        if (lastRow) {
+            // Fill in the values with data from the form
+            lastRow.querySelector('.count-ingredient-code-input').value = ingredientData.ingredient_code;
+            lastRow.querySelector('.count-ingredient-name-input').value = ingredientData.ingredient_name;
+            lastRow.querySelector('.count-expected-input').value = ingredientData.quantity_on_hand;
+            lastRow.querySelector('.count-counted-input').value = countedQty;
+            lastRow.querySelector('.count-uom-input').value = ingredientData.unit_of_measure;
+            lastRow.querySelector('.count-notes-input').value = `Scanned: ${ingredientData.barcode} | Brand: ${ingredientData.brand} | Supplier: ${ingredientData.supplier_name}`;
+
+            // Store data
+            lastRow.dataset.ingredientName = ingredientData.ingredient_name;
+            lastRow.dataset.unitOfMeasure = ingredientData.unit_of_measure;
+
+            // Calculate variance
+            const variance = countedQty - ingredientData.quantity_on_hand;
+            lastRow.querySelector('.count-variance-input').value = variance.toFixed(2);
+
+            // Update summary
+            if (typeof updateCountSummary === 'function') {
+                updateCountSummary();
+            }
+
+            showSuccess(`✅ Added to count: ${ingredientData.ingredient_name} (${countedQty} ${ingredientData.unit_of_measure})`);
+
+            // Close scanner after short delay
+            setTimeout(() => {
+                closeBarcodeScanner();
+            }, 1500);
+        }
+    } else {
+        showError('Count form not available');
     }
 }
 
