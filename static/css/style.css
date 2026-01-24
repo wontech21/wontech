@@ -5166,6 +5166,27 @@ textarea.form-control {
     border-color: var(--theme-color-1);
 }
 
+#add-to-count-section button {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+#add-to-count-section button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+#add-to-count-section button:active {
+    transform: translateY(0);
+}
+
 /* Manual entry section */
 .manual-entry-section {
     margin-top: 20px;
@@ -5193,6 +5214,29 @@ textarea.form-control {
 .manual-entry-section input:focus {
     outline: none;
     border-color: var(--theme-color-1);
+}
+
+.manual-entry-section button {
+    background: var(--theme-gradient);
+    color: white;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(var(--theme-color-1-rgb), 0.3);
+    white-space: nowrap;
+}
+
+.manual-entry-section button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(var(--theme-color-1-rgb), 0.4);
+}
+
+.manual-entry-section button:active {
+    transform: translateY(0);
 }
 
 .manual-entry-section p {
@@ -5235,6 +5279,50 @@ textarea.form-control {
     display: flex;
     gap: 12px;
     justify-content: center;
+}
+
+/* External sources section buttons */
+#external-sources-section button {
+    background: var(--theme-gradient);
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(var(--theme-color-1-rgb), 0.3);
+}
+
+#external-sources-section button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(var(--theme-color-1-rgb), 0.4);
+}
+
+#external-sources-section button:active {
+    transform: translateY(0);
+}
+
+/* Warning message buttons */
+.warning-message button {
+    background: var(--theme-gradient);
+    color: white;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(var(--theme-color-1-rgb), 0.3);
+}
+
+.warning-message button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(var(--theme-color-1-rgb), 0.4);
+}
+
+.warning-message button:active {
+    transform: translateY(0);
 }
 
 /* Responsive adjustments */
