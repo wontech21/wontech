@@ -8,6 +8,7 @@ services:
     buildCommand: |
       pip install -r requirements.txt
       python migrations/add_barcode_support.py || true
+      python run_migrations.py
     startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 app:app
     envVars:
       - key: FLASK_ENV
