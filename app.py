@@ -61,26 +61,31 @@ def ensure_database_initialized():
         print("   Initializing database now...")
         print("="*70 + "\n")
         try:
-            # Run initialization
-            import subprocess
-            result = subprocess.run(
-                ['python', os.path.join(os.path.dirname(__file__), 'init_database.py')],
-                capture_output=True,
-                text=True
-            )
-            if result.returncode == 0:
-                print("✅ Database initialized successfully!")
-            else:
-                print(f"❌ Database initialization failed:")
-                print(result.stderr)
+            # Import and run directly (more reliable than subprocess)
+            import init_database
+            init_database.init_database()
+            print("✅ Database initialized successfully!")
         except Exception as e:
-            print(f"❌ Failed to initialize database: {e}")
-            # Import and run directly as fallback
+            print(f"❌ Direct initialization failed: {e}")
+            # Try subprocess as fallback
             try:
-                import init_database
-                init_database.init_database()
+                import subprocess
+                import sys
+                # Use sys.executable to get the correct python interpreter
+                result = subprocess.run(
+                    [sys.executable, os.path.join(os.path.dirname(__file__), 'init_database.py')],
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                if result.returncode == 0:
+                    print("✅ Database initialized successfully via subprocess!")
+                    print(result.stdout)
+                else:
+                    print(f"❌ Database initialization failed:")
+                    print(result.stderr)
             except Exception as e2:
-                print(f"❌ Direct initialization also failed: {e2}")
+                print(f"❌ Subprocess initialization also failed: {e2}")
 
 ensure_database_initialized()
 
@@ -94,29 +99,93 @@ def before_request_handler():
     """Set tenant context for multi-tenant isolation"""
     try:
         set_tenant_context()
-    except sqlite3.OperationalError as e:
+    except Exception as e:
+        # Catch ALL exceptions to prevent app crashes
+        error_msg = str(e)
+        print(f"⚠️  Error in set_tenant_context: {type(e).__name__}: {error_msg}")
+
         # Database doesn't exist or is corrupted
-        if 'no such table' in str(e) or 'no such column' in str(e):
-            print(f"⚠️  Database error: {e}")
-            print("   Attempting to initialize database...")
-            ensure_database_initialized()
-            # Try again after initialization
-            try:
-                set_tenant_context()
-            except Exception as e2:
-                print(f"❌ Still failing after initialization: {e2}")
-                # For public pages, continue without context
-                g.user = None
-                g.organization = None
-                g.org_db_path = None
-        else:
-            raise
+        if isinstance(e, sqlite3.OperationalError) or isinstance(e, FileNotFoundError):
+            if 'no such table' in error_msg or 'no such column' in error_msg or 'not found' in error_msg:
+                print("   Attempting to initialize database...")
+                ensure_database_initialized()
+                # Try again after initialization
+                try:
+                    set_tenant_context()
+                    return  # Success!
+                except Exception as e2:
+                    print(f"❌ Still failing after initialization: {type(e2).__name__}: {e2}")
+
+        # For ALL errors: Set safe defaults and continue
+        # This allows login page and public pages to work even if database has issues
+        g.user = None
+        g.organization = None
+        g.org_db_path = None
+        g.is_super_admin = False
+        g.is_organization_admin = False
+        g.is_employee = False
 
 # Database paths (kept for backward compatibility reference only)
 INVENTORY_DB = 'inventory.db'
 INVOICES_DB = 'invoices.db'
 
 # Note: get_org_db() is now imported from db_manager at top of file
+
+# Health check endpoint for debugging
+@app.route('/health')
+def health_check():
+    """Health check endpoint to diagnose deployment issues"""
+    base_dir = os.environ.get('DATABASE_DIR', os.path.dirname(__file__))
+    master_db_path = os.path.join(base_dir, 'master.db')
+    databases_dir = os.path.join(base_dir, 'databases')
+    org1_db_path = os.path.join(databases_dir, 'org_1.db')
+
+    health_info = {
+        'status': 'healthy',
+        'database_dir': base_dir,
+        'master_db_exists': os.path.exists(master_db_path),
+        'master_db_path': master_db_path,
+        'databases_dir_exists': os.path.exists(databases_dir),
+        'org1_db_exists': os.path.exists(org1_db_path),
+        'org1_db_path': org1_db_path,
+        'errors': []
+    }
+
+    # Test master database connection
+    try:
+        conn = get_master_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM organizations")
+        org_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM users")
+        user_count = cursor.fetchone()[0]
+        conn.close()
+        health_info['master_db_orgs'] = org_count
+        health_info['master_db_users'] = user_count
+    except Exception as e:
+        health_info['errors'].append(f"Master DB error: {str(e)}")
+        health_info['status'] = 'unhealthy'
+
+    # Test org database
+    try:
+        if os.path.exists(org1_db_path):
+            conn = sqlite3.connect(org1_db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM ingredients")
+            ing_count = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM products")
+            prod_count = cursor.fetchone()[0]
+            conn.close()
+            health_info['org1_db_ingredients'] = ing_count
+            health_info['org1_db_products'] = prod_count
+        else:
+            health_info['errors'].append("org_1.db does not exist")
+            health_info['status'] = 'unhealthy'
+    except Exception as e:
+        health_info['errors'].append(f"Org DB error: {str(e)}")
+        health_info['status'] = 'unhealthy'
+
+    return jsonify(health_info), 200 if health_info['status'] == 'healthy' else 500
 
 def log_audit(action_type, entity_type, entity_id, entity_reference, details, user='System'):
     """Log an audit entry for tracking all system changes"""
