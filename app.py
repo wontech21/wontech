@@ -92,10 +92,10 @@ def ensure_database_initialized():
                 os.remove(master_db_path)
                 print("   Removed empty database file")
 
-            # Import and run initialization
-            import init_database
-            print("📝 Running init_database.init_database()...")
-            result = init_database.init_database()
+            # Use inline database creation (bulletproof, no external dependencies)
+            import create_db_inline
+            print("📝 Running inline database creation...")
+            result = create_db_inline.create_databases()
             if result:
                 print("✅ Database initialized successfully!")
             else:
