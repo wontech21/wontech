@@ -51,8 +51,19 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 # Ensure database exists on startup (critical for cloud deployments)
 def ensure_database_initialized():
     """Ensure master database exists when app starts"""
-    # Use persistent disk if DATABASE_DIR env var is set
-    base_dir = os.environ.get('DATABASE_DIR', os.path.dirname(__file__))
+    # Use persistent disk if available (Render mounts disk at /var/data)
+    # Priority: 1) DATABASE_DIR env var, 2) /var/data if exists, 3) app directory
+    base_dir = os.environ.get('DATABASE_DIR')
+    if not base_dir or not os.path.exists(base_dir):
+        if os.path.exists('/var/data') and os.access('/var/data', os.W_OK):
+            base_dir = '/var/data'
+            # Set environment variable for other modules to use
+            os.environ['DATABASE_DIR'] = '/var/data'
+            print(f"🔧 Using Render persistent disk: /var/data")
+        else:
+            base_dir = os.path.dirname(__file__)
+            print(f"⚠️  Using ephemeral app directory: {base_dir}")
+
     master_db_path = os.path.join(base_dir, 'master.db')
     if not os.path.exists(master_db_path):
         print("\n" + "="*70)
@@ -135,7 +146,23 @@ INVOICES_DB = 'invoices.db'
 @app.route('/health')
 def health_check():
     """Health check endpoint to diagnose deployment issues"""
-    base_dir = os.environ.get('DATABASE_DIR', os.path.dirname(__file__))
+    # Check multiple possible database locations
+    possible_dirs = [
+        os.environ.get('DATABASE_DIR'),
+        '/var/data',  # Render persistent disk
+        os.path.dirname(__file__)  # Fallback to app directory
+    ]
+
+    # Find first existing directory with write permissions
+    base_dir = None
+    for dir_path in possible_dirs:
+        if dir_path and os.path.exists(dir_path):
+            base_dir = dir_path
+            break
+
+    if not base_dir:
+        base_dir = os.path.dirname(__file__)
+
     master_db_path = os.path.join(base_dir, 'master.db')
     databases_dir = os.path.join(base_dir, 'databases')
     org1_db_path = os.path.join(databases_dir, 'org_1.db')
@@ -143,6 +170,9 @@ def health_check():
     health_info = {
         'status': 'healthy',
         'database_dir': base_dir,
+        'database_dir_env': os.environ.get('DATABASE_DIR'),
+        'var_data_exists': os.path.exists('/var/data'),
+        'var_data_writable': os.access('/var/data', os.W_OK) if os.path.exists('/var/data') else False,
         'master_db_exists': os.path.exists(master_db_path),
         'master_db_path': master_db_path,
         'databases_dir_exists': os.path.exists(databases_dir),

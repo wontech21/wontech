@@ -22,7 +22,14 @@ from flask import g
 
 # Use persistent disk if DATABASE_DIR env var is set (for Render paid plans)
 # Otherwise use local directory (for development)
-BASE_DIR = os.environ.get('DATABASE_DIR', os.path.dirname(__file__))
+# Priority: 1) DATABASE_DIR env var, 2) /var/data if writable, 3) local directory
+BASE_DIR = os.environ.get('DATABASE_DIR')
+if not BASE_DIR or not os.path.exists(BASE_DIR):
+    if os.path.exists('/var/data') and os.access('/var/data', os.W_OK):
+        BASE_DIR = '/var/data'
+        os.environ['DATABASE_DIR'] = '/var/data'  # Set for other modules
+    else:
+        BASE_DIR = os.path.dirname(__file__)
 MASTER_DB_PATH = os.path.join(BASE_DIR, 'master.db')
 DATABASES_DIR = os.path.join(BASE_DIR, 'databases')
 TEMPLATE_DB_PATH = os.path.join(DATABASES_DIR, 'template.db')
