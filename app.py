@@ -771,9 +771,9 @@ def index():
 
 @app.route('/dashboard')
 @login_required
-@organization_required
 def dashboard():
     """Main business dashboard (for organization users)"""
+    # Temporarily removed @organization_required decorator to fix redirect loop
     return render_template('dashboard.html')
 
 @app.route('/test-scanner')
