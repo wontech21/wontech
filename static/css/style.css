@@ -5554,3 +5554,78 @@ textarea.form-control {
     background: #f3f4f6;
     color: #6b7280;
 }
+
+/* Password Change Card */
+.password-change-card {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(220, 38, 38, 0.05) 100%);
+    border: 2px solid #ef4444;
+    margin-bottom: 30px;
+}
+
+.password-change-card .form-group {
+    margin-bottom: 20px;
+}
+
+.password-change-card .form-control {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.password-change-card .form-control:focus {
+    outline: none;
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.password-change-card .form-text {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.error-message {
+    background: #fee2e2;
+    border: 1px solid #ef4444;
+    color: #991b1b;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+.success-message {
+    background: #d1fae5;
+    border: 1px solid #10b981;
+    color: #065f46;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+.password-change-card .btn-primary {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.password-change-card .btn-primary:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.password-change-card .btn-primary:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+}

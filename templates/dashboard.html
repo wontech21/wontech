@@ -886,6 +886,42 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
             </div>
             {% endif %}
 
+            <!-- Password Change -->
+            <div class="settings-card password-change-card">
+                <h3>🔒 Change Password</h3>
+                <p class="settings-description">Update your account password securely</p>
+
+                <div class="settings-form">
+                    <form id="passwordChangeForm" onsubmit="changePassword(event)">
+                        <div class="form-group">
+                            <label>Current Password *</label>
+                            <input type="password" id="currentPassword" name="current_password" required
+                                   class="form-control" placeholder="Enter current password">
+                        </div>
+
+                        <div class="form-group">
+                            <label>New Password *</label>
+                            <input type="password" id="newPassword" name="new_password" required
+                                   class="form-control" placeholder="Enter new password" minlength="8">
+                            <small class="form-text">Must be at least 8 characters</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Confirm New Password *</label>
+                            <input type="password" id="confirmPassword" name="confirm_password" required
+                                   class="form-control" placeholder="Confirm new password" minlength="8">
+                        </div>
+
+                        <div id="passwordError" class="error-message" style="display: none;"></div>
+                        <div id="passwordSuccess" class="success-message" style="display: none;"></div>
+
+                        <button type="submit" class="btn btn-primary" id="changePasswordBtn">
+                            🔒 Change Password
+                        </button>
+                    </form>
+                </div>
+            </div>
+
             <div class="settings-grid">
                 <!-- Brand Management -->
                 <div class="settings-card">
@@ -1830,6 +1866,83 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
             </div>
         </div>
     </div>
+
+    <!-- Password Change Script -->
+    <script>
+        function changePassword(event) {
+            event.preventDefault();
+
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            const errorDiv = document.getElementById('passwordError');
+            const successDiv = document.getElementById('passwordSuccess');
+            const btn = document.getElementById('changePasswordBtn');
+
+            // Hide previous messages
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            // Validate passwords match
+            if (newPassword !== confirmPassword) {
+                errorDiv.textContent = '❌ New passwords do not match';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Validate password length
+            if (newPassword.length < 8) {
+                errorDiv.textContent = '❌ Password must be at least 8 characters';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Disable button
+            btn.disabled = true;
+            btn.textContent = '🔄 Changing Password...';
+
+            // Submit to API
+            fetch('/api/user/change-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    current_password: currentPassword,
+                    new_password: newPassword
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.textContent = '🔒 Change Password';
+
+                if (data.success) {
+                    successDiv.textContent = '✅ ' + data.message;
+                    successDiv.style.display = 'block';
+
+                    // Reset form
+                    document.getElementById('passwordChangeForm').reset();
+
+                    // Hide success message after 5 seconds
+                    setTimeout(() => {
+                        successDiv.style.display = 'none';
+                    }, 5000);
+                } else {
+                    errorDiv.textContent = '❌ ' + (data.error || 'Failed to change password');
+                    errorDiv.style.display = 'block';
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                btn.disabled = false;
+                btn.textContent = '🔒 Change Password';
+                errorDiv.textContent = '❌ An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+            });
+        }
+    </script>
 
     <!-- Include QuaggaJS for barcode scanning -->
     <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>

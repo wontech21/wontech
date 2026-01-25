@@ -391,6 +391,7 @@
             </div>
             <div>
                 <button class="btn-primary" onclick="openCreateOrgModal()">+ New Organization</button>
+                <button class="btn-primary" onclick="openPasswordChangeModal()" style="margin-left: 10px;">🔒 Change Password</button>
                 <button class="logout-btn" onclick="logout()">Logout</button>
             </div>
         </div>
@@ -570,6 +571,46 @@
                     <div class="modal-actions">
                         <button type="submit" class="btn-primary">Create Organization</button>
                         <button type="button" class="btn-secondary" onclick="closeCreateOrgModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Change Modal -->
+    <div id="passwordChangeModal" class="modal" style="display: none;">
+        <div class="modal-content glass-modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>🔒 Change Password</h2>
+                <button class="modal-close" onclick="closePasswordChangeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="adminPasswordChangeForm" onsubmit="submitPasswordChange(event)">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="color: white; font-weight: 600; margin-bottom: 8px; display: block;">Current Password *</label>
+                        <input type="password" id="adminCurrentPassword" required
+                               style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 8px; background: rgba(255, 255, 255, 0.1); color: white;">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="color: white; font-weight: 600; margin-bottom: 8px; display: block;">New Password *</label>
+                        <input type="password" id="adminNewPassword" required minlength="8"
+                               style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 8px; background: rgba(255, 255, 255, 0.1); color: white;">
+                        <small style="color: rgba(255, 255, 255, 0.7); font-size: 12px; margin-top: 4px; display: block;">Must be at least 8 characters</small>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="color: white; font-weight: 600; margin-bottom: 8px; display: block;">Confirm New Password *</label>
+                        <input type="password" id="adminConfirmPassword" required minlength="8"
+                               style="width: 100%; padding: 10px 12px; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 8px; background: rgba(255, 255, 255, 0.1); color: white;">
+                    </div>
+
+                    <div id="adminPasswordError" style="display: none; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px;"></div>
+                    <div id="adminPasswordSuccess" style="display: none; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px;"></div>
+
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-primary" id="adminChangePasswordBtn">Change Password</button>
+                        <button type="button" class="btn-secondary" onclick="closePasswordChangeModal()">Cancel</button>
                     </div>
                 </form>
             </div>
@@ -809,6 +850,92 @@
             .catch(err => {
                 console.error('Error:', err);
                 alert('❌ Failed to create organization');
+            });
+        }
+
+        // Password Change Modal Functions
+        function openPasswordChangeModal() {
+            document.getElementById('passwordChangeModal').style.display = 'flex';
+        }
+
+        function closePasswordChangeModal() {
+            document.getElementById('passwordChangeModal').style.display = 'none';
+            document.getElementById('adminPasswordChangeForm').reset();
+            document.getElementById('adminPasswordError').style.display = 'none';
+            document.getElementById('adminPasswordSuccess').style.display = 'none';
+        }
+
+        function submitPasswordChange(event) {
+            event.preventDefault();
+
+            const currentPassword = document.getElementById('adminCurrentPassword').value;
+            const newPassword = document.getElementById('adminNewPassword').value;
+            const confirmPassword = document.getElementById('adminConfirmPassword').value;
+
+            const errorDiv = document.getElementById('adminPasswordError');
+            const successDiv = document.getElementById('adminPasswordSuccess');
+            const btn = document.getElementById('adminChangePasswordBtn');
+
+            // Hide previous messages
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            // Validate passwords match
+            if (newPassword !== confirmPassword) {
+                errorDiv.textContent = '❌ New passwords do not match';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Validate password length
+            if (newPassword.length < 8) {
+                errorDiv.textContent = '❌ Password must be at least 8 characters';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Disable button
+            btn.disabled = true;
+            btn.textContent = '🔄 Changing Password...';
+
+            // Submit to API
+            fetch('/api/user/change-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    current_password: currentPassword,
+                    new_password: newPassword
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.textContent = 'Change Password';
+
+                if (data.success) {
+                    successDiv.textContent = '✅ ' + data.message;
+                    successDiv.style.display = 'block';
+
+                    // Reset form
+                    document.getElementById('adminPasswordChangeForm').reset();
+
+                    // Close modal after 2 seconds
+                    setTimeout(() => {
+                        closePasswordChangeModal();
+                    }, 2000);
+                } else {
+                    errorDiv.textContent = '❌ ' + (data.error || 'Failed to change password');
+                    errorDiv.style.display = 'block';
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                btn.disabled = false;
+                btn.textContent = 'Change Password';
+                errorDiv.textContent = '❌ An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
             });
         }
 

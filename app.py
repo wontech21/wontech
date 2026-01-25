@@ -193,6 +193,67 @@ def logout():
     session.clear()
     return redirect('/login')
 
+@app.route('/api/user/change-password', methods=['POST'])
+@login_required
+def change_password():
+    """Change user password - requires current password verification"""
+    data = request.json
+
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+
+    # Validate input
+    if not current_password or not new_password:
+        return jsonify({'error': 'Current password and new password are required'}), 400
+
+    if len(new_password) < 8:
+        return jsonify({'error': 'New password must be at least 8 characters'}), 400
+
+    # Get current user from master database
+    conn = get_master_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, email, password_hash
+        FROM users
+        WHERE id = ?
+    """, (g.user['id'],))
+
+    user = cursor.fetchone()
+
+    if not user:
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+
+    # Verify current password
+    if not verify_password(current_password, user['password_hash']):
+        conn.close()
+        log_audit('failed_password_change', 'user', user['id'], {
+            'reason': 'incorrect_current_password'
+        })
+        return jsonify({'error': 'Current password is incorrect'}), 401
+
+    # Hash new password
+    new_password_hash = hash_password(new_password)
+
+    # Update password in database
+    cursor.execute("""
+        UPDATE users
+        SET password_hash = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    """, (new_password_hash, user['id']))
+
+    conn.commit()
+    conn.close()
+
+    # Log successful password change
+    log_audit('changed_password', 'user', user['id'])
+
+    return jsonify({
+        'success': True,
+        'message': 'Password changed successfully'
+    })
+
 @app.route('/')
 def index():
     """Main dashboard - redirect based on authentication"""
