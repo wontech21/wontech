@@ -40,17 +40,8 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    {% if is_super_admin %}
-                    <button onclick="exitOrganization()" class="btn-back-admin" title="Back to WONTECH Admin" id="backToAdminBtn">
-                        ⚡ Back to Admin
-                    </button>
-                    {% endif %}
-                    <h1><img src="{{ url_for('static', filename='images/firinguplogo.png') }}" alt="Firing Up Logo" class="header-logo"> Firing Up Data Center</h1>
-                </div>
-                <div class="header-stats" id="headerStats">Loading...</div>
-            </div>
+            <h1><img src="{{ url_for('static', filename='images/firinguplogo.png') }}" alt="Firing Up Logo" class="header-logo"> Firing Up Data Center</h1>
+            <div class="header-stats" id="headerStats">Loading...</div>
         </header>
 
         <!-- Navigation Tabs -->
@@ -1810,43 +1801,5 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
     <script src="{{ url_for('static', filename='js/layer4_sales.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sales_analytics.js') }}"></script>
     <script src="{{ url_for('static', filename='js/barcode_scanner.js') }}?v=2.0"></script>
-
-    <script>
-        // Super Admin: Exit organization and return to WONTECH admin dashboard
-        function exitOrganization() {
-            console.log('Exit organization button clicked');
-
-            if (!confirm('Return to WONTECH Admin Dashboard?')) {
-                console.log('User cancelled');
-                return;
-            }
-
-            console.log('Calling /admin/exit-organization endpoint');
-
-            fetch('/admin/exit-organization', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(res => {
-                console.log('Response status:', res.status);
-                return res.json();
-            })
-            .then(data => {
-                console.log('Response data:', data);
-                if (data.success) {
-                    console.log('Redirecting to /admin/dashboard');
-                    window.location.href = '/admin/dashboard';
-                } else {
-                    alert('Failed to exit organization: ' + (data.error || 'Unknown error'));
-                }
-            })
-            .catch(err => {
-                console.error('Error exiting organization:', err);
-                alert('Error exiting organization: ' + err.message);
-            });
-        }
-    </script>
 </body>
 </html>
