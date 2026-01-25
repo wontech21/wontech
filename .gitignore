@@ -110,7 +110,12 @@ coverage.xml
 # Migrations (keep tracked)
 # migrations/
 
-# Docker (will add these files later)
-# docker-compose.override.yml
+# Docker and Cloud Deployment (removed - local development only)
+docker-compose.yml
+docker-compose.override.yml
+Dockerfile
+.dockerignore
+render.yaml
+deploy.sh
 
 # Database files - too large for GitHub
