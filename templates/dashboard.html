@@ -1150,72 +1150,74 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
     <!-- Employees Tab -->
     {% if g.user.role in ['organization_admin', 'super_admin'] %}
     <div id="employees-tab" class="tab-content">
-        <div class="page-header">
-            <h2 class="page-title">Employee Management</h2>
-            <button class="btn-create-primary" onclick="openCreateEmployeeModal()">
-                <span class="btn-icon">+</span> Add Employee
-            </button>
-        </div>
-
-        <div class="section-header">
-            <p class="subtitle">Manage employee profiles, access, and workforce information</p>
-        </div>
-
-        <div class="filters">
-            <select id="employeeStatusFilter" onchange="loadEmployees()">
-                <option value="active">Active Employees</option>
-                <option value="inactive">Inactive Employees</option>
-                <option value="all">All Employees</option>
-            </select>
-            <input type="text" id="employeeSearch" placeholder="🔍 Search by name, code, email, or position..."
-                   onkeyup="searchEmployees()" class="search-input" style="min-width: 300px;">
-        </div>
-
-        <div class="table-container">
-            <table id="employeesTable">
-                <thead>
-                    <tr>
-                        <th class="sortable" onclick="sortEmployeesTable(0, 'string')">Employee Code <span class="sort-arrow"></span></th>
-                        <th class="sortable" onclick="sortEmployeesTable(1, 'string')">Name <span class="sort-arrow"></span></th>
-                        <th class="sortable" onclick="sortEmployeesTable(2, 'string')">Position <span class="sort-arrow"></span></th>
-                        <th class="sortable" onclick="sortEmployeesTable(3, 'string')">Email <span class="sort-arrow"></span></th>
-                        <th class="sortable" onclick="sortEmployeesTable(4, 'string')">Phone <span class="sort-arrow"></span></th>
-                        <th class="sortable" onclick="sortEmployeesTable(5, 'string')">Status <span class="sort-arrow"></span></th>
-                        <th>Login Access</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="employeesTableBody">
-                    <tr>
-                        <td colspan="8" class="loading">
-                            <div class="loading-spinner"></div>
-                            Loading employees...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Pagination Controls -->
-        <div class="pagination-container">
-            <div class="pagination-info">
-                <span id="employeesPaginationInfo">Showing 0-0 of 0 employees</span>
+        <div class="employees-content-wrapper">
+            <div class="page-header">
+                <h2 class="page-title">Employee Management</h2>
+                <button class="btn-create-primary" onclick="openCreateEmployeeModal()">
+                    <span class="btn-icon">+</span> Add Employee
+                </button>
             </div>
-            <div class="pagination-controls">
-                <label>Show:
-                    <select id="employeesPageSize" onchange="changeEmployeesPageSize()">
-                        <option value="10" selected>10</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                        <option value="all">All</option>
-                    </select>
-                </label>
-                <div class="pagination-buttons">
-                    <button onclick="changeEmployeesPage('first')" id="employeesFirstPage">«</button>
-                    <button onclick="changeEmployeesPage('prev')" id="employeesPrevPage">‹</button>
-                    <span id="employeesPageNumbers"></span>
-                    <button onclick="changeEmployeesPage('next')" id="employeesNextPage">›</button>
-                    <button onclick="changeEmployeesPage('last')" id="employeesLastPage">»</button>
+
+            <div class="section-header">
+                <p class="subtitle">Manage employee profiles, access, and workforce information</p>
+            </div>
+
+            <div class="filters">
+                <select id="employeeStatusFilter" onchange="loadEmployees()">
+                    <option value="active">Active Employees</option>
+                    <option value="inactive">Inactive Employees</option>
+                    <option value="all">All Employees</option>
+                </select>
+                <input type="text" id="employeeSearch" placeholder="🔍 Search by name, code, email, or position..."
+                       onkeyup="searchEmployees()" class="search-input" style="min-width: 300px;">
+            </div>
+
+            <div class="table-container">
+                <table id="employeesTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" onclick="sortEmployeesTable(0, 'string')">Employee Code <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortEmployeesTable(1, 'string')">Name <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortEmployeesTable(2, 'string')">Position <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortEmployeesTable(3, 'string')">Email <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortEmployeesTable(4, 'string')">Phone <span class="sort-arrow"></span></th>
+                            <th class="sortable" onclick="sortEmployeesTable(5, 'string')">Status <span class="sort-arrow"></span></th>
+                            <th>Login Access</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeesTableBody">
+                        <tr>
+                            <td colspan="8" class="loading">
+                                <div class="loading-spinner"></div>
+                                Loading employees...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    <span id="employeesPaginationInfo">Showing 0-0 of 0 employees</span>
+                </div>
+                <div class="pagination-controls">
+                    <label>Show:
+                        <select id="employeesPageSize" onchange="changeEmployeesPageSize()">
+                            <option value="10" selected>10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="all">All</option>
+                        </select>
+                    </label>
+                    <div class="pagination-buttons">
+                        <button onclick="changeEmployeesPage('first')" id="employeesFirstPage">«</button>
+                        <button onclick="changeEmployeesPage('prev')" id="employeesPrevPage">‹</button>
+                        <span id="employeesPageNumbers"></span>
+                        <button onclick="changeEmployeesPage('next')" id="employeesNextPage">›</button>
+                        <button onclick="changeEmployeesPage('last')" id="employeesLastPage">»</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2587,6 +2589,24 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
 
     <style>
         /* Employee Management Specific Styles */
+        .employees-content-wrapper {
+            background: rgba(249, 250, 251, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            margin: -15px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .employees-content-wrapper .page-header {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+            padding: 20px;
+            margin: -30px -30px 25px -30px;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
         .form-section {
             margin-bottom: 30px;
             padding: 20px;
