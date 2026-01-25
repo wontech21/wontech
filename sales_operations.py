@@ -1,6 +1,7 @@
 """
 Sales Processing Operations
 Handles sales CSV import, inventory deductions, and sales tracking
+Multi-Tenant Support: Uses organization-specific databases
 """
 
 from flask import request, jsonify
@@ -8,13 +9,16 @@ import csv
 import io
 from datetime import datetime
 
+# Multi-tenant database manager
+from db_manager import get_org_db
 
-def register_sales_routes(app, get_db_connection, INVENTORY_DB):
-    """Register all sales processing routes"""
+
+def register_sales_routes(app, get_db_connection=None, INVENTORY_DB=None):
+    """Register all sales processing routes (multi-tenant enabled)"""
 
     def log_audit(action_type, entity_type, entity_reference, details, timestamp=None):
         """Log action to audit_log table"""
-        conn = get_db_connection(INVENTORY_DB)
+        conn = get_org_db()
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO audit_log
@@ -40,7 +44,7 @@ def register_sales_routes(app, get_db_connection, INVENTORY_DB):
         sale_date = data.get('sale_date', datetime.now().strftime('%Y-%m-%d'))
 
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             results = {
@@ -191,7 +195,7 @@ def register_sales_routes(app, get_db_connection, INVENTORY_DB):
 
         conn = None
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             applied_count = 0
@@ -471,7 +475,7 @@ def register_sales_routes(app, get_db_connection, INVENTORY_DB):
         per_page = int(request.args.get('per_page', 20))
 
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             # Count total records
@@ -554,7 +558,7 @@ def register_sales_routes(app, get_db_connection, INVENTORY_DB):
         end_date = request.args.get('end_date')
 
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             query = """

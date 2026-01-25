@@ -1,16 +1,15 @@
 """
 CRUD Operations for Ingredients, Products, and Recipes
+Multi-Tenant Support: Uses organization-specific databases
 """
 from flask import request, jsonify
 from datetime import datetime
 import sqlite3
 
-INVENTORY_DB = 'inventory.db'
+# Multi-tenant database manager
+from db_manager import get_org_db
 
-def get_db_connection(db_path):
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    return conn
+INVENTORY_DB = 'inventory.db'  # Kept for backward compatibility, but not used
 
 def register_crud_routes(app):
     """Register CRUD routes with Flask app"""
@@ -23,7 +22,7 @@ def register_crud_routes(app):
         data = request.json
 
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             cursor.execute("""
@@ -65,7 +64,7 @@ def register_crud_routes(app):
     def get_ingredient(ingredient_id):
         """Get a single ingredient by ID"""
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             cursor.execute("""
@@ -89,7 +88,7 @@ def register_crud_routes(app):
         data = request.json
 
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             cursor.execute("""
@@ -141,7 +140,7 @@ def register_crud_routes(app):
     def delete_ingredient(ingredient_id):
         """Delete an ingredient"""
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             # Check if ingredient exists
@@ -178,7 +177,7 @@ def register_crud_routes(app):
         base_ingredients = data.get('base_ingredients', [])
 
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             # Delete existing recipe
@@ -236,7 +235,7 @@ def register_crud_routes(app):
     def get_composite_recipe(ingredient_id):
         """Get composite ingredient recipe"""
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             # Get recipe items
@@ -270,7 +269,7 @@ def register_crud_routes(app):
         conn = None
 
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             # Insert product
@@ -331,7 +330,7 @@ def register_crud_routes(app):
         conn = None
 
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             # Update product details
@@ -397,7 +396,7 @@ def register_crud_routes(app):
     def get_product(product_id):
         """Get a single product with its recipe (integrated as one entity)"""
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             # Get product details
@@ -434,7 +433,7 @@ def register_crud_routes(app):
         """Delete a product and its recipe (integrated as one entity)"""
         conn = None
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             # Delete recipe first (foreign key dependency)
@@ -467,7 +466,7 @@ def register_crud_routes(app):
         if request.method == 'GET':
             # Get recipe for a product
             try:
-                conn = get_db_connection(INVENTORY_DB)
+                conn = get_org_db()
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT r.id, r.ingredient_id as source_id, r.source_type,
@@ -493,7 +492,7 @@ def register_crud_routes(app):
             ingredients = data.get('ingredients', [])
 
             try:
-                conn = get_db_connection(INVENTORY_DB)
+                conn = get_org_db()
                 cursor = conn.cursor()
 
                 # Delete existing recipe
@@ -530,7 +529,7 @@ def register_crud_routes(app):
     def remove_recipe_ingredient(product_id, ingredient_id):
         """Remove an ingredient from a product recipe"""
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             cursor.execute("""
@@ -555,7 +554,7 @@ def register_crud_routes(app):
     def get_all_ingredients():
         """Get all active ingredients for dropdowns"""
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             cursor.execute("""
@@ -578,7 +577,7 @@ def register_crud_routes(app):
     def get_all_products():
         """Get all products for dropdowns"""
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             cursor.execute("""
@@ -600,7 +599,7 @@ def register_crud_routes(app):
     def get_ingredients_and_products_for_recipe():
         """Get both ingredients and products for recipe dropdown with type differentiation"""
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             # Get ingredients
@@ -648,7 +647,7 @@ def register_crud_routes(app):
     def get_product_ingredient_cost(product_id):
         """Calculate total ingredient cost for a product (recursive for nested products)"""
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             def calculate_cost(pid, visited=None):
@@ -716,7 +715,7 @@ def register_crud_routes(app):
         recipe_items = data.get('recipe_items', [])
 
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             def check_circular_dependency(pid, target_pid, visited=None):
@@ -810,7 +809,7 @@ def register_crud_routes(app):
     def get_all_brands():
         """Get all brands for dropdowns"""
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             cursor.execute("""
@@ -834,7 +833,7 @@ def register_crud_routes(app):
         conn = None
 
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             cursor.execute("""

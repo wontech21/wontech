@@ -1,14 +1,18 @@
 """
 Sales Analytics Endpoints
 Provides detailed sales analytics and reporting
+Multi-Tenant Support: Uses organization-specific databases
 """
 
 from flask import request, jsonify
 from datetime import datetime, timedelta
 
+# Multi-tenant database manager
+from db_manager import get_org_db
 
-def register_analytics_routes(app, get_db_connection, INVENTORY_DB):
-    """Register all sales analytics routes"""
+
+def register_analytics_routes(app, get_db_connection=None, INVENTORY_DB=None):
+    """Register all sales analytics routes (multi-tenant enabled)"""
 
     @app.route('/api/analytics/sales-overview')
     def get_sales_overview():
@@ -17,7 +21,7 @@ def register_analytics_routes(app, get_db_connection, INVENTORY_DB):
         end_date = request.args.get('end_date')
 
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             # Build query with date filters
@@ -137,7 +141,7 @@ def register_analytics_routes(app, get_db_connection, INVENTORY_DB):
             return jsonify({'success': False, 'error': 'Product name required'}), 400
 
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             # Build query
@@ -239,7 +243,7 @@ def register_analytics_routes(app, get_db_connection, INVENTORY_DB):
     def get_time_comparison():
         """Compare sales across different time periods"""
         try:
-            conn = get_db_connection(INVENTORY_DB)
+            conn = get_org_db()
             cursor = conn.cursor()
 
             today = datetime.now().date()

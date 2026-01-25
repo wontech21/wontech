@@ -2,13 +2,32 @@
 """
 Firing Up Inventory Dashboard
 Flask web application for inventory management
+Multi-Tenant SaaS Platform with Separate Database Architecture
 """
 
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, g, session, redirect, url_for
 import sqlite3
 import os
 import csv
 import io
+import hashlib
+import secrets
+
+# Multi-tenant database management
+from db_manager import get_master_db, get_org_db
+
+# Multi-tenant middleware and authentication
+from middleware.tenant_context_separate_db import (
+    set_tenant_context,
+    login_required,
+    organization_required,
+    permission_required,
+    super_admin_required,
+    organization_admin_required,
+    log_audit
+)
+
+# Existing route modules
 from crud_operations import register_crud_routes
 from sales_operations import register_sales_routes
 from sales_analytics import register_analytics_routes
@@ -20,23 +39,35 @@ from inventory_warnings import (
     format_warning_message
 )
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'firing-up-secret-key'
+# Multi-tenant route blueprints
+from routes import admin_bp, employee_bp
 
-# Database paths
+app = Flask(__name__)
+# IMPORTANT: Change this to a secure random secret key in production!
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'firing-up-secret-key-CHANGE-ME-IN-PRODUCTION')
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+# Register multi-tenant blueprints
+app.register_blueprint(admin_bp)
+app.register_blueprint(employee_bp)
+
+# Set up tenant context before every request
+@app.before_request
+def before_request_handler():
+    """Set tenant context for multi-tenant isolation"""
+    set_tenant_context()
+
+# Database paths (kept for backward compatibility reference only)
 INVENTORY_DB = 'inventory.db'
 INVOICES_DB = 'invoices.db'
 
-def get_db_connection(db_name):
-    """Create database connection"""
-    conn = sqlite3.connect(db_name)
-    conn.row_factory = sqlite3.Row
-    return conn
+# Note: get_org_db() is now imported from db_manager at top of file
 
 def log_audit(action_type, entity_type, entity_id, entity_reference, details, user='System'):
     """Log an audit entry for tracking all system changes"""
     try:
-        conn = get_db_connection(INVENTORY_DB)
+        conn = get_org_db()
         cursor = conn.cursor()
 
         # Get IP address from request if available
@@ -56,9 +87,131 @@ def log_audit(action_type, entity_type, entity_id, entity_reference, details, us
         print(f"Audit logging error: {str(e)}")
         # Don't let audit logging failures break the main operation
 
+# ==========================================
+# AUTHENTICATION ROUTES
+# ==========================================
+
+def hash_password(password):
+    """Hash password using SHA-256 with salt"""
+    salt = secrets.token_hex(16)
+    pwd_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+    return f"{salt}${pwd_hash}"
+
+def verify_password(password, password_hash):
+    """Verify password against hash"""
+    try:
+        salt, pwd_hash = password_hash.split('$')
+        test_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+        return test_hash == pwd_hash
+    except:
+        return False
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """User login"""
+    if request.method == 'GET':
+        # Check if already logged in
+        if 'user_id' in session:
+            if hasattr(g, 'is_super_admin') and g.is_super_admin:
+                return redirect('/admin/dashboard')
+            return redirect('/dashboard')
+        return render_template('login.html')
+
+    # POST - Handle login
+    data = request.json if request.is_json else request.form
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        if request.is_json:
+            return jsonify({'error': 'Email and password required'}), 400
+        return render_template('login.html', error='Email and password required')
+
+    # Check credentials in master database
+    conn = get_master_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, organization_id, password_hash, role, active, first_name, last_name
+        FROM users
+        WHERE email = ?
+    """, (email,))
+
+    user = cursor.fetchone()
+    conn.close()
+
+    if not user:
+        if request.is_json:
+            return jsonify({'error': 'Invalid credentials'}), 401
+        return render_template('login.html', error='Invalid email or password')
+
+    if not user['active']:
+        if request.is_json:
+            return jsonify({'error': 'Account is inactive'}), 403
+        return render_template('login.html', error='Your account has been deactivated')
+
+    if not verify_password(password, user['password_hash']):
+        if request.is_json:
+            return jsonify({'error': 'Invalid credentials'}), 401
+        return render_template('login.html', error='Invalid email or password')
+
+    # Set session
+    session['user_id'] = user['id']
+
+    # Update last login
+    conn = get_master_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?
+    """, (user['id'],))
+    conn.commit()
+    conn.close()
+
+    # Redirect based on role
+    if user['role'] == 'super_admin':
+        redirect_url = '/admin/dashboard'
+    elif user['role'] == 'employee':
+        redirect_url = '/employee/portal'
+    else:
+        redirect_url = '/dashboard'
+
+    if request.is_json:
+        return jsonify({
+            'success': True,
+            'redirect': redirect_url,
+            'user': {
+                'name': f"{user['first_name']} {user['last_name']}",
+                'role': user['role']
+            }
+        })
+
+    return redirect(redirect_url)
+
+@app.route('/logout', methods=['GET', 'POST'])
+def logout():
+    """User logout"""
+    session.clear()
+    return redirect('/login')
+
 @app.route('/')
 def index():
-    """Main dashboard"""
+    """Main dashboard - redirect based on authentication"""
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    # Redirect based on user role
+    if hasattr(g, 'is_super_admin') and g.is_super_admin:
+        return redirect('/admin/dashboard')
+    elif hasattr(g, 'is_employee') and g.is_employee:
+        return redirect('/employee/portal')
+    else:
+        return redirect('/dashboard')
+
+@app.route('/dashboard')
+@login_required
+@organization_required
+def dashboard():
+    """Main business dashboard (for organization users)"""
     return render_template('dashboard.html')
 
 @app.route('/test-scanner')
@@ -69,7 +222,7 @@ def test_scanner():
 @app.route('/api/inventory/aggregated')
 def get_aggregated_inventory():
     """Get aggregated inventory (totals across all brands)"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -102,7 +255,7 @@ def get_detailed_inventory():
     date_to = request.args.get('date_to', '')
     status = request.args.get('status', 'active')  # active, inactive, or all
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     query = """
@@ -186,7 +339,7 @@ def get_consolidated_inventory():
     status = request.args.get('status', 'active')
     search = request.args.get('search', '')
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     # Build WHERE clause
@@ -308,7 +461,7 @@ def get_consolidated_inventory():
 @app.route('/api/filters/suppliers')
 def get_suppliers():
     """Get list of all suppliers from suppliers table"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
     cursor.execute("SELECT supplier_name FROM suppliers ORDER BY supplier_name")
     suppliers = [row['supplier_name'] for row in cursor.fetchall()]
@@ -318,7 +471,7 @@ def get_suppliers():
 @app.route('/api/filters/brands')
 def get_brands():
     """Get list of all brands from brands table"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
     cursor.execute("SELECT brand_name FROM brands ORDER BY brand_name")
     brands = [row['brand_name'] for row in cursor.fetchall()]
@@ -328,7 +481,7 @@ def get_brands():
 @app.route('/api/filters/categories')
 def get_categories():
     """Get list of all categories from the categories table"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
     cursor.execute("SELECT category_name FROM categories ORDER BY category_name")
     categories = [row['category_name'] for row in cursor.fetchall()]
@@ -338,7 +491,7 @@ def get_categories():
 @app.route('/api/filters/ingredients')
 def get_ingredients():
     """Get list of all unique ingredient names"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
     cursor.execute("SELECT DISTINCT ingredient_name FROM ingredients ORDER BY ingredient_name")
     ingredients = [row['ingredient_name'] for row in cursor.fetchall()]
@@ -348,7 +501,7 @@ def get_ingredients():
 @app.route('/api/inventory/summary')
 def get_inventory_summary():
     """Get inventory summary statistics"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     # Total inventory value (using average_unit_price for consistency with analytics)
@@ -391,7 +544,7 @@ def get_inventory_summary():
 @app.route('/api/invoices/unreconciled')
 def get_unreconciled_invoices():
     """Get list of unreconciled invoices"""
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM unreconciled_invoices")
     invoices = [dict(row) for row in cursor.fetchall()]
@@ -404,7 +557,7 @@ def get_recent_invoices():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     query = """
@@ -433,7 +586,7 @@ def get_recent_invoices():
 @app.route('/api/products/all')
 def get_products():
     """Get all products"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM products ORDER BY category, product_name")
     products = [dict(row) for row in cursor.fetchall()]
@@ -443,7 +596,7 @@ def get_products():
 @app.route('/api/products/costs')
 def get_product_costs():
     """Get product costs and margins - includes products without recipes"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     # Helper function to calculate product ingredient cost recursively
@@ -522,7 +675,7 @@ def get_product_costs():
 @app.route('/api/recipes/all')
 def get_all_recipes():
     """Get all recipes with ingredients including composite breakdown"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
     # Modified to handle both ingredients and products
     cursor.execute("""
@@ -613,7 +766,7 @@ def get_all_recipes():
 @app.route('/api/recipes/by-product/<product_name>')
 def get_recipe_by_product(product_name):
     """Get recipe for a specific product with composite ingredient breakdown"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
     # Modified query to handle both ingredients and products
     cursor.execute("""
@@ -712,7 +865,7 @@ def get_recipe_by_product(product_name):
 @app.route('/api/ingredients/composite/<int:ingredient_id>')
 def get_composite_ingredient_recipe(ingredient_id):
     """Get recipe for a composite ingredient"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
     cursor.execute("""
         SELECT
@@ -734,7 +887,7 @@ def get_composite_ingredient_recipe(ingredient_id):
 @app.route('/api/invoices/<invoice_number>')
 def get_invoice_details(invoice_number):
     """Get invoice details with line items"""
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     # Get invoice header
@@ -764,7 +917,7 @@ def get_invoice_details(invoice_number):
 @app.route('/api/inventory/category-preview/<category>')
 def get_category_preview(category):
     """Get 5 item preview for a category"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
     cursor.execute("""
         SELECT
@@ -797,7 +950,7 @@ def get_category_preview(category):
 @app.route('/api/inventory/item/<int:item_id>', methods=['GET'])
 def get_inventory_item(item_id):
     """Get a single inventory item by ID"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM ingredients WHERE id = ?", (item_id,))
     item = cursor.fetchone()
@@ -811,7 +964,7 @@ def get_inventory_item(item_id):
 def update_inventory_item(item_id):
     """Update an inventory item"""
     data = request.json
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     try:
@@ -872,7 +1025,7 @@ def preview_inventory_update(item_id):
     except (ValueError, TypeError):
         return jsonify({'success': False, 'error': 'Invalid quantity value'}), 400
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
 
     try:
         preview = preview_quantity_change(item_id, new_quantity, conn)
@@ -893,7 +1046,7 @@ def preview_inventory_update(item_id):
 @app.route('/api/inventory/item/<int:item_id>/toggle-active', methods=['PUT'])
 def toggle_item_active_status(item_id):
     """Toggle active/inactive status of an inventory item"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     try:
@@ -954,11 +1107,11 @@ def bulk_update_brand():
     new_brand = data.get('new_brand')
 
     # Update inventory database
-    conn_inv = get_db_connection(INVENTORY_DB)
+    conn_inv = get_org_db()
     cursor_inv = conn_inv.cursor()
 
     # Update invoices database
-    conn_inv_db = get_db_connection(INVOICES_DB)
+    conn_inv_db = get_org_db()
     cursor_inv_db = conn_inv_db.cursor()
 
     try:
@@ -1006,7 +1159,7 @@ def update_category():
     if not item_ids or not new_category:
         return jsonify({'success': False, 'error': 'Missing item_ids or new_category'}), 400
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     try:
@@ -1043,7 +1196,7 @@ def update_category():
 @app.route('/api/categories/all', methods=['GET'])
 def get_all_categories():
     """Get all categories with usage counts"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
     cursor.execute("""
         SELECT
@@ -1069,7 +1222,7 @@ def create_category():
     if not category_name or not category_name.strip():
         return jsonify({'success': False, 'error': 'Category name is required'}), 400
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     try:
@@ -1105,7 +1258,7 @@ def update_category_name(category_id):
     if not new_name or not new_name.strip():
         return jsonify({'success': False, 'error': 'Category name is required'}), 400
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     try:
@@ -1162,7 +1315,7 @@ def update_category_name(category_id):
 @app.route('/api/categories/delete/<int:category_id>', methods=['DELETE'])
 def delete_category(category_id):
     """Delete a category"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     try:
@@ -1217,11 +1370,11 @@ def bulk_update_supplier():
     new_supplier = data.get('new_supplier')
 
     # Update inventory database
-    conn_inv = get_db_connection(INVENTORY_DB)
+    conn_inv = get_org_db()
     cursor_inv = conn_inv.cursor()
 
     # Update invoices database
-    conn_inv_db = get_db_connection(INVOICES_DB)
+    conn_inv_db = get_org_db()
     cursor_inv_db = conn_inv_db.cursor()
 
     try:
@@ -1269,10 +1422,10 @@ def create_invoice():
     """Create a new invoice with line items and add to inventory"""
     data = request.json
 
-    conn_invoices = get_db_connection(INVOICES_DB)
+    conn_invoices = get_org_db()
     cursor_invoices = conn_invoices.cursor()
 
-    conn_inventory = get_db_connection(INVENTORY_DB)
+    conn_inventory = get_org_db()
     cursor_inventory = conn_inventory.cursor()
 
     try:
@@ -1431,7 +1584,7 @@ def import_invoice():
     payment_status = request.form.get('payment_status')
 
     # Get inventory database to look up ingredient details
-    conn_inv = get_db_connection(INVENTORY_DB)
+    conn_inv = get_org_db()
     cursor_inv = conn_inv.cursor()
 
     # Parse file based on extension
@@ -1570,10 +1723,10 @@ def import_invoice():
         total_amount = sum(item['total_price'] for item in line_items)
 
         # Insert into databases
-        conn_invoices = get_db_connection(INVOICES_DB)
+        conn_invoices = get_org_db()
         cursor_invoices = conn_invoices.cursor()
 
-        conn_inventory = get_db_connection(INVENTORY_DB)
+        conn_inventory = get_org_db()
         cursor_inventory = conn_inventory.cursor()
 
         cursor_invoices.execute("""
@@ -1709,7 +1862,7 @@ def import_invoice():
 @app.route('/api/suppliers/all', methods=['GET'])
 def get_all_suppliers():
     """Get all suppliers with full details"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
     cursor.execute("""
         SELECT id, supplier_name, contact_person, phone, email,
@@ -1725,7 +1878,7 @@ def get_all_suppliers():
 def create_supplier():
     """Create a new supplier"""
     data = request.json
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     try:
@@ -1774,10 +1927,10 @@ def update_supplier(supplier_id):
     data = request.json
     new_supplier_name = data['supplier_name']
 
-    conn_inv = get_db_connection(INVENTORY_DB)
+    conn_inv = get_org_db()
     cursor_inv = conn_inv.cursor()
 
-    conn_invoices = get_db_connection(INVOICES_DB)
+    conn_invoices = get_org_db()
     cursor_invoices = conn_invoices.cursor()
 
     try:
@@ -1857,7 +2010,7 @@ def update_supplier(supplier_id):
 @app.route('/api/suppliers/delete/<int:supplier_id>', methods=['DELETE'])
 def delete_supplier(supplier_id):
     """Delete a supplier"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     try:
@@ -1887,7 +2040,7 @@ def delete_supplier(supplier_id):
 @app.route('/api/invoices/<invoice_number>/payment-status', methods=['PUT'])
 def update_invoice_payment_status(invoice_number):
     """Update the payment status of an invoice"""
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     try:
@@ -1950,10 +2103,10 @@ def update_invoice_payment_status(invoice_number):
 @app.route('/api/invoices/delete/<invoice_number>', methods=['DELETE'])
 def delete_invoice(invoice_number):
     """Delete an invoice and reverse inventory changes"""
-    conn_inv = get_db_connection(INVOICES_DB)
+    conn_inv = get_org_db()
     cursor_inv = conn_inv.cursor()
 
-    conn_inventory = get_db_connection(INVENTORY_DB)
+    conn_inventory = get_org_db()
     cursor_inventory = conn_inventory.cursor()
 
     try:
@@ -2050,7 +2203,7 @@ def get_all_counts():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     query = """
@@ -2085,7 +2238,7 @@ def get_all_counts():
 @app.route('/api/counts/<int:count_id>', methods=['GET'])
 def get_count_details(count_id):
     """Get detailed information for a specific count"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     # Get count header
@@ -2123,7 +2276,7 @@ def preview_count():
     if not count_items:
         return jsonify({'success': False, 'error': 'No count items provided'}), 400
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
 
     try:
         preview = preview_count_changes(count_items, conn)
@@ -2143,7 +2296,7 @@ def create_count():
     """Create a new inventory count and reconcile with inventory"""
     data = request.json
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     try:
@@ -2254,7 +2407,7 @@ def create_count():
 @app.route('/api/counts/delete/<int:count_id>', methods=['DELETE'])
 def delete_count(count_id):
     """Delete an inventory count (does NOT reverse inventory changes)"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     try:
@@ -2304,7 +2457,7 @@ def delete_count(count_id):
 @app.route('/api/audit/all', methods=['GET'])
 def get_all_audit_logs():
     """Get all audit log entries with optional date filtering"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     # Get optional filters
@@ -2345,7 +2498,7 @@ def get_all_audit_logs():
 @app.route('/api/audit/stats', methods=['GET'])
 def get_audit_stats():
     """Get audit statistics"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     # Get counts by action type
@@ -2373,7 +2526,7 @@ def get_audit_stats():
 
 def migrate_database():
     """Add price tracking columns to ingredients table and create categories table if they don't exist"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     columns_added = False
@@ -2434,10 +2587,10 @@ def migrate_database():
 def recalculate_all_prices():
     """Recalculate price history for all ingredients from invoice data"""
     try:
-        conn_inventory = get_db_connection(INVENTORY_DB)
+        conn_inventory = get_org_db()
         cursor_inventory = conn_inventory.cursor()
 
-        conn_invoices = get_db_connection(INVOICES_DB)
+        conn_invoices = get_org_db()
         cursor_invoices = conn_invoices.cursor()
 
         # Get all unique ingredient codes
@@ -2519,7 +2672,7 @@ def update_ingredient_prices(ingredient_code, cursor_invoices, cursor_inventory)
 @app.route('/api/analytics/widgets/available')
 def get_available_widgets():
     """Get all available analytics widgets"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -2537,7 +2690,7 @@ def get_available_widgets():
 @app.route('/api/analytics/categories')
 def get_analytics_categories():
     """Get all available categories for filtering"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -2557,7 +2710,7 @@ def get_enabled_widgets():
     """Get user's enabled widgets with preferences"""
     user_id = request.args.get('user_id', 'default')
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -2583,7 +2736,7 @@ def toggle_widget():
     widget_key = data.get('widget_key')
     enabled = data.get('enabled', 1)
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -2619,8 +2772,8 @@ def analytics_summary():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    conn_inv = get_db_connection(INVOICES_DB)
-    conn_ing = get_db_connection(INVENTORY_DB)
+    conn_inv = get_org_db()
+    conn_ing = get_org_db()
     cursor_inv = conn_inv.cursor()
     cursor_ing = conn_ing.cursor()
 
@@ -2671,7 +2824,7 @@ def analytics_vendor_spend():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     query = """
@@ -2708,7 +2861,7 @@ def analytics_price_trends():
     if not ingredient_code:
         return jsonify({'error': 'ingredient_code parameter required'}), 400
 
-    conn_inv = get_db_connection(INVOICES_DB)
+    conn_inv = get_org_db()
     cursor = conn_inv.cursor()
 
     query = """
@@ -2745,7 +2898,7 @@ def analytics_price_trends():
 @app.route('/api/analytics/purchase-frequency')
 def analytics_purchase_frequency():
     """Calculate purchase frequency for ingredients"""
-    conn_inv = get_db_connection(INVOICES_DB)
+    conn_inv = get_org_db()
     cursor = conn_inv.cursor()
 
     # Get purchase dates for each ingredient
@@ -2824,7 +2977,7 @@ def analytics_purchase_frequency():
 @app.route('/api/analytics/ingredients-with-price-history')
 def analytics_ingredients_with_price_history():
     """Get list of ingredient codes that have price history in invoices"""
-    conn_inv = get_db_connection(INVOICES_DB)
+    conn_inv = get_org_db()
     cursor = conn_inv.cursor()
 
     cursor.execute("""
@@ -2842,7 +2995,7 @@ def analytics_ingredients_with_price_history():
 # @app.route('/api/analytics/product-profitability')
 # def analytics_product_profitability():
 #     """Product profitability analysis"""
-#     conn = get_db_connection(INVENTORY_DB)
+#     conn = get_org_db()
 #     cursor = conn.cursor()
 #
 #     # Helper function to calculate product ingredient cost recursively
@@ -2919,8 +3072,8 @@ def analytics_category_spending():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    conn_inv = get_db_connection(INVOICES_DB)
-    conn_ing = get_db_connection(INVENTORY_DB)
+    conn_inv = get_org_db()
+    conn_ing = get_org_db()
     cursor_inv = conn_inv.cursor()
     cursor_ing = conn_ing.cursor()
 
@@ -2976,7 +3129,7 @@ def analytics_category_spending():
 @app.route('/api/analytics/inventory-value')
 def analytics_inventory_value():
     """Inventory value by category"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -3001,7 +3154,7 @@ def analytics_supplier_performance():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     query = """
@@ -3042,7 +3195,7 @@ def analytics_supplier_performance():
 @app.route('/api/analytics/price-volatility')
 def analytics_price_volatility():
     """Price volatility analysis"""
-    conn_inv = get_db_connection(INVOICES_DB)
+    conn_inv = get_org_db()
     cursor = conn_inv.cursor()
 
     cursor.execute("""
@@ -3087,7 +3240,7 @@ def analytics_invoice_activity():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     query = """
@@ -3128,7 +3281,7 @@ def analytics_invoice_activity():
 @app.route('/api/analytics/cost-variance')
 def analytics_cost_variance():
     """Cost variance alerts"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -3166,7 +3319,7 @@ def analytics_cost_variance():
 @app.route('/api/analytics/usage-forecast')
 def analytics_usage_forecast():
     """Ingredient usage forecast"""
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -3217,7 +3370,7 @@ def analytics_recipe_cost_trajectory():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -3230,7 +3383,7 @@ def analytics_recipe_cost_trajectory():
 
     products = cursor.fetchall()
 
-    conn_inv = get_db_connection(INVOICES_DB)
+    conn_inv = get_org_db()
     cursor_inv = conn_inv.cursor()
 
     datasets = []
@@ -3303,7 +3456,7 @@ def analytics_recipe_cost_trajectory():
 @app.route('/api/analytics/substitution-opportunities')
 def analytics_substitution_opportunities():
     """Ingredient substitution opportunities"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -3349,10 +3502,10 @@ def analytics_dead_stock():
     """Dead stock analysis"""
     from datetime import datetime, timedelta
 
-    conn_inv = get_db_connection(INVENTORY_DB)
+    conn_inv = get_org_db()
     cursor_inv = conn_inv.cursor()
 
-    conn_invoices = get_db_connection(INVOICES_DB)
+    conn_invoices = get_org_db()
     cursor_invoices = conn_invoices.cursor()
 
     cursor_inv.execute("""
@@ -3414,7 +3567,7 @@ def analytics_eoq_optimizer():
     """Economic Order Quantity optimizer"""
     import math
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -3437,7 +3590,7 @@ def analytics_eoq_optimizer():
         annual_demand = float(row['total_qty'])
         order_cost = 50
 
-        conn_inv = get_db_connection(INVENTORY_DB)
+        conn_inv = get_org_db()
         cursor_inv = conn_inv.cursor()
         cursor_inv.execute("""
             SELECT average_unit_price
@@ -3477,7 +3630,7 @@ def analytics_eoq_optimizer():
 @app.route('/api/analytics/seasonal-patterns')
 def analytics_seasonal_patterns():
     """Seasonal purchasing patterns"""
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -3507,7 +3660,7 @@ def analytics_seasonal_patterns():
 @app.route('/api/analytics/menu-engineering')
 def analytics_menu_engineering():
     """Menu engineering matrix (BCG analysis)"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     # Helper function to calculate product ingredient cost recursively
@@ -3614,10 +3767,10 @@ def analytics_menu_engineering():
 @app.route('/api/analytics/waste-shrinkage')
 def analytics_waste_shrinkage():
     """Waste and shrinkage analysis"""
-    conn_inv = get_db_connection(INVENTORY_DB)
+    conn_inv = get_org_db()
     cursor_inv = conn_inv.cursor()
 
-    conn_invoices = get_db_connection(INVOICES_DB)
+    conn_invoices = get_org_db()
     cursor_invoices = conn_invoices.cursor()
 
     cursor_inv.execute("""
@@ -3681,7 +3834,7 @@ def analytics_price_correlation():
     """Price correlation matrix"""
     import math
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -3744,7 +3897,7 @@ def analytics_price_correlation():
 @app.route('/api/analytics/breakeven-analysis')
 def analytics_breakeven_analysis():
     """Product break-even analysis"""
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     # Helper function to calculate product ingredient cost recursively
@@ -3833,7 +3986,7 @@ def analytics_breakeven_analysis():
 @app.route('/api/analytics/cost-drivers')
 def analytics_cost_drivers():
     """Cost drivers regression analysis"""
-    conn_inv = get_db_connection(INVENTORY_DB)
+    conn_inv = get_org_db()
     cursor_inv = conn_inv.cursor()
 
     cursor_inv.execute("""
@@ -3855,7 +4008,7 @@ def analytics_cost_drivers():
     conn_inv.close()
 
     # Now query invoices
-    conn_invoices = get_db_connection(INVOICES_DB)
+    conn_invoices = get_org_db()
     cursor_invoices = conn_invoices.cursor()
 
     datasets = []
@@ -3924,7 +4077,7 @@ def export_vendor_spend():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     query = """
@@ -3968,7 +4121,7 @@ def export_price_trends():
     date_to = request.args.get('date_to', '')
 
     if not ingredient_codes or ingredient_codes == ['']:
-        conn_inv = get_db_connection(INVOICES_DB)
+        conn_inv = get_org_db()
         cursor = conn_inv.cursor()
         cursor.execute("""
             SELECT ingredient_code, SUM(quantity_received) as total_qty
@@ -3980,7 +4133,7 @@ def export_price_trends():
         ingredient_codes = [row['ingredient_code'] for row in cursor.fetchall()]
         conn_inv.close()
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     output = io.StringIO()
@@ -4031,7 +4184,7 @@ def export_price_trends():
 #     """Export product profitability as CSV"""
 #     from flask import make_response
 #
-#     conn = get_db_connection(INVENTORY_DB)
+#     conn = get_org_db()
 #
 #     # Helper function to calculate product ingredient cost recursively
 #     def calculate_cost(product_id, visited=None):
@@ -4116,7 +4269,7 @@ def export_category_spending():
     date_to = request.args.get('date_to', '')
     selected_categories = request.args.get('categories', '')
 
-    conn_inv = get_db_connection(INVENTORY_DB)
+    conn_inv = get_org_db()
     cursor_inv = conn_inv.cursor()
 
     # Get all categories
@@ -4139,7 +4292,7 @@ def export_category_spending():
     conn_inv.close()
 
     # Query invoices for total spending per category
-    conn_invoices = get_db_connection(INVOICES_DB)
+    conn_invoices = get_org_db()
     cursor_invoices = conn_invoices.cursor()
 
     output = io.StringIO()
@@ -4186,7 +4339,7 @@ def export_inventory_value():
     """Export inventory value distribution as CSV"""
     from flask import make_response
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -4225,7 +4378,7 @@ def export_supplier_performance():
     """Export supplier performance as CSV"""
     from flask import make_response
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -4267,7 +4420,7 @@ def export_price_volatility():
     """Export price volatility index as CSV"""
     from flask import make_response
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -4331,7 +4484,7 @@ def export_invoice_activity():
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     query = """
@@ -4377,7 +4530,7 @@ def export_cost_variance():
     """Export cost variance alerts as CSV"""
     from flask import make_response
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -4442,7 +4595,7 @@ def export_menu_engineering():
     """Export menu engineering matrix as CSV"""
     from flask import make_response
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
 
     # Helper function to calculate product ingredient cost recursively
     def calculate_cost(product_id, visited=None):
@@ -4549,7 +4702,7 @@ def export_dead_stock():
     """Export dead stock analysis as CSV"""
     from flask import make_response
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -4589,7 +4742,7 @@ def export_breakeven_analysis():
     """Export break-even analysis as CSV"""
     from flask import make_response
 
-    conn = get_db_connection(INVENTORY_DB)
+    conn = get_org_db()
 
     # Helper function to calculate product ingredient cost recursively
     def calculate_cost(product_id, visited=None):
@@ -4673,7 +4826,7 @@ def export_seasonal_patterns():
     """Export seasonal demand patterns as CSV"""
     from flask import make_response
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -4722,7 +4875,7 @@ def export_waste_shrinkage():
     """Export waste and shrinkage analysis as CSV"""
     from flask import make_response
 
-    conn_inv = get_db_connection(INVENTORY_DB)
+    conn_inv = get_org_db()
     cursor_inv = conn_inv.cursor()
 
     cursor_inv.execute("""
@@ -4766,7 +4919,7 @@ def export_eoq_optimizer():
     """Export EOQ optimizer as CSV"""
     from flask import make_response
 
-    conn_inv = get_db_connection(INVENTORY_DB)
+    conn_inv = get_org_db()
     cursor_inv = conn_inv.cursor()
 
     cursor_inv.execute("""
@@ -4814,7 +4967,7 @@ def export_price_correlation():
     """Export supplier price correlation as CSV"""
     from flask import make_response
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -4869,7 +5022,7 @@ def export_usage_forecast():
     """Export usage & forecast as CSV"""
     from flask import make_response
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -4932,7 +5085,7 @@ def export_recipe_cost_trajectory():
         response.status_code = 400
         return response
 
-    conn_inv = get_db_connection(INVENTORY_DB)
+    conn_inv = get_org_db()
     cursor_inv = conn_inv.cursor()
 
     cursor_inv.execute("""
@@ -4950,7 +5103,7 @@ def export_recipe_cost_trajectory():
         response.status_code = 404
         return response
 
-    conn_invoices = get_db_connection(INVOICES_DB)
+    conn_invoices = get_org_db()
     cursor_invoices = conn_invoices.cursor()
 
     output = io.StringIO()
@@ -4994,7 +5147,7 @@ def export_substitution_opportunities():
     """Export ingredient substitution opportunities as CSV"""
     from flask import make_response
 
-    conn_inv = get_db_connection(INVENTORY_DB)
+    conn_inv = get_org_db()
     cursor_inv = conn_inv.cursor()
 
     cursor_inv.execute("""
@@ -5043,7 +5196,7 @@ def export_cost_drivers():
     """Export cost drivers analysis as CSV"""
     from flask import make_response
 
-    conn_inv = get_db_connection(INVENTORY_DB)
+    conn_inv = get_org_db()
     cursor_inv = conn_inv.cursor()
 
     cursor_inv.execute("""
@@ -5063,7 +5216,7 @@ def export_cost_drivers():
 
     conn_inv.close()
 
-    conn_invoices = get_db_connection(INVOICES_DB)
+    conn_invoices = get_org_db()
     cursor_invoices = conn_invoices.cursor()
 
     output = io.StringIO()
@@ -5121,7 +5274,7 @@ def export_purchase_frequency():
     """Export purchase frequency as CSV"""
     from flask import make_response
 
-    conn = get_db_connection(INVOICES_DB)
+    conn = get_org_db()
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -5158,30 +5311,32 @@ def export_purchase_frequency():
     response.headers['Content-Disposition'] = 'attachment; filename=purchase_frequency.csv'
     return response
 
-# Register CRUD routes
+# Register CRUD routes (multi-tenant enabled)
 register_crud_routes(app)
 
-# Register Sales Processing routes (Layer 4)
-register_sales_routes(app, get_db_connection, INVENTORY_DB)
+# Register Sales Processing routes (multi-tenant enabled)
+register_sales_routes(app)
 
-# Register Sales Analytics routes
-register_analytics_routes(app, get_db_connection, INVENTORY_DB)
+# Register Sales Analytics routes (multi-tenant enabled)
+register_analytics_routes(app)
 
-# Register Barcode Scanner routes
-register_barcode_routes(app, get_db_connection, INVENTORY_DB)
+# Register Barcode Scanner routes (multi-tenant enabled)
+register_barcode_routes(app)
 
 if __name__ == '__main__':
     print("\n" + "="*60)
-    print("🔥 FIRING UP INVENTORY DASHBOARD")
+    print("⚡ WONTECH - MULTI-TENANT BUSINESS PLATFORM")
     print("="*60)
 
-    # Run database migrations
-    print("\n🔧 Checking database schema...")
-    migrate_database()
+    # Note: Database migrations are no longer needed at startup
+    # Schema is managed per-organization in separate database files
+    # print("\n🔧 Checking database schema...")
+    # migrate_database()
 
     print("\n📊 Dashboard starting at: http://localhost:5001")
-    print("📦 Inventory Database: Connected")
-    print("📄 Invoices Database: Connected")
+    print("🗄️  Master Database: Connected (master.db)")
+    print("📦 Organization Databases: databases/org_*.db")
+    print("🔐 Multi-Tenant Mode: ENABLED")
     print("\n⌨️  Press CTRL+C to stop the server\n")
     print("="*60 + "\n")
 

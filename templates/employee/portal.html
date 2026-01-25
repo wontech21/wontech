@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Portal - WONTECH</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <style>
+        .employee-portal {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .portal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+        }
+
+        .portal-welcome {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .portal-subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .action-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .action-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        .action-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .action-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .action-desc {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .clock-status {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .clock-status.clocked-in {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .clock-status.clocked-out {
+            background: #f9fafb;
+            color: #1f2937;
+        }
+
+        .clock-time {
+            font-size: 48px;
+            font-weight: 700;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+
+        .clock-button {
+            padding: 16px 48px;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clock-button.clock-in {
+            background: #10b981;
+            color: white;
+        }
+
+        .clock-button.clock-out {
+            background: #ef4444;
+            color: white;
+        }
+
+        .clock-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+
+        .clock-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .info-item {
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .recent-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .recent-item {
+            padding: 16px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .recent-item:last-child {
+            border-bottom: none;
+        }
+
+        .recent-date {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .recent-hours {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .logout-btn {
+            background: #ef4444;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            float: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="employee-portal">
+        <!-- Header -->
+        <div class="portal-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div class="portal-welcome">Welcome back, {{ employee.first_name }}! 👋</div>
+                    <div class="portal-subtitle">{{ g.organization.organization_name }} Employee Portal</div>
+                </div>
+                <button class="logout-btn" onclick="window.location.href='/logout'">Logout</button>
+            </div>
+        </div>
+
+        <!-- Clock Status -->
+        <div class="clock-status" id="clockStatus">
+            <div id="clockStatusText">Loading...</div>
+            <div class="clock-time" id="clockTime">--:--:--</div>
+            <button class="clock-button" id="clockButton" disabled>
+                Loading...
+            </button>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <div class="action-card" onclick="window.location.href='/employee/paystubs'">
+                <div class="action-icon">💰</div>
+                <div class="action-title">Paystubs</div>
+                <div class="action-desc">View your pay history</div>
+            </div>
+
+            <div class="action-card" onclick="window.location.href='/employee/time-entries'">
+                <div class="action-icon">⏰</div>
+                <div class="action-title">Time Entries</div>
+                <div class="action-desc">Review your work hours</div>
+            </div>
+
+            <div class="action-card" onclick="window.location.href='/employee/profile'">
+                <div class="action-icon">👤</div>
+                <div class="action-title">My Profile</div>
+                <div class="action-desc">Update your information</div>
+            </div>
+
+            <div class="action-card" onclick="window.location.href='/employee/schedule'">
+                <div class="action-icon">📅</div>
+                <div class="action-title">Schedule</div>
+                <div class="action-desc">View your work schedule</div>
+            </div>
+        </div>
+
+        <!-- Profile Summary -->
+        <div class="section">
+            <div class="section-title">Profile Summary</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Employee ID</div>
+                    <div class="info-value">{{ employee.employee_code or 'N/A' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Email</div>
+                    <div class="info-value">{{ g.user.email }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Department</div>
+                    <div class="info-value">{{ employee.department or 'N/A' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Position</div>
+                    <div class="info-value">{{ employee.position or 'N/A' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Time Entries -->
+        <div class="section">
+            <div class="section-title">Recent Time Entries</div>
+            <ul class="recent-list" id="recentTimeEntries">
+                <li style="text-align: center; padding: 20px; color: #9ca3af;">
+                    Loading...
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let clockedIn = false;
+        let clockInTime = null;
+        let clockInterval = null;
+
+        // Load clock status
+        async function loadClockStatus() {
+            try {
+                const res = await fetch('/employee/clock/status');
+                const data = await res.json();
+
+                clockedIn = data.clocked_in;
+
+                const statusEl = document.getElementById('clockStatus');
+                const statusText = document.getElementById('clockStatusText');
+                const button = document.getElementById('clockButton');
+
+                if (clockedIn) {
+                    clockInTime = new Date(data.entry.clock_in);
+                    statusEl.className = 'clock-status clocked-in';
+                    statusText.textContent = '✅ Currently Clocked In';
+                    button.className = 'clock-button clock-out';
+                    button.textContent = 'Clock Out';
+                    button.disabled = false;
+                    button.onclick = handleClockOut;
+
+                    // Start timer
+                    startTimer();
+                } else {
+                    statusEl.className = 'clock-status clocked-out';
+                    statusText.textContent = '⏸️ Not Clocked In';
+                    document.getElementById('clockTime').textContent = '--:--:--';
+                    button.className = 'clock-button clock-in';
+                    button.textContent = 'Clock In';
+                    button.disabled = false;
+                    button.onclick = handleClockIn;
+                }
+            } catch (err) {
+                console.error('Error loading clock status:', err);
+                document.getElementById('clockStatusText').textContent = 'Error loading status';
+            }
+        }
+
+        // Start elapsed time timer
+        function startTimer() {
+            if (clockInterval) clearInterval(clockInterval);
+
+            function updateTime() {
+                if (!clockInTime) return;
+
+                const now = new Date();
+                const elapsed = now - clockInTime;
+
+                const hours = Math.floor(elapsed / (1000 * 60 * 60));
+                const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
+
+                document.getElementById('clockTime').textContent =
+                    `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+
+            updateTime();
+            clockInterval = setInterval(updateTime, 1000);
+        }
+
+        // Handle clock in
+        async function handleClockIn() {
+            if (!confirm('Clock in now?')) return;
+
+            try {
+                const res = await fetch('/employee/clock/in', { method: 'POST' });
+                const data = await res.json();
+
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    loadClockStatus();
+                } else {
+                    alert('❌ ' + (data.error || 'Failed to clock in'));
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                alert('Error clocking in');
+            }
+        }
+
+        // Handle clock out
+        async function handleClockOut() {
+            if (!confirm('Clock out now?')) return;
+
+            try {
+                const res = await fetch('/employee/clock/out', { method: 'POST' });
+                const data = await res.json();
+
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    if (clockInterval) clearInterval(clockInterval);
+                    loadClockStatus();
+                    loadRecentTimeEntries();
+                } else {
+                    alert('❌ ' + (data.error || 'Failed to clock out'));
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                alert('Error clocking out');
+            }
+        }
+
+        // Load recent time entries
+        async function loadRecentTimeEntries() {
+            try {
+                const res = await fetch('/employee/time-entries?days=7');
+                const data = await res.json();
+
+                const listEl = document.getElementById('recentTimeEntries');
+
+                if (data.entries.length === 0) {
+                    listEl.innerHTML = `
+                        <li style="text-align: center; padding: 20px; color: #9ca3af;">
+                            No time entries in the last 7 days
+                        </li>
+                    `;
+                    return;
+                }
+
+                listEl.innerHTML = data.entries.slice(0, 5).map(entry => {
+                    const date = new Date(entry.clock_in);
+                    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const hours = entry.hours_worked ? entry.hours_worked.toFixed(2) : 'In Progress';
+
+                    return `
+                        <li class="recent-item">
+                            <div>
+                                <div style="font-weight: 600; color: #1f2937;">${dateStr}</div>
+                                <div class="recent-date">
+                                    ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                    ${entry.clock_out ? '- ' + new Date(entry.clock_out).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}
+                                </div>
+                            </div>
+                            <div class="recent-hours">${hours} hrs</div>
+                        </li>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error('Error loading time entries:', err);
+            }
+        }
+
+        // Initialize
+        loadClockStatus();
+        loadRecentTimeEntries();
+    </script>
+</body>
+</html>

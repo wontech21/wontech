@@ -1,15 +1,19 @@
 """
 Barcode Scanner API Routes
 Endpoints for barcode scanning, lookup, and inventory integration
+Multi-Tenant Support: Uses organization-specific databases
 """
 
 from flask import jsonify, request
 from barcode_api import BarcodeAPI
 import json
 
+# Multi-tenant database manager
+from db_manager import get_org_db
 
-def register_barcode_routes(app, get_db_connection, inventory_db):
-    """Register barcode-related API routes"""
+
+def register_barcode_routes(app, get_db_connection=None, inventory_db=None):
+    """Register barcode-related API routes (multi-tenant enabled)"""
 
     @app.route('/api/barcode/lookup/<barcode>', methods=['GET'])
     def lookup_barcode(barcode):
@@ -19,7 +23,7 @@ def register_barcode_routes(app, get_db_connection, inventory_db):
         """
         use_cache = request.args.get('use_cache', 'true').lower() == 'true'
 
-        conn = get_db_connection(inventory_db)
+        conn = get_org_db()
         barcode_api = BarcodeAPI(conn)
 
         try:
@@ -54,7 +58,7 @@ def register_barcode_routes(app, get_db_connection, inventory_db):
                 'error': 'Barcodes array required'
             }), 400
 
-        conn = get_db_connection(inventory_db)
+        conn = get_org_db()
         barcode_api = BarcodeAPI(conn)
 
         results = []
@@ -97,7 +101,7 @@ def register_barcode_routes(app, get_db_connection, inventory_db):
         # Normalize barcode (remove leading zero from EAN-13)
         barcode = BarcodeAPI.normalize_barcode(barcode)
 
-        conn = get_db_connection(inventory_db)
+        conn = get_org_db()
         cursor = conn.cursor()
 
         # Check if ingredient exists with this barcode
@@ -188,7 +192,7 @@ def register_barcode_routes(app, get_db_connection, inventory_db):
         # Normalize barcode (remove leading zero from EAN-13)
         data['barcode'] = BarcodeAPI.normalize_barcode(data['barcode'])
 
-        conn = get_db_connection(inventory_db)
+        conn = get_org_db()
         cursor = conn.cursor()
 
         try:
@@ -264,7 +268,7 @@ def register_barcode_routes(app, get_db_connection, inventory_db):
         # Normalize barcode (remove leading zero from EAN-13)
         barcode = BarcodeAPI.normalize_barcode(barcode)
 
-        conn = get_db_connection(inventory_db)
+        conn = get_org_db()
         cursor = conn.cursor()
 
         try:
@@ -318,7 +322,7 @@ def register_barcode_routes(app, get_db_connection, inventory_db):
         """
         Get current API usage statistics for free tier limits
         """
-        conn = get_db_connection(inventory_db)
+        conn = get_org_db()
         cursor = conn.cursor()
 
         from datetime import datetime
@@ -374,7 +378,7 @@ def register_barcode_routes(app, get_db_connection, inventory_db):
         """
         barcode = request.args.get('barcode')
 
-        conn = get_db_connection(inventory_db)
+        conn = get_org_db()
         cursor = conn.cursor()
 
         try:

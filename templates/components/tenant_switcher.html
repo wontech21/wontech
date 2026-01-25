@@ -1,0 +1,265 @@
+<!-- Tenant Switcher Component - Shows for Super Admin only -->
+{% if g.is_super_admin %}
+
+<!-- Breadcrumb showing current context -->
+<div class="admin-breadcrumb">
+    <a href="/admin/dashboard" class="breadcrumb-link">⚡ WONTECH Admin</a>
+    {% if g.organization %}
+        <span class="breadcrumb-separator">→</span>
+        <span class="breadcrumb-current">{{ g.organization.organization_name }}</span>
+        <span class="admin-badge">ADMIN MODE</span>
+        <button onclick="exitOrganization()" style="margin-left: auto; background: #ef4444; color: white; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer;">
+            Exit Organization
+        </button>
+    {% else %}
+        <span class="breadcrumb-separator">→</span>
+        <span class="breadcrumb-current">Dashboard</span>
+    {% endif %}
+</div>
+
+<!-- Floating Tenant Switcher (Top Right Corner) -->
+<div class="tenant-switcher {{ 'admin-mode' if g.organization else '' }}">
+    <span class="tenant-icon">{% if g.organization %}🏢{% else %}👑{% endif %}</span>
+    <div class="tenant-info">
+        <div class="tenant-label">
+            {% if g.organization %}
+                Current Organization
+            {% else %}
+                Super Admin
+            {% endif %}
+        </div>
+        <div class="tenant-name">
+            {% if g.organization %}
+                {{ g.organization.organization_name }}
+            {% else %}
+                All Organizations
+            {% endif %}
+        </div>
+    </div>
+    {% if g.organization %}
+        <button class="tenant-switcher-btn" onclick="openQuickSwitcher()">
+            Switch
+        </button>
+    {% else %}
+        <button class="tenant-switcher-btn" onclick="window.location.href='/admin/dashboard'">
+            View All
+        </button>
+    {% endif %}
+</div>
+
+<!-- Quick Switcher Modal (Ctrl+K) -->
+<div class="quick-switcher-modal" id="quickSwitcherModal" onclick="closeQuickSwitcher(event)">
+    <div class="quick-switcher-content" onclick="event.stopPropagation()">
+        <div class="quick-switcher-header">
+            <input
+                type="text"
+                id="quickSwitcherSearch"
+                class="quick-switcher-search"
+                placeholder="Search organizations... (type to filter)"
+                onkeyup="filterQuickSwitcher()"
+                autofocus
+            />
+        </div>
+
+        <div class="quick-switcher-list" id="quickSwitcherList">
+            <!-- Populated dynamically -->
+            <div style="padding: 40px; text-align: center; color: #9ca3af;">
+                Loading organizations...
+            </div>
+        </div>
+
+        <div class="quick-switcher-footer">
+            <div class="keyboard-hint">
+                <span class="kbd">↑</span>
+                <span class="kbd">↓</span>
+                <span>Navigate</span>
+                <span class="kbd">Enter</span>
+                <span>Select</span>
+                <span class="kbd">Esc</span>
+                <span>Close</span>
+            </div>
+            <a href="/admin/dashboard" style="color: #3b82f6; text-decoration: none;">
+                Back to Admin Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    let quickSwitcherOrgs = [];
+    let selectedIndex = 0;
+
+    // Open quick switcher modal
+    function openQuickSwitcher() {
+        const modal = document.getElementById('quickSwitcherModal');
+        modal.classList.add('active');
+        document.getElementById('quickSwitcherSearch').value = '';
+        loadQuickSwitcherOrgs();
+        setTimeout(() => {
+            document.getElementById('quickSwitcherSearch').focus();
+        }, 100);
+    }
+
+    // Close quick switcher modal
+    function closeQuickSwitcher(event) {
+        if (event && event.target.id !== 'quickSwitcherModal') return;
+        const modal = document.getElementById('quickSwitcherModal');
+        modal.classList.remove('active');
+    }
+
+    // Load organizations list
+    function loadQuickSwitcherOrgs() {
+        fetch('/admin/quick-list')
+            .then(res => res.json())
+            .then(data => {
+                quickSwitcherOrgs = data.organizations || [];
+                renderQuickSwitcherList(quickSwitcherOrgs);
+            })
+            .catch(err => {
+                console.error('Error loading organizations:', err);
+                document.getElementById('quickSwitcherList').innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: #ef4444;">
+                        Error loading organizations
+                    </div>
+                `;
+            });
+    }
+
+    // Render organizations list
+    function renderQuickSwitcherList(orgs) {
+        const listEl = document.getElementById('quickSwitcherList');
+
+        if (orgs.length === 0) {
+            listEl.innerHTML = `
+                <div style="padding: 40px; text-align: center; color: #9ca3af;">
+                    No organizations found
+                </div>
+            `;
+            return;
+        }
+
+        listEl.innerHTML = orgs.map((org, index) => `
+            <div class="quick-switcher-item ${index === selectedIndex ? 'selected' : ''}"
+                 data-org-id="${org.id}"
+                 data-index="${index}"
+                 onclick="selectOrganization(${org.id})">
+                <div>
+                    <div class="quick-switcher-item-name">${org.organization_name}</div>
+                    <div class="quick-switcher-item-slug">${org.slug}.firingup.com</div>
+                </div>
+                ${org.id === {{ g.organization.id if g.organization else 'null' }} ? '<span style="color: #10b981; font-weight: 600;">✓ Current</span>' : ''}
+            </div>
+        `).join('');
+    }
+
+    // Filter organizations by search term
+    function filterQuickSwitcher() {
+        const searchTerm = document.getElementById('quickSwitcherSearch').value.toLowerCase();
+        const filtered = quickSwitcherOrgs.filter(org =>
+            org.organization_name.toLowerCase().includes(searchTerm) ||
+            org.slug.toLowerCase().includes(searchTerm)
+        );
+        selectedIndex = 0;
+        renderQuickSwitcherList(filtered);
+    }
+
+    // Select organization and switch context
+    function selectOrganization(orgId) {
+        fetch('/admin/switch-organization', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ organization_id: orgId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Error: ' + (data.error || 'Failed to switch organization'));
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Failed to switch organization');
+        });
+    }
+
+    // Exit organization context
+    function exitOrganization() {
+        if (!confirm('Exit this organization and return to admin dashboard?')) return;
+
+        fetch('/admin/exit-organization', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '/admin/dashboard';
+            } else {
+                alert('Error: ' + (data.error || 'Failed to exit organization'));
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Failed to exit organization');
+        });
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        const modal = document.getElementById('quickSwitcherModal');
+        const isOpen = modal.classList.contains('active');
+
+        // Ctrl+K or Cmd+K: Open quick switcher
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            if (!isOpen) {
+                openQuickSwitcher();
+            }
+        }
+
+        // Escape: Close quick switcher
+        if (e.key === 'Escape' && isOpen) {
+            closeQuickSwitcher({ target: { id: 'quickSwitcherModal' } });
+        }
+
+        // Arrow keys: Navigate list
+        if (isOpen && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+            e.preventDefault();
+            const items = document.querySelectorAll('.quick-switcher-item');
+
+            if (e.key === 'ArrowDown') {
+                selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+            } else {
+                selectedIndex = Math.max(selectedIndex - 1, 0);
+            }
+
+            // Update visual selection
+            items.forEach((item, index) => {
+                if (index === selectedIndex) {
+                    item.classList.add('selected');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        // Enter: Select current item
+        if (isOpen && e.key === 'Enter') {
+            e.preventDefault();
+            const selectedItem = document.querySelector('.quick-switcher-item.selected');
+            if (selectedItem) {
+                const orgId = parseInt(selectedItem.dataset.orgId);
+                selectOrganization(orgId);
+            }
+        }
+    });
+</script>
+
+{% endif %}

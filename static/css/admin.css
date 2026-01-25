@@ -1,0 +1,378 @@
+/*
+Admin Dashboard Styles
+Super admin interface for multi-tenant management
+*/
+
+/* Tenant Switcher Component */
+.tenant-switcher {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 2px solid #e5e7eb;
+}
+
+.tenant-switcher.admin-mode {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #667eea;
+}
+
+.tenant-icon {
+    font-size: 20px;
+}
+
+.tenant-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.tenant-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+}
+
+.tenant-name {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.tenant-switcher-btn {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.tenant-switcher-btn:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.admin-mode .tenant-switcher-btn {
+    background: rgba(255,255,255,0.3);
+}
+
+/* Quick Switcher Modal */
+.quick-switcher-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 100px;
+}
+
+.quick-switcher-modal.active {
+    display: flex;
+}
+
+.quick-switcher-content {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.quick-switcher-header {
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.quick-switcher-search {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 16px;
+    outline: none;
+}
+
+.quick-switcher-search:focus {
+    border-color: #3b82f6;
+}
+
+.quick-switcher-list {
+    overflow-y: auto;
+    max-height: 400px;
+}
+
+.quick-switcher-item {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.quick-switcher-item:hover {
+    background: #f9fafb;
+}
+
+.quick-switcher-item.selected {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+}
+
+.quick-switcher-item-name {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.quick-switcher-item-slug {
+    font-size: 12px;
+    color: #6b7280;
+    font-family: monospace;
+}
+
+.quick-switcher-footer {
+    padding: 16px 20px;
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.keyboard-hint {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.kbd {
+    background: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #d1d5db;
+    font-family: monospace;
+    font-size: 11px;
+}
+
+/* Admin Badge */
+.admin-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Breadcrumb */
+.admin-breadcrumb {
+    background: #f9fafb;
+    padding: 12px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.breadcrumb-link {
+    color: #3b82f6;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.breadcrumb-link:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-separator {
+    color: #9ca3af;
+}
+
+.breadcrumb-current {
+    color: #1f2937;
+    font-weight: 600;
+}
+
+/* Organization Selector Dropdown */
+.org-selector {
+    position: relative;
+    display: inline-block;
+}
+
+.org-selector-btn {
+    background: white;
+    border: 2px solid #e5e7eb;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: #1f2937;
+    transition: all 0.2s;
+}
+
+.org-selector-btn:hover {
+    border-color: #3b82f6;
+}
+
+.org-selector-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    max-height: 400px;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+.org-selector-dropdown.active {
+    display: block;
+}
+
+.org-selector-option {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.2s;
+}
+
+.org-selector-option:hover {
+    background: #f9fafb;
+}
+
+.org-selector-option:last-child {
+    border-bottom: none;
+}
+
+/* Role Badges */
+.role-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.role-badge.super-admin {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.role-badge.organization-admin {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.role-badge.employee {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+/* Permission Pills */
+.permission-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.permission-pill {
+    background: #f3f4f6;
+    color: #4b5563;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-family: monospace;
+}
+
+/* Audit Log */
+.audit-log {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.audit-log-item {
+    padding: 12px;
+    border-left: 3px solid #e5e7eb;
+    margin-bottom: 12px;
+    background: #f9fafb;
+}
+
+.audit-log-item.create {
+    border-left-color: #10b981;
+}
+
+.audit-log-item.update {
+    border-left-color: #3b82f6;
+}
+
+.audit-log-item.delete {
+    border-left-color: #ef4444;
+}
+
+.audit-log-action {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.audit-log-meta {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .tenant-switcher {
+        top: 10px;
+        right: 10px;
+        padding: 8px 12px;
+    }
+
+    .tenant-name {
+        display: none;
+    }
+
+    .quick-switcher-content {
+        width: 95%;
+        padding-top: 50px;
+    }
+}

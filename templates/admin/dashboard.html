@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Dashboard - FIRINGup</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <style>
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .admin-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .admin-subtitle {
+            color: #6b7280;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid #3b82f6;
+        }
+
+        .stat-card.success {
+            border-left-color: #10b981;
+        }
+
+        .stat-card.warning {
+            border-left-color: #f59e0b;
+        }
+
+        .stat-card.info {
+            border-left-color: #6366f1;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .stat-subtext {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+
+        .organizations-section {
+            margin-top: 40px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px 12px 45px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+
+        .organizations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .org-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .org-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-color: #3b82f6;
+        }
+
+        .org-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 16px;
+        }
+
+        .org-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .org-slug {
+            font-size: 12px;
+            color: #6b7280;
+            font-family: monospace;
+            background: #f3f4f6;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .org-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .org-status.active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .org-status.trial {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .org-status.inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .org-info {
+            margin: 16px 0;
+        }
+
+        .org-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 14px;
+        }
+
+        .org-info-label {
+            color: #6b7280;
+        }
+
+        .org-info-value {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .org-card-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .org-stat {
+            text-align: center;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .org-stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .org-stat-label {
+            font-size: 11px;
+            color: #6b7280;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .org-card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .btn-enter {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .btn-enter:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-manage {
+            background: #f3f4f6;
+            color: #4b5563;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .btn-manage:hover {
+            background: #e5e7eb;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .logout-btn {
+            background: #ef4444;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .logout-btn:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Header -->
+        <div class="admin-header">
+            <div>
+                <div class="admin-title">⚡ WONTECH Super Admin</div>
+                <div class="admin-subtitle">Multi-Tenant Business Management Platform</div>
+            </div>
+            <div>
+                <button class="btn-primary" onclick="openCreateOrgModal()">+ New Organization</button>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Organizations</div>
+                <div class="stat-value">{{ stats.total_orgs }}</div>
+                <div class="stat-subtext">Active client accounts</div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-label">Active Subscriptions</div>
+                <div class="stat-value">{{ stats.active_subscriptions }}</div>
+                <div class="stat-subtext">Paying customers</div>
+            </div>
+
+            <div class="stat-card warning">
+                <div class="stat-label">Monthly Recurring Revenue</div>
+                <div class="stat-value">${{ "%.2f"|format(stats.total_mrr or 0) }}</div>
+                <div class="stat-subtext">MRR from all subscriptions</div>
+            </div>
+
+            <div class="stat-card info">
+                <div class="stat-label">Total Users</div>
+                <div class="stat-value">{{ stats.total_users }}</div>
+                <div class="stat-subtext">Across all organizations</div>
+            </div>
+        </div>
+
+        <!-- Organizations Section -->
+        <div class="organizations-section">
+            <div class="section-header">
+                <div class="section-title">Client Organizations</div>
+            </div>
+
+            <!-- Search -->
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="orgSearch" placeholder="Search organizations by name, email, or slug..." onkeyup="filterOrganizations()">
+            </div>
+
+            <!-- Organizations Grid -->
+            <div class="organizations-grid" id="organizationsGrid">
+                {% if organizations %}
+                    {% for org in organizations %}
+                    <div class="org-card" data-org-name="{{ org.organization_name|lower }}" data-org-slug="{{ org.slug|lower }}" data-org-email="{{ org.owner_email|lower }}">
+                        <div class="org-card-header">
+                            <div>
+                                <div class="org-name">{{ org.organization_name }}</div>
+                                <div class="org-slug">{{ org.slug }}.firingup.com</div>
+                            </div>
+                            <span class="org-status {{ 'active' if org.subscription_status == 'active' else 'inactive' }}">
+                                {{ org.subscription_status }}
+                            </span>
+                        </div>
+
+                        <div class="org-info">
+                            <div class="org-info-row">
+                                <span class="org-info-label">Owner</span>
+                                <span class="org-info-value">{{ org.owner_name }}</span>
+                            </div>
+                            <div class="org-info-row">
+                                <span class="org-info-label">Email</span>
+                                <span class="org-info-value">{{ org.owner_email }}</span>
+                            </div>
+                            <div class="org-info-row">
+                                <span class="org-info-label">Plan</span>
+                                <span class="org-info-value">${{ org.monthly_price }}/mo - {{ org.plan_type }}</span>
+                            </div>
+                        </div>
+
+                        <div class="org-card-stats">
+                            <div class="org-stat">
+                                <div class="org-stat-value">{{ org.user_count }}</div>
+                                <div class="org-stat-label">Users</div>
+                            </div>
+                            <div class="org-stat">
+                                <div class="org-stat-value">{{ org.employee_count }}</div>
+                                <div class="org-stat-label">Employees</div>
+                            </div>
+                            <div class="org-stat">
+                                <div class="org-stat-value">{{ org.product_count }}</div>
+                                <div class="org-stat-label">Products</div>
+                            </div>
+                        </div>
+
+                        <div class="org-card-actions">
+                            <button class="btn-enter" onclick="enterOrganization({{ org.id }}, '{{ org.organization_name }}')">
+                                🚀 Enter Dashboard
+                            </button>
+                            <button class="btn-manage" onclick="manageOrganization({{ org.id }})">
+                                ⚙️
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🏢</div>
+                        <div class="empty-state-title">No Organizations Yet</div>
+                        <div>Create your first client organization to get started</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function filterOrganizations() {
+            const searchTerm = document.getElementById('orgSearch').value.toLowerCase();
+            const orgCards = document.querySelectorAll('.org-card');
+
+            orgCards.forEach(card => {
+                const name = card.dataset.orgName;
+                const slug = card.dataset.orgSlug;
+                const email = card.dataset.orgEmail;
+
+                if (name.includes(searchTerm) || slug.includes(searchTerm) || email.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function enterOrganization(orgId, orgName) {
+            if (!confirm(`Enter dashboard for ${orgName}?`)) return;
+
+            fetch('/admin/switch-organization', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ organization_id: orgId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Redirect to main dashboard (now in context of selected organization)
+                    window.location.href = '/dashboard';
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to switch organization'));
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                alert('Failed to switch organization');
+            });
+        }
+
+        function manageOrganization(orgId) {
+            // TODO: Open modal with organization details and settings
+            alert('Organization management modal coming soon...');
+        }
+
+        function openCreateOrgModal() {
+            // TODO: Open modal to create new organization
+            alert('Create organization modal coming soon...');
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.href = '/logout';
+            }
+        }
+
+        // Keyboard shortcut: Ctrl+K to focus search
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('orgSearch').focus();
+            }
+        });
+    </script>
+</body>
+</html>
