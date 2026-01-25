@@ -22,16 +22,9 @@ def hash_password(password):
     return f"{salt}${pwd_hash}"
 
 def migrate():
-    # Use persistent disk if DATABASE_DIR env var is set
-    # Priority: 1) DATABASE_DIR env var, 2) /var/data if writable, 3) script directory
+    # Use script directory (simple and works everywhere)
     script_dir = os.path.dirname(os.path.dirname(__file__))
-    base_dir = os.environ.get('DATABASE_DIR')
-    if not base_dir or not os.path.exists(base_dir):
-        if os.path.exists('/var/data') and os.access('/var/data', os.W_OK):
-            base_dir = '/var/data'
-            os.environ['DATABASE_DIR'] = '/var/data'
-        else:
-            base_dir = script_dir
+    base_dir = script_dir
 
     # Create databases directory
     db_dir = os.path.join(base_dir, 'databases')

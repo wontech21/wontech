@@ -13,10 +13,4 @@ services:
         value: production
       - key: PYTHON_VERSION
         value: 3.11.0
-      - key: DATABASE_DIR
-        value: /var/data
     autoDeploy: true
-    disk:
-      name: firingup-database
-      mountPath: /var/data
-      sizeGB: 1

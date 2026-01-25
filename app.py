@@ -51,52 +51,34 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 # Ensure database exists on startup (critical for cloud deployments)
 def ensure_database_initialized():
     """Ensure master database exists when app starts"""
-    # Use persistent disk if available (Render mounts disk at /var/data)
-    # Priority: 1) DATABASE_DIR env var, 2) /var/data if exists, 3) app directory
-    base_dir = os.environ.get('DATABASE_DIR')
-    if not base_dir or not os.path.exists(base_dir):
-        if os.path.exists('/var/data') and os.access('/var/data', os.W_OK):
-            base_dir = '/var/data'
-            # Set environment variable for other modules to use
-            os.environ['DATABASE_DIR'] = '/var/data'
-            print(f"🔧 Using Render persistent disk: /var/data")
-        else:
-            base_dir = os.path.dirname(__file__)
-            print(f"⚠️  Using ephemeral app directory: {base_dir}")
-
+    # Use app directory (works everywhere, no external dependencies)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
     master_db_path = os.path.join(base_dir, 'master.db')
+
+    print("\n" + "="*70)
+    print("🔍 DATABASE INITIALIZATION CHECK")
+    print(f"📁 Base directory: {base_dir}")
+    print(f"📁 Master DB path: {master_db_path}")
+    print(f"✓ Directory exists: {os.path.exists(base_dir)}")
+    print(f"✓ Directory writable: {os.access(base_dir, os.W_OK)}")
+    print(f"✓ Master DB exists: {os.path.exists(master_db_path)}")
+    print("="*70 + "\n")
+
     if not os.path.exists(master_db_path):
-        print("\n" + "="*70)
-        print("⚠️  WARNING: Database not found on app startup!")
-        print(f"   Expected at: {master_db_path}")
-        print("   Initializing database now...")
-        print("="*70 + "\n")
+        print("⚠️  Master database not found - initializing now...")
         try:
-            # Import and run directly (more reliable than subprocess)
+            # Import and run directly
             import init_database
-            init_database.init_database()
-            print("✅ Database initialized successfully!")
+            print("📝 Running init_database.init_database()...")
+            result = init_database.init_database()
+            if result:
+                print("✅ Database initialized successfully!")
+            else:
+                print("❌ Database initialization returned False")
         except Exception as e:
-            print(f"❌ Direct initialization failed: {e}")
-            # Try subprocess as fallback
-            try:
-                import subprocess
-                import sys
-                # Use sys.executable to get the correct python interpreter
-                result = subprocess.run(
-                    [sys.executable, os.path.join(os.path.dirname(__file__), 'init_database.py')],
-                    capture_output=True,
-                    text=True,
-                    timeout=30
-                )
-                if result.returncode == 0:
-                    print("✅ Database initialized successfully via subprocess!")
-                    print(result.stdout)
-                else:
-                    print(f"❌ Database initialization failed:")
-                    print(result.stderr)
-            except Exception as e2:
-                print(f"❌ Subprocess initialization also failed: {e2}")
+            print(f"❌ Database initialization failed: {e}")
+            import traceback
+            traceback.print_exc()
 
 ensure_database_initialized()
 
