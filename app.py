@@ -39,8 +39,8 @@ from inventory_warnings import (
     format_warning_message
 )
 
-# Multi-tenant route blueprints
-from routes import admin_bp, employee_bp
+# Multi-tenant route blueprints (commented out - routes.py doesn't exist)
+# from routes import admin_bp, employee_bp
 
 app = Flask(__name__)
 # IMPORTANT: Change this to a secure random secret key in production!
@@ -116,7 +116,7 @@ def create_databases_inline():
          '["barcode_scanning", "payroll", "invoicing"]')
     """)
 
-    # Create super admin
+    # Create organization admin for default organization
     salt = secrets.token_hex(16)
     password = 'admin123'
     pwd_hash = hashlib.sha256((password + salt).encode()).hexdigest()
@@ -127,7 +127,7 @@ def create_databases_inline():
         (organization_id, email, password_hash, first_name, last_name, role,
          can_switch_organizations, permissions, active)
         VALUES
-        (NULL, 'admin@firingup.com', ?, 'Super', 'Admin', 'super_admin', 1, '["*"]', 1)
+        (1, 'admin@firingup.com', ?, 'Admin', 'User', 'organization_admin', 0, '["*"]', 1)
     """, (password_hash,))
 
     conn.commit()
@@ -268,9 +268,9 @@ print("="*70)
 print("✅ FINISHED ensure_database_initialized()")
 print("="*70 + "\n")
 
-# Register multi-tenant blueprints
-app.register_blueprint(admin_bp)
-app.register_blueprint(employee_bp)
+# Register multi-tenant blueprints (commented out - routes.py doesn't exist)
+# app.register_blueprint(admin_bp)
+# app.register_blueprint(employee_bp)
 
 # Set up tenant context before every request
 @app.before_request
@@ -582,13 +582,8 @@ def login():
     conn.commit()
     conn.close()
 
-    # Redirect based on role
-    if user['role'] == 'super_admin':
-        redirect_url = '/admin/dashboard'
-    elif user['role'] == 'employee':
-        redirect_url = '/employee/portal'
-    else:
-        redirect_url = '/dashboard'
+    # Redirect to dashboard (same for all users)
+    redirect_url = '/dashboard'
 
     if request.is_json:
         return jsonify({
@@ -771,13 +766,8 @@ def index():
     if 'user_id' not in session:
         return redirect('/login')
 
-    # Redirect based on user role
-    if hasattr(g, 'is_super_admin') and g.is_super_admin:
-        return redirect('/admin/dashboard')
-    elif hasattr(g, 'is_employee') and g.is_employee:
-        return redirect('/employee/portal')
-    else:
-        return redirect('/dashboard')
+    # Redirect all authenticated users to dashboard
+    return redirect('/dashboard')
 
 @app.route('/dashboard')
 @login_required
