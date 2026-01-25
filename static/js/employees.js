@@ -5,6 +5,10 @@
 
 let allEmployees = [];
 let currentEmployeeId = null;
+let currentEmployeesPage = 1;
+let employeesPageSize = 10;
+let employeesSortColumn = null;
+let employeesSortDirection = 'asc';
 
 // Load employees when employees tab is shown
 function loadEmployees() {
@@ -57,42 +61,62 @@ function displayEmployees(employees) {
     if (!employees || employees.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" style="text-align: center; padding: 40px; color: #6b7280;">
+                <td colspan="8" class="loading" style="color: #6b7280;">
                     No employees found
                 </td>
             </tr>
         `;
+        updateEmployeesPagination(0);
         return;
     }
 
-    tbody.innerHTML = employees.map(emp => `
+    // Apply pagination
+    const totalEmployees = employees.length;
+    const totalPages = employeesPageSize === 'all' ? 1 : Math.ceil(totalEmployees / employeesPageSize);
+    currentEmployeesPage = Math.min(currentEmployeesPage, totalPages || 1);
+
+    const startIndex = employeesPageSize === 'all' ? 0 : (currentEmployeesPage - 1) * employeesPageSize;
+    const endIndex = employeesPageSize === 'all' ? totalEmployees : startIndex + employeesPageSize;
+    const paginatedEmployees = employees.slice(startIndex, endIndex);
+
+    tbody.innerHTML = paginatedEmployees.map(emp => {
+        const fullName = `${emp.first_name} ${emp.last_name}`;
+        const statusClass = emp.status === 'active' ? 'status-active' : 'status-inactive';
+        const statusText = emp.status === 'active' ? '✓ Active' : '✕ Inactive';
+
+        return `
         <tr>
-            <td><strong>${emp.employee_code}</strong></td>
-            <td>${emp.first_name} ${emp.last_name}</td>
-            <td>${emp.position || '-'}</td>
-            <td>${emp.email || '-'}</td>
-            <td>${emp.phone || '-'}</td>
+            <td><strong style="color: #667eea;">${emp.employee_code}</strong></td>
+            <td><strong>${fullName}</strong></td>
+            <td>${emp.position || '<span style="color: #9ca3af;">—</span>'}</td>
+            <td>${emp.email || '<span style="color: #9ca3af;">—</span>'}</td>
+            <td>${emp.phone || '<span style="color: #9ca3af;">—</span>'}</td>
             <td>
-                <span class="status-badge status-${emp.status}">
-                    ${emp.status === 'active' ? '✓' : '✕'} ${emp.status}
+                <span class="status-badge ${statusClass}">
+                    ${statusText}
                 </span>
             </td>
-            <td>
-                ${emp.user_id ? '<span style="color: #10b981;">✓ Yes</span>' : '<span style="color: #6b7280;">✕ No</span>'}
+            <td style="text-align: center;">
+                ${emp.user_id
+                    ? '<span style="color: #10b981; font-weight: 600;">✓ Yes</span>'
+                    : '<span style="color: #9ca3af;">✕ No</span>'}
             </td>
             <td>
                 <div class="action-buttons">
-                    <button onclick="editEmployee(${emp.id})" class="btn-icon" title="Edit">
-                        ✏️
+                    <button onclick="editEmployee(${emp.id})" class="btn-edit" title="Edit Employee">
+                        ✏️ Edit
                     </button>
-                    <button onclick="deleteEmployee(${emp.id}, '${emp.first_name} ${emp.last_name}')"
-                            class="btn-icon" title="Delete">
-                        🗑️
+                    <button onclick="deleteEmployee(${emp.id}, '${fullName.replace(/'/g, "\\'")}')"
+                            class="btn-delete" title="Deactivate Employee">
+                        🗑️ Delete
                     </button>
                 </div>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
+
+    updateEmployeesPagination(totalEmployees);
 }
 
 function searchEmployees() {
@@ -259,6 +283,134 @@ function showError(message) {
     } else {
         alert(message);
     }
+}
+
+// Pagination functions
+function updateEmployeesPagination(totalEmployees) {
+    const totalPages = employeesPageSize === 'all' ? 1 : Math.ceil(totalEmployees / employeesPageSize);
+    const startIndex = employeesPageSize === 'all' ? 1 : (currentEmployeesPage - 1) * employeesPageSize + 1;
+    const endIndex = employeesPageSize === 'all' ? totalEmployees : Math.min(currentEmployeesPage * employeesPageSize, totalEmployees);
+
+    // Update pagination info
+    document.getElementById('employeesPaginationInfo').textContent =
+        `Showing ${startIndex}-${endIndex} of ${totalEmployees} employees`;
+
+    // Update page numbers
+    const pageNumbersDiv = document.getElementById('employeesPageNumbers');
+    let pageNumbersHTML = '';
+
+    if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) {
+            pageNumbersHTML += `<button class="${i === currentEmployeesPage ? 'active' : ''}"
+                onclick="goToEmployeesPage(${i})">${i}</button>`;
+        }
+    } else {
+        if (currentEmployeesPage <= 4) {
+            for (let i = 1; i <= 5; i++) {
+                pageNumbersHTML += `<button class="${i === currentEmployeesPage ? 'active' : ''}"
+                    onclick="goToEmployeesPage(${i})">${i}</button>`;
+            }
+            pageNumbersHTML += `<span>...</span>`;
+            pageNumbersHTML += `<button onclick="goToEmployeesPage(${totalPages})">${totalPages}</button>`;
+        } else if (currentEmployeesPage >= totalPages - 3) {
+            pageNumbersHTML += `<button onclick="goToEmployeesPage(1)">1</button>`;
+            pageNumbersHTML += `<span>...</span>`;
+            for (let i = totalPages - 4; i <= totalPages; i++) {
+                pageNumbersHTML += `<button class="${i === currentEmployeesPage ? 'active' : ''}"
+                    onclick="goToEmployeesPage(${i})">${i}</button>`;
+            }
+        } else {
+            pageNumbersHTML += `<button onclick="goToEmployeesPage(1)">1</button>`;
+            pageNumbersHTML += `<span>...</span>`;
+            for (let i = currentEmployeesPage - 1; i <= currentEmployeesPage + 1; i++) {
+                pageNumbersHTML += `<button class="${i === currentEmployeesPage ? 'active' : ''}"
+                    onclick="goToEmployeesPage(${i})">${i}</button>`;
+            }
+            pageNumbersHTML += `<span>...</span>`;
+            pageNumbersHTML += `<button onclick="goToEmployeesPage(${totalPages})">${totalPages}</button>`;
+        }
+    }
+
+    pageNumbersDiv.innerHTML = pageNumbersHTML;
+
+    // Enable/disable navigation buttons
+    document.getElementById('employeesFirstPage').disabled = currentEmployeesPage === 1;
+    document.getElementById('employeesPrevPage').disabled = currentEmployeesPage === 1;
+    document.getElementById('employeesNextPage').disabled = currentEmployeesPage === totalPages || totalPages === 0;
+    document.getElementById('employeesLastPage').disabled = currentEmployeesPage === totalPages || totalPages === 0;
+}
+
+function changeEmployeesPage(direction) {
+    const totalPages = Math.ceil(allEmployees.length / employeesPageSize);
+
+    switch (direction) {
+        case 'first':
+            currentEmployeesPage = 1;
+            break;
+        case 'prev':
+            currentEmployeesPage = Math.max(1, currentEmployeesPage - 1);
+            break;
+        case 'next':
+            currentEmployeesPage = Math.min(totalPages, currentEmployeesPage + 1);
+            break;
+        case 'last':
+            currentEmployeesPage = totalPages;
+            break;
+    }
+
+    filterAndDisplayEmployees();
+}
+
+function goToEmployeesPage(pageNum) {
+    currentEmployeesPage = pageNum;
+    filterAndDisplayEmployees();
+}
+
+function changeEmployeesPageSize() {
+    const pageSize = document.getElementById('employeesPageSize').value;
+    employeesPageSize = pageSize === 'all' ? 'all' : parseInt(pageSize);
+    currentEmployeesPage = 1;
+    filterAndDisplayEmployees();
+}
+
+// Sorting function
+function sortEmployeesTable(columnIndex, dataType) {
+    // Store column being sorted
+    const wasAscending = employeesSortColumn === columnIndex && employeesSortDirection === 'asc';
+    employeesSortColumn = columnIndex;
+    employeesSortDirection = wasAscending ? 'desc' : 'asc';
+
+    // Update sort arrows
+    document.querySelectorAll('#employeesTable .sort-arrow').forEach(arrow => {
+        arrow.textContent = '';
+    });
+
+    const arrow = document.querySelectorAll('#employeesTable .sort-arrow')[columnIndex];
+    arrow.textContent = employeesSortDirection === 'asc' ? '▲' : '▼';
+
+    // Sort the data
+    const columnMap = ['employee_code', 'name', 'position', 'email', 'phone', 'status'];
+    const sortKey = columnMap[columnIndex];
+
+    allEmployees.sort((a, b) => {
+        let aVal, bVal;
+
+        if (sortKey === 'name') {
+            aVal = `${a.first_name} ${a.last_name}`.toLowerCase();
+            bVal = `${b.first_name} ${b.last_name}`.toLowerCase();
+        } else {
+            aVal = (a[sortKey] || '').toString().toLowerCase();
+            bVal = (b[sortKey] || '').toString().toLowerCase();
+        }
+
+        if (employeesSortDirection === 'asc') {
+            return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+        } else {
+            return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+        }
+    });
+
+    filterAndDisplayEmployees();
 }
 
 // Load employees when the employees tab becomes active
