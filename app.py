@@ -48,6 +48,129 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'firing-up-secret-key-CH
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
+# Inline database creation function (no external dependencies)
+def create_databases_inline():
+    """Create master.db and org_1.db directly - embedded in app.py"""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    master_db_path = os.path.join(base_dir, 'master.db')
+    databases_dir = os.path.join(base_dir, 'databases')
+    org_db_path = os.path.join(databases_dir, 'org_1.db')
+
+    print("\n🔧 INLINE DATABASE CREATION (embedded in app.py)")
+
+    # Ensure directories exist
+    os.makedirs(databases_dir, exist_ok=True)
+
+    # Create master.db
+    print("1️⃣  Creating master.db...")
+    conn = sqlite3.connect(master_db_path)
+    cursor = conn.cursor()
+
+    # Organizations table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS organizations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            organization_name TEXT NOT NULL UNIQUE,
+            slug TEXT NOT NULL UNIQUE,
+            db_filename TEXT NOT NULL UNIQUE,
+            owner_name TEXT NOT NULL,
+            owner_email TEXT NOT NULL,
+            plan_type TEXT DEFAULT 'basic',
+            subscription_status TEXT DEFAULT 'active',
+            features TEXT,
+            active BOOLEAN DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Users table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            organization_id INTEGER,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            first_name TEXT NOT NULL,
+            last_name TEXT NOT NULL,
+            role TEXT NOT NULL,
+            permissions TEXT,
+            can_switch_organizations BOOLEAN DEFAULT 0,
+            active BOOLEAN DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (organization_id) REFERENCES organizations(id)
+        )
+    """)
+
+    # Insert default organization
+    cursor.execute("""
+        INSERT OR IGNORE INTO organizations
+        (id, organization_name, slug, db_filename, owner_name, owner_email, plan_type, features)
+        VALUES
+        (1, 'Default Organization', 'default', 'org_1.db', 'System Admin', 'admin@firingup.com', 'enterprise',
+         '["barcode_scanning", "payroll", "invoicing"]')
+    """)
+
+    # Create super admin
+    salt = secrets.token_hex(16)
+    password = 'admin123'
+    pwd_hash = hashlib.sha256((password + salt).encode()).hexdigest()
+    password_hash = f"{salt}${pwd_hash}"
+
+    cursor.execute("""
+        INSERT OR IGNORE INTO users
+        (organization_id, email, password_hash, first_name, last_name, role,
+         can_switch_organizations, permissions, active)
+        VALUES
+        (NULL, 'admin@firingup.com', ?, 'Super', 'Admin', 'super_admin', 1, '["*"]', 1)
+    """, (password_hash,))
+
+    conn.commit()
+    conn.close()
+    print("   ✓ Master database created")
+
+    # Create org_1.db
+    print("2️⃣  Creating org_1.db...")
+    conn = sqlite3.connect(org_db_path)
+    cursor = conn.cursor()
+
+    # Create essential tables
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ingredients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ingredient_name TEXT NOT NULL,
+            quantity_on_hand REAL DEFAULT 0,
+            unit_cost REAL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_name TEXT NOT NULL,
+            selling_price REAL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS invoices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            invoice_number TEXT NOT NULL UNIQUE,
+            supplier_name TEXT NOT NULL,
+            invoice_date DATE NOT NULL,
+            total_amount REAL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+    print("   ✓ Organization database created")
+    print("✅ DATABASE CREATION COMPLETE!\n")
+    return True
+
 # Ensure database exists on startup (critical for cloud deployments)
 def ensure_database_initialized():
     """Ensure master database exists when app starts"""
@@ -105,12 +228,10 @@ def ensure_database_initialized():
                 shutil.rmtree(databases_dir)
                 print("   ✓ Removed databases directory")
 
-            # Use inline database creation (bulletproof, no external dependencies)
-            print("📝 Importing create_db_inline...")
-            import create_db_inline
-            print("📝 Running create_db_inline.create_databases()...")
-            result = create_db_inline.create_databases()
-            print(f"📝 create_databases() returned: {result}")
+            # Use embedded database creation (no external file dependencies!)
+            print("📝 Running embedded create_databases_inline()...")
+            result = create_databases_inline()
+            print(f"📝 create_databases_inline() returned: {result}")
 
             # Verify it worked
             if os.path.exists(master_db_path):
@@ -298,10 +419,9 @@ def force_reinit():
             shutil.rmtree(databases_dir)
             log.append(f"✓ Deleted {databases_dir}")
 
-        # Reinitialize
-        log.append("Attempting to import create_db_inline...")
-        import create_db_inline
-        result = create_db_inline.create_databases()
+        # Reinitialize using embedded function
+        log.append("Running embedded create_databases_inline()...")
+        result = create_databases_inline()
         log.append(f"Result: {result}")
 
         # Verify
