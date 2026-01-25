@@ -131,11 +131,23 @@ def login():
     conn = get_master_db()
     cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT id, organization_id, password_hash, role, active, first_name, last_name, last_password_change
-        FROM users
-        WHERE email = ?
-    """, (email,))
+    # Try to query with last_password_change column (for backward compatibility)
+    try:
+        cursor.execute("""
+            SELECT id, organization_id, password_hash, role, active, first_name, last_name, last_password_change
+            FROM users
+            WHERE email = ?
+        """, (email,))
+    except sqlite3.OperationalError as e:
+        # Column doesn't exist yet (pre-migration), query without it
+        if 'no such column: last_password_change' in str(e):
+            cursor.execute("""
+                SELECT id, organization_id, password_hash, role, active, first_name, last_name
+                FROM users
+                WHERE email = ?
+            """, (email,))
+        else:
+            raise
 
     user = cursor.fetchone()
     conn.close()
@@ -157,7 +169,9 @@ def login():
 
     # Set session with password change timestamp for session invalidation
     session['user_id'] = user['id']
-    session['last_password_change'] = user['last_password_change']
+    user_dict = dict(user)
+    if 'last_password_change' in user_dict:
+        session['last_password_change'] = user_dict['last_password_change']
 
     # Update last login
     conn = get_master_db()
@@ -243,13 +257,26 @@ def change_password():
         new_password_hash = hash_password(new_password)
 
         # Update password in database and set timestamp to invalidate all sessions
-        cursor.execute("""
-            UPDATE users
-            SET password_hash = ?,
-                last_password_change = CURRENT_TIMESTAMP,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        """, (new_password_hash, user['id']))
+        # Try with last_password_change column first (for backward compatibility)
+        try:
+            cursor.execute("""
+                UPDATE users
+                SET password_hash = ?,
+                    last_password_change = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (new_password_hash, user['id']))
+        except sqlite3.OperationalError as e:
+            # Column doesn't exist yet (pre-migration), update without it
+            if 'no such column: last_password_change' in str(e):
+                cursor.execute("""
+                    UPDATE users
+                    SET password_hash = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                """, (new_password_hash, user['id']))
+            else:
+                raise
 
         conn.commit()
         conn.close()

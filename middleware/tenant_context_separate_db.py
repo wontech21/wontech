@@ -26,13 +26,27 @@ def get_current_user():
 
     conn = get_master_db()
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT id, organization_id, email, first_name, last_name, role,
-               permissions, can_switch_organizations, current_organization_id, active,
-               last_password_change
-        FROM users
-        WHERE id = ? AND active = 1
-    """, (user_id,))
+
+    # Try to query with last_password_change column (for backward compatibility)
+    try:
+        cursor.execute("""
+            SELECT id, organization_id, email, first_name, last_name, role,
+                   permissions, can_switch_organizations, current_organization_id, active,
+                   last_password_change
+            FROM users
+            WHERE id = ? AND active = 1
+        """, (user_id,))
+    except sqlite3.OperationalError as e:
+        # Column doesn't exist yet (pre-migration), query without it
+        if 'no such column: last_password_change' in str(e):
+            cursor.execute("""
+                SELECT id, organization_id, email, first_name, last_name, role,
+                       permissions, can_switch_organizations, current_organization_id, active
+                FROM users
+                WHERE id = ? AND active = 1
+            """, (user_id,))
+        else:
+            raise
 
     row = cursor.fetchone()
     conn.close()
@@ -43,13 +57,16 @@ def get_current_user():
     user = dict(row)
 
     # Check if password was changed - invalidate session if timestamps don't match
-    session_password_timestamp = session.get('last_password_change')
-    db_password_timestamp = user.get('last_password_change')
+    # Only if the column exists
+    if 'last_password_change' in user:
+        session_password_timestamp = session.get('last_password_change')
+        db_password_timestamp = user.get('last_password_change')
 
-    if session_password_timestamp != db_password_timestamp:
-        # Password was changed - clear session to force re-login
-        session.clear()
-        return None
+        if session_password_timestamp and db_password_timestamp:
+            if session_password_timestamp != db_password_timestamp:
+                # Password was changed - clear session to force re-login
+                session.clear()
+                return None
 
     return user
 
