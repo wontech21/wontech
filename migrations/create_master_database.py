@@ -22,11 +22,15 @@ def hash_password(password):
     return f"{salt}${pwd_hash}"
 
 def migrate():
+    # Use persistent disk if DATABASE_DIR env var is set
+    script_dir = os.path.dirname(os.path.dirname(__file__))
+    base_dir = os.environ.get('DATABASE_DIR', script_dir)
+
     # Create databases directory
-    db_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'databases')
+    db_dir = os.path.join(base_dir, 'databases')
     os.makedirs(db_dir, exist_ok=True)
 
-    master_db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'master.db')
+    master_db_path = os.path.join(base_dir, 'master.db')
 
     print("\n" + "="*60)
     print("🏢 CREATING MASTER DATABASE (Separate DB Architecture)")

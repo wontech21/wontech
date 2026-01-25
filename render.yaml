@@ -3,7 +3,7 @@ services:
     name: firingup-inventory
     env: python
     region: oregon
-    plan: free
+    plan: starter
     branch: main
     buildCommand: |
       pip install -r requirements.txt
@@ -16,4 +16,10 @@ services:
         value: production
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: DATABASE_DIR
+        value: /var/data
     autoDeploy: true
+    disk:
+      name: firingup-database
+      mountPath: /var/data
+      sizeGB: 1

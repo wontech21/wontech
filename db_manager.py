@@ -20,10 +20,16 @@ import os
 import shutil
 from flask import g
 
-BASE_DIR = os.path.dirname(__file__)
+# Use persistent disk if DATABASE_DIR env var is set (for Render paid plans)
+# Otherwise use local directory (for development)
+BASE_DIR = os.environ.get('DATABASE_DIR', os.path.dirname(__file__))
 MASTER_DB_PATH = os.path.join(BASE_DIR, 'master.db')
 DATABASES_DIR = os.path.join(BASE_DIR, 'databases')
 TEMPLATE_DB_PATH = os.path.join(DATABASES_DIR, 'template.db')
+
+# Ensure directories exist
+os.makedirs(BASE_DIR, exist_ok=True)
+os.makedirs(DATABASES_DIR, exist_ok=True)
 
 def get_master_db():
     """

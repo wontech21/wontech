@@ -51,7 +51,9 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 # Ensure database exists on startup (critical for cloud deployments)
 def ensure_database_initialized():
     """Ensure master database exists when app starts"""
-    master_db_path = os.path.join(os.path.dirname(__file__), 'master.db')
+    # Use persistent disk if DATABASE_DIR env var is set
+    base_dir = os.environ.get('DATABASE_DIR', os.path.dirname(__file__))
+    master_db_path = os.path.join(base_dir, 'master.db')
     if not os.path.exists(master_db_path):
         print("\n" + "="*70)
         print("⚠️  WARNING: Database not found on app startup!")

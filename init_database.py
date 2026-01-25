@@ -11,10 +11,11 @@ import sys
 def init_database():
     """Initialize database if it doesn't exist"""
 
-    # Get paths
+    # Get paths - use DATABASE_DIR env var if set (for persistent disk on Render)
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    master_db_path = os.path.join(script_dir, 'master.db')
-    databases_dir = os.path.join(script_dir, 'databases')
+    base_dir = os.environ.get('DATABASE_DIR', script_dir)
+    master_db_path = os.path.join(base_dir, 'master.db')
+    databases_dir = os.path.join(base_dir, 'databases')
 
     print("\n" + "="*70)
     print("🔄 DATABASE INITIALIZATION CHECK")
