@@ -687,6 +687,8 @@ def get_inventory_summary():
     })
 
 @app.route('/api/invoices/unreconciled')
+@login_required
+@organization_required
 def get_unreconciled_invoices():
     """Get list of unreconciled invoices"""
     conn = get_org_db()
@@ -697,6 +699,8 @@ def get_unreconciled_invoices():
     return jsonify(invoices)
 
 @app.route('/api/invoices/recent')
+@login_required
+@organization_required
 def get_recent_invoices():
     """Get recent invoices with optional date filtering"""
     date_from = request.args.get('date_from', '')
@@ -1030,6 +1034,8 @@ def get_composite_ingredient_recipe(ingredient_id):
     return jsonify(recipe)
 
 @app.route('/api/invoices/<invoice_number>')
+@login_required
+@organization_required
 def get_invoice_details(invoice_number):
     """Get invoice details with line items"""
     conn = get_org_db()
@@ -1563,6 +1569,8 @@ def bulk_update_supplier():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/invoices/create', methods=['POST'])
+@login_required
+@organization_required
 def create_invoice():
     """Create a new invoice with line items and add to inventory"""
     data = request.json
@@ -1712,6 +1720,8 @@ def create_invoice():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/invoices/import', methods=['POST'])
+@login_required
+@organization_required
 def import_invoice():
     """Import invoice from CSV or Excel file"""
     if 'file' not in request.files:
@@ -2183,6 +2193,8 @@ def delete_supplier(supplier_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/invoices/<invoice_number>/payment-status', methods=['PUT'])
+@login_required
+@organization_required
 def update_invoice_payment_status(invoice_number):
     """Update the payment status of an invoice"""
     conn = get_org_db()
@@ -2246,6 +2258,8 @@ def update_invoice_payment_status(invoice_number):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/invoices/delete/<invoice_number>', methods=['DELETE'])
+@login_required
+@organization_required
 def delete_invoice(invoice_number):
     """Delete an invoice and reverse inventory changes"""
     conn_inv = get_org_db()
@@ -2815,6 +2829,8 @@ def update_ingredient_prices(ingredient_code, cursor_invoices, cursor_inventory)
 # ==================== ANALYTICS API ENDPOINTS ====================
 
 @app.route('/api/analytics/widgets/available')
+@login_required
+@organization_required
 def get_available_widgets():
     """Get all available analytics widgets"""
     conn = get_org_db()
@@ -2833,6 +2849,8 @@ def get_available_widgets():
     return jsonify(widgets)
 
 @app.route('/api/analytics/categories')
+@login_required
+@organization_required
 def get_analytics_categories():
     """Get all available categories for filtering"""
     conn = get_org_db()
@@ -2851,6 +2869,8 @@ def get_analytics_categories():
     return jsonify({'categories': categories})
 
 @app.route('/api/analytics/widgets/enabled')
+@login_required
+@organization_required
 def get_enabled_widgets():
     """Get user's enabled widgets with preferences"""
     user_id = request.args.get('user_id', 'default')
@@ -2912,6 +2932,8 @@ def toggle_widget():
     return jsonify({'success': True})
 
 @app.route('/api/analytics/summary')
+@login_required
+@organization_required
 def analytics_summary():
     """Get summary KPIs for dashboard header"""
     date_from = request.args.get('date_from', '')
@@ -2964,6 +2986,8 @@ def analytics_summary():
 # ==================== ANALYTICS WIDGET DATA ENDPOINTS ====================
 
 @app.route('/api/analytics/vendor-spend')
+@login_required
+@organization_required
 def analytics_vendor_spend():
     """Vendor spend distribution"""
     date_from = request.args.get('date_from', '')
@@ -2997,6 +3021,8 @@ def analytics_vendor_spend():
     })
 
 @app.route('/api/analytics/price-trends')
+@login_required
+@organization_required
 def analytics_price_trends():
     """Price trend for a single ingredient"""
     ingredient_code = request.args.get('ingredient_code', '')
@@ -3041,6 +3067,8 @@ def analytics_price_trends():
     })
 
 @app.route('/api/analytics/purchase-frequency')
+@login_required
+@organization_required
 def analytics_purchase_frequency():
     """Calculate purchase frequency for ingredients"""
     conn_inv = get_org_db()
@@ -3120,6 +3148,8 @@ def analytics_purchase_frequency():
     return jsonify({'ingredients': results})
 
 @app.route('/api/analytics/ingredients-with-price-history')
+@login_required
+@organization_required
 def analytics_ingredients_with_price_history():
     """Get list of ingredient codes that have price history in invoices"""
     conn_inv = get_org_db()
@@ -3212,6 +3242,8 @@ def analytics_ingredients_with_price_history():
 #     })
 
 @app.route('/api/analytics/category-spending')
+@login_required
+@organization_required
 def analytics_category_spending():
     """Category spending distribution (pie chart) - shows ALL categories"""
     date_from = request.args.get('date_from', '')
@@ -3272,6 +3304,8 @@ def analytics_category_spending():
     })
 
 @app.route('/api/analytics/inventory-value')
+@login_required
+@organization_required
 def analytics_inventory_value():
     """Inventory value by category"""
     conn = get_org_db()
@@ -3294,6 +3328,8 @@ def analytics_inventory_value():
     })
 
 @app.route('/api/analytics/supplier-performance')
+@login_required
+@organization_required
 def analytics_supplier_performance():
     """Supplier performance metrics"""
     date_from = request.args.get('date_from', '')
@@ -3338,6 +3374,8 @@ def analytics_supplier_performance():
     })
 
 @app.route('/api/analytics/price-volatility')
+@login_required
+@organization_required
 def analytics_price_volatility():
     """Price volatility analysis"""
     conn_inv = get_org_db()
@@ -3380,6 +3418,8 @@ def analytics_price_volatility():
     })
 
 @app.route('/api/analytics/invoice-activity')
+@login_required
+@organization_required
 def analytics_invoice_activity():
     """Invoice activity over time"""
     date_from = request.args.get('date_from', '')
@@ -3424,6 +3464,8 @@ def analytics_invoice_activity():
     })
 
 @app.route('/api/analytics/cost-variance')
+@login_required
+@organization_required
 def analytics_cost_variance():
     """Cost variance alerts"""
     conn = get_org_db()
@@ -3462,6 +3504,8 @@ def analytics_cost_variance():
     })
 
 @app.route('/api/analytics/usage-forecast')
+@login_required
+@organization_required
 def analytics_usage_forecast():
     """Ingredient usage forecast"""
     conn = get_org_db()
@@ -3510,6 +3554,8 @@ def analytics_usage_forecast():
     })
 
 @app.route('/api/analytics/recipe-cost-trajectory')
+@login_required
+@organization_required
 def analytics_recipe_cost_trajectory():
     """Recipe cost changes over time"""
     date_from = request.args.get('date_from', '')
@@ -3599,6 +3645,8 @@ def analytics_recipe_cost_trajectory():
     })
 
 @app.route('/api/analytics/substitution-opportunities')
+@login_required
+@organization_required
 def analytics_substitution_opportunities():
     """Ingredient substitution opportunities"""
     conn = get_org_db()
@@ -3643,6 +3691,8 @@ def analytics_substitution_opportunities():
     })
 
 @app.route('/api/analytics/dead-stock')
+@login_required
+@organization_required
 def analytics_dead_stock():
     """Dead stock analysis"""
     from datetime import datetime, timedelta
@@ -3708,6 +3758,8 @@ def analytics_dead_stock():
     })
 
 @app.route('/api/analytics/eoq-optimizer')
+@login_required
+@organization_required
 def analytics_eoq_optimizer():
     """Economic Order Quantity optimizer"""
     import math
@@ -3773,6 +3825,8 @@ def analytics_eoq_optimizer():
     })
 
 @app.route('/api/analytics/seasonal-patterns')
+@login_required
+@organization_required
 def analytics_seasonal_patterns():
     """Seasonal purchasing patterns"""
     conn = get_org_db()
@@ -3803,6 +3857,8 @@ def analytics_seasonal_patterns():
     })
 
 @app.route('/api/analytics/menu-engineering')
+@login_required
+@organization_required
 def analytics_menu_engineering():
     """Menu engineering matrix (BCG analysis)"""
     conn = get_org_db()
@@ -3910,6 +3966,8 @@ def analytics_menu_engineering():
     })
 
 @app.route('/api/analytics/waste-shrinkage')
+@login_required
+@organization_required
 def analytics_waste_shrinkage():
     """Waste and shrinkage analysis"""
     conn_inv = get_org_db()
@@ -3975,6 +4033,8 @@ def analytics_waste_shrinkage():
     })
 
 @app.route('/api/analytics/price-correlation')
+@login_required
+@organization_required
 def analytics_price_correlation():
     """Price correlation matrix"""
     import math
@@ -4040,6 +4100,8 @@ def analytics_price_correlation():
     })
 
 @app.route('/api/analytics/breakeven-analysis')
+@login_required
+@organization_required
 def analytics_breakeven_analysis():
     """Product break-even analysis"""
     conn = get_org_db()
@@ -4129,6 +4191,8 @@ def analytics_breakeven_analysis():
     })
 
 @app.route('/api/analytics/cost-drivers')
+@login_required
+@organization_required
 def analytics_cost_drivers():
     """Cost drivers regression analysis"""
     conn_inv = get_org_db()
@@ -4214,6 +4278,8 @@ def analytics_cost_drivers():
 # ========== ANALYTICS EXPORT ENDPOINTS ==========
 
 @app.route('/api/analytics/vendor-spend/export')
+@login_required
+@organization_required
 def export_vendor_spend():
     """Export vendor spend distribution as CSV"""
     from flask import make_response
@@ -4257,6 +4323,8 @@ def export_vendor_spend():
     return response
 
 @app.route('/api/analytics/price-trends/export')
+@login_required
+@organization_required
 def export_price_trends():
     """Export price trends as CSV"""
     from flask import make_response
@@ -4406,6 +4474,8 @@ def export_price_trends():
 #     return response
 
 @app.route('/api/analytics/category-spending/export')
+@login_required
+@organization_required
 def export_category_spending():
     """Export category spending totals as CSV"""
     from flask import make_response
@@ -4480,6 +4550,8 @@ def export_category_spending():
     return response
 
 @app.route('/api/analytics/inventory-value/export')
+@login_required
+@organization_required
 def export_inventory_value():
     """Export inventory value distribution as CSV"""
     from flask import make_response
@@ -4519,6 +4591,8 @@ def export_inventory_value():
     return response
 
 @app.route('/api/analytics/supplier-performance/export')
+@login_required
+@organization_required
 def export_supplier_performance():
     """Export supplier performance as CSV"""
     from flask import make_response
@@ -4561,6 +4635,8 @@ def export_supplier_performance():
     return response
 
 @app.route('/api/analytics/price-volatility/export')
+@login_required
+@organization_required
 def export_price_volatility():
     """Export price volatility index as CSV"""
     from flask import make_response
@@ -4622,6 +4698,8 @@ def export_price_volatility():
     return response
 
 @app.route('/api/analytics/invoice-activity/export')
+@login_required
+@organization_required
 def export_invoice_activity():
     """Export invoice activity timeline as CSV"""
     from flask import make_response
@@ -4671,6 +4749,8 @@ def export_invoice_activity():
     return response
 
 @app.route('/api/analytics/cost-variance/export')
+@login_required
+@organization_required
 def export_cost_variance():
     """Export cost variance alerts as CSV"""
     from flask import make_response
@@ -4736,6 +4816,8 @@ def export_cost_variance():
     return response
 
 @app.route('/api/analytics/menu-engineering/export')
+@login_required
+@organization_required
 def export_menu_engineering():
     """Export menu engineering matrix as CSV"""
     from flask import make_response
@@ -4843,6 +4925,8 @@ def export_menu_engineering():
     return response
 
 @app.route('/api/analytics/dead-stock/export')
+@login_required
+@organization_required
 def export_dead_stock():
     """Export dead stock analysis as CSV"""
     from flask import make_response
@@ -4883,6 +4967,8 @@ def export_dead_stock():
     return response
 
 @app.route('/api/analytics/breakeven-analysis/export')
+@login_required
+@organization_required
 def export_breakeven_analysis():
     """Export break-even analysis as CSV"""
     from flask import make_response
@@ -4967,6 +5053,8 @@ def export_breakeven_analysis():
     return response
 
 @app.route('/api/analytics/seasonal-patterns/export')
+@login_required
+@organization_required
 def export_seasonal_patterns():
     """Export seasonal demand patterns as CSV"""
     from flask import make_response
@@ -5016,6 +5104,8 @@ def export_seasonal_patterns():
     return response
 
 @app.route('/api/analytics/waste-shrinkage/export')
+@login_required
+@organization_required
 def export_waste_shrinkage():
     """Export waste and shrinkage analysis as CSV"""
     from flask import make_response
@@ -5060,6 +5150,8 @@ def export_waste_shrinkage():
     return response
 
 @app.route('/api/analytics/eoq-optimizer/export')
+@login_required
+@organization_required
 def export_eoq_optimizer():
     """Export EOQ optimizer as CSV"""
     from flask import make_response
@@ -5108,6 +5200,8 @@ def export_eoq_optimizer():
     return response
 
 @app.route('/api/analytics/price-correlation/export')
+@login_required
+@organization_required
 def export_price_correlation():
     """Export supplier price correlation as CSV"""
     from flask import make_response
@@ -5163,6 +5257,8 @@ def export_price_correlation():
     return response
 
 @app.route('/api/analytics/usage-forecast/export')
+@login_required
+@organization_required
 def export_usage_forecast():
     """Export usage & forecast as CSV"""
     from flask import make_response
@@ -5219,6 +5315,8 @@ def export_usage_forecast():
     return response
 
 @app.route('/api/analytics/recipe-cost-trajectory/export')
+@login_required
+@organization_required
 def export_recipe_cost_trajectory():
     """Export recipe cost trajectory as CSV"""
     from flask import make_response
@@ -5288,6 +5386,8 @@ def export_recipe_cost_trajectory():
     return response
 
 @app.route('/api/analytics/substitution-opportunities/export')
+@login_required
+@organization_required
 def export_substitution_opportunities():
     """Export ingredient substitution opportunities as CSV"""
     from flask import make_response
@@ -5337,6 +5437,8 @@ def export_substitution_opportunities():
     return response
 
 @app.route('/api/analytics/cost-drivers/export')
+@login_required
+@organization_required
 def export_cost_drivers():
     """Export cost drivers analysis as CSV"""
     from flask import make_response
@@ -5415,6 +5517,8 @@ def export_cost_drivers():
     return response
 
 @app.route('/api/analytics/purchase-frequency/export')
+@login_required
+@organization_required
 def export_purchase_frequency():
     """Export purchase frequency as CSV"""
     from flask import make_response
