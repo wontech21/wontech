@@ -44,7 +44,10 @@ instance/
 .webassets-cache
 flask.log
 
-# Database files (keep tracked for now, will use volumes in production)
+# Database files (environment-specific, should not be committed)
+*.db
+databases/
+master.db
 
 # Logs
 *.log
