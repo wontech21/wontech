@@ -213,8 +213,9 @@ def index():
 def dashboard():
     """Main business dashboard (for organization users)"""
     # Pass context for super admin back button
-    return render_template('dashboard.html',
-                         is_super_admin=g.is_super_admin if hasattr(g, 'is_super_admin') else False)
+    is_super_admin = g.is_super_admin if hasattr(g, 'is_super_admin') else False
+    print(f"DEBUG: Dashboard rendering - is_super_admin={is_super_admin}, g.user role={g.user.get('role') if hasattr(g, 'user') and g.user else 'None'}")
+    return render_template('dashboard.html', is_super_admin=is_super_admin)
 
 @app.route('/test-scanner')
 def test_scanner():

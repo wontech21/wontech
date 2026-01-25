@@ -5488,3 +5488,56 @@ textarea.form-control {
         max-height: 95vh;
     }
 }
+
+/* Super Admin Back Button */
+.btn-back-admin {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px 20px !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3) !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+}
+
+.btn-back-admin:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+}
+
+.btn-back-admin:active {
+    transform: translateY(0) !important;
+}
+
+/* Super Admin Back Button */
+.btn-back-admin {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px 20px !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3) !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+}
+
+.btn-back-admin:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4) !important;
+}
+
+.btn-back-admin:active {
+    transform: translateY(0) !important;
+}
