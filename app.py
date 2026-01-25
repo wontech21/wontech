@@ -212,7 +212,9 @@ def index():
 @organization_required
 def dashboard():
     """Main business dashboard (for organization users)"""
-    return render_template('dashboard.html')
+    # Pass context for super admin back button
+    return render_template('dashboard.html',
+                         is_super_admin=g.is_super_admin if hasattr(g, 'is_super_admin') else False)
 
 @app.route('/test-scanner')
 def test_scanner():

@@ -41,8 +41,8 @@
         <!-- Header -->
         <header class="header">
             <div style="display: flex; align-items: center; gap: 15px;">
-                {% if g.is_super_admin %}
-                <button onclick="exitOrganization()" class="btn-back-admin" title="Back to WONTECH Admin">
+                {% if is_super_admin %}
+                <button onclick="exitOrganization()" class="btn-back-admin" title="Back to WONTECH Admin" id="backToAdminBtn">
                     ⚡ Back to Admin
                 </button>
                 {% endif %}
@@ -1812,7 +1812,14 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
     <script>
         // Super Admin: Exit organization and return to WONTECH admin dashboard
         function exitOrganization() {
-            if (!confirm('Return to WONTECH Admin Dashboard?')) return;
+            console.log('Exit organization button clicked');
+
+            if (!confirm('Return to WONTECH Admin Dashboard?')) {
+                console.log('User cancelled');
+                return;
+            }
+
+            console.log('Calling /admin/exit-organization endpoint');
 
             fetch('/admin/exit-organization', {
                 method: 'POST',
@@ -1820,9 +1827,14 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                     'Content-Type': 'application/json'
                 }
             })
-            .then(res => res.json())
+            .then(res => {
+                console.log('Response status:', res.status);
+                return res.json();
+            })
             .then(data => {
+                console.log('Response data:', data);
                 if (data.success) {
+                    console.log('Redirecting to /admin/dashboard');
                     window.location.href = '/admin/dashboard';
                 } else {
                     alert('Failed to exit organization: ' + (data.error || 'Unknown error'));
@@ -1830,7 +1842,7 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
             })
             .catch(err => {
                 console.error('Error exiting organization:', err);
-                alert('Error exiting organization');
+                alert('Error exiting organization: ' + err.message);
             });
         }
     </script>
