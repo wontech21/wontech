@@ -96,9 +96,14 @@ def create_databases_inline():
             role TEXT NOT NULL,
             permissions TEXT,
             can_switch_organizations BOOLEAN DEFAULT 0,
+            current_organization_id INTEGER,
             active BOOLEAN DEFAULT 1,
+            last_login TIMESTAMP,
+            last_password_change TIMESTAMP,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (organization_id) REFERENCES organizations(id)
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (organization_id) REFERENCES organizations(id),
+            FOREIGN KEY (current_organization_id) REFERENCES organizations(id)
         )
     """)
 
