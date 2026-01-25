@@ -847,9 +847,44 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
         <!-- Settings Tab -->
         <div id="settings-tab" class="tab-content">
             <div class="section-header">
-                <h2>Data Management</h2>
-                <p class="subtitle">Manage brands, suppliers, and supplier profiles</p>
+                <h2>Settings & Organization Info</h2>
+                <p class="subtitle">View organization details and manage system settings</p>
             </div>
+
+            <!-- Organization Information -->
+            {% if g.organization %}
+            <div class="settings-card org-info-card">
+                <h3>🏢 Organization Information</h3>
+                <div class="org-info-grid">
+                    <div class="org-info-item">
+                        <span class="org-info-label">Organization Name</span>
+                        <span class="org-info-value">{{ g.organization.organization_name }}</span>
+                    </div>
+                    <div class="org-info-item">
+                        <span class="org-info-label">Organization ID</span>
+                        <span class="org-info-value">{{ g.organization.slug }}</span>
+                    </div>
+                    <div class="org-info-item">
+                        <span class="org-info-label">Plan Type</span>
+                        <span class="org-info-value">{{ g.organization.plan_type|title }}</span>
+                    </div>
+                    <div class="org-info-item">
+                        <span class="org-info-label">Subscription Status</span>
+                        <span class="org-info-value status-badge status-{{ g.organization.subscription_status }}">
+                            {{ g.organization.subscription_status|title }}
+                        </span>
+                    </div>
+                    <div class="org-info-item">
+                        <span class="org-info-label">Owner</span>
+                        <span class="org-info-value">{{ g.organization.owner_name }}</span>
+                    </div>
+                    <div class="org-info-item">
+                        <span class="org-info-label">Contact Email</span>
+                        <span class="org-info-value">{{ g.organization.owner_email }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
             <div class="settings-grid">
                 <!-- Brand Management -->

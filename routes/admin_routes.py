@@ -404,6 +404,103 @@ def deactivate_organization(org_id):
     })
 
 # ==========================================
+# CREATE ORGANIZATION
+# ==========================================
+
+@admin_bp.route('/organizations/create', methods=['POST'])
+@login_required
+@super_admin_required
+def create_organization():
+    """Create a new client organization with its own database"""
+    data = request.json
+
+    # Validate required fields
+    required_fields = ['organization_name', 'slug', 'owner_name', 'owner_email', 'plan_type', 'subscription_status']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({'error': f'Missing required field: {field}'}), 400
+
+    # Sanitize slug
+    slug = data['slug'].lower().strip()
+    if not slug.replace('-', '').isalnum():
+        return jsonify({'error': 'Slug can only contain lowercase letters, numbers, and hyphens'}), 400
+
+    conn = get_master_db()
+    cursor = conn.cursor()
+
+    try:
+        # Check if slug or email already exists
+        cursor.execute("SELECT id FROM organizations WHERE slug = ? OR owner_email = ?",
+                      (slug, data['owner_email']))
+        if cursor.fetchone():
+            conn.close()
+            return jsonify({'error': 'Organization with this slug or owner email already exists'}), 400
+
+        # Get next organization ID
+        cursor.execute("SELECT MAX(id) FROM organizations")
+        max_id = cursor.fetchone()[0]
+        next_id = (max_id or 0) + 1
+
+        # Database filename
+        db_filename = f"org_{next_id}.db"
+
+        # Insert organization
+        cursor.execute("""
+            INSERT INTO organizations (
+                organization_name,
+                slug,
+                db_filename,
+                owner_name,
+                owner_email,
+                phone,
+                plan_type,
+                subscription_status,
+                monthly_price,
+                active,
+                created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+        """, (
+            data['organization_name'],
+            slug,
+            db_filename,
+            data['owner_name'],
+            data['owner_email'],
+            data.get('phone', ''),
+            data['plan_type'],
+            data['subscription_status'],
+            float(data.get('monthly_price', 0))
+        ))
+
+        org_id = cursor.lastrowid
+        conn.commit()
+
+        # Create organization database from template
+        from db_manager import create_org_database
+        create_org_database(org_id)
+
+        log_audit('created_organization', 'organization', org_id, {
+            'organization_name': data['organization_name'],
+            'slug': slug
+        })
+
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'organization_id': org_id,
+            'message': f'Organization "{data["organization_name"]}" created successfully'
+        })
+
+    except sqlite3.IntegrityError as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({'error': f'Failed to create organization: {str(e)}'}), 500
+
+# ==========================================
 # ORGANIZATION SWITCHING (Super Admin)
 # ==========================================
 

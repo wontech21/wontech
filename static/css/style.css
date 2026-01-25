@@ -5488,3 +5488,69 @@ textarea.form-control {
         max-height: 95vh;
     }
 }
+
+/* Organization Info Card in Settings */
+.org-info-card {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border: 2px solid var(--theme-color-1);
+    margin-bottom: 30px;
+}
+
+.org-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.org-info-item {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.org-info-label {
+    display: block;
+    font-size: 12px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.org-info-value {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.status-active {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-trial {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-past_due {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-cancelled {
+    background: #f3f4f6;
+    color: #6b7280;
+}

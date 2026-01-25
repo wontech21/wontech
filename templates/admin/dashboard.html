@@ -7,10 +7,16 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="/static/css/admin.css">
     <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
         .admin-container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 0;
         }
 
         .admin-header {
@@ -18,18 +24,24 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #e5e7eb;
+            padding: 32px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
 
         .admin-title {
             font-size: 32px;
             font-weight: 700;
-            color: #1f2937;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .admin-subtitle {
-            color: #6b7280;
+            color: rgba(255, 255, 255, 0.9);
             font-size: 14px;
             margin-top: 5px;
         }
@@ -42,10 +54,13 @@
         }
 
         .stat-card {
-            background: white;
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
             padding: 24px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-left: 4px solid #3b82f6;
         }
 
@@ -63,7 +78,7 @@
 
         .stat-label {
             font-size: 14px;
-            color: #6b7280;
+            color: rgba(255, 255, 255, 0.8);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             margin-bottom: 8px;
@@ -72,12 +87,13 @@
         .stat-value {
             font-size: 36px;
             font-weight: 700;
-            color: #1f2937;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .stat-subtext {
             font-size: 12px;
-            color: #9ca3af;
+            color: rgba(255, 255, 255, 0.7);
             margin-top: 4px;
         }
 
@@ -95,24 +111,28 @@
         .section-title {
             font-size: 24px;
             font-weight: 600;
-            color: #1f2937;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .btn-primary {
-            background: #3b82f6;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             color: white;
             padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
         }
 
         .btn-primary:hover {
-            background: #2563eb;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+            border-color: rgba(255, 255, 255, 0.5);
         }
 
         .btn-secondary {
@@ -138,9 +158,23 @@
         .search-box input {
             width: 100%;
             padding: 12px 20px 12px 45px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
             font-size: 14px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: white;
+        }
+
+        .search-box input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .search-icon {
@@ -148,7 +182,7 @@
             left: 15px;
             top: 50%;
             transform: translateY(-50%);
-            color: #9ca3af;
+            color: rgba(255, 255, 255, 0.7);
         }
 
         .organizations-grid {
@@ -158,17 +192,20 @@
         }
 
         .org-card {
-            background: white;
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
             padding: 24px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            transition: all 0.2s;
-            border: 2px solid transparent;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .org-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border-color: #3b82f6;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-4px);
         }
 
         .org-card-header {
@@ -181,15 +218,15 @@
         .org-name {
             font-size: 18px;
             font-weight: 600;
-            color: #1f2937;
+            color: white;
             margin-bottom: 4px;
         }
 
         .org-slug {
             font-size: 12px;
-            color: #6b7280;
+            color: rgba(255, 255, 255, 0.9);
             font-family: monospace;
-            background: #f3f4f6;
+            background: rgba(255, 255, 255, 0.1);
             padding: 2px 8px;
             border-radius: 4px;
         }
@@ -224,17 +261,17 @@
             display: flex;
             justify-content: space-between;
             padding: 8px 0;
-            border-bottom: 1px solid #f3f4f6;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             font-size: 14px;
         }
 
         .org-info-label {
-            color: #6b7280;
+            color: rgba(255, 255, 255, 0.7);
         }
 
         .org-info-value {
             font-weight: 600;
-            color: #1f2937;
+            color: white;
         }
 
         .org-card-stats {
@@ -247,19 +284,20 @@
         .org-stat {
             text-align: center;
             padding: 12px;
-            background: #f9fafb;
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .org-stat-value {
             font-size: 24px;
             font-weight: 700;
-            color: #1f2937;
+            color: white;
         }
 
         .org-stat-label {
             font-size: 11px;
-            color: #6b7280;
+            color: rgba(255, 255, 255, 0.7);
             text-transform: uppercase;
             margin-top: 4px;
         }
@@ -323,18 +361,23 @@
         }
 
         .logout-btn {
-            background: #ef4444;
+            background: rgba(239, 68, 68, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             color: white;
             padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
             font-weight: 600;
             cursor: pointer;
             margin-left: 10px;
+            transition: all 0.2s;
         }
 
         .logout-btn:hover {
-            background: #dc2626;
+            background: rgba(239, 68, 68, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
         }
     </style>
 </head>
@@ -457,6 +500,217 @@
         </div>
     </div>
 
+    <!-- Create Organization Modal -->
+    <div id="createOrgModal" class="modal" style="display: none;">
+        <div class="modal-content glass-modal">
+            <div class="modal-header">
+                <h2>Create New Organization</h2>
+                <button class="modal-close" onclick="closeCreateOrgModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="createOrgForm" onsubmit="submitCreateOrganization(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Organization Name *</label>
+                            <input type="text" id="org_name" name="organization_name" required placeholder="Acme Corporation">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Subdomain Slug *</label>
+                            <input type="text" id="org_slug" name="slug" required placeholder="acme" pattern="[a-z0-9-]+" title="Lowercase letters, numbers, and hyphens only">
+                            <small>Will be accessible at: <span id="slugPreview">acme</span>.wontech.com</small>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Owner Name *</label>
+                            <input type="text" name="owner_name" required placeholder="John Doe">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Owner Email *</label>
+                            <input type="email" name="owner_email" required placeholder="john@acme.com">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="tel" name="phone" placeholder="(555) 123-4567">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Plan Type *</label>
+                            <select name="plan_type" required>
+                                <option value="starter">Starter</option>
+                                <option value="professional" selected>Professional</option>
+                                <option value="enterprise">Enterprise</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Monthly Price *</label>
+                            <input type="number" name="monthly_price" step="0.01" value="49.99" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Subscription Status *</label>
+                            <select name="subscription_status" required>
+                                <option value="trial">Trial</option>
+                                <option value="active" selected>Active</option>
+                                <option value="past_due">Past Due</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-primary">Create Organization</button>
+                        <button type="button" class="btn-secondary" onclick="closeCreateOrgModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .glass-modal {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 700px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: white;
+            font-size: 24px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+        }
+
+        .modal-close:hover {
+            opacity: 0.7;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            color: white;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .form-group small {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(107, 114, 128, 0.3);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(107, 114, 128, 0.5);
+        }
+    </style>
+
     <script>
         function filterOrganizations() {
             const searchTerm = document.getElementById('orgSearch').value.toLowerCase();
@@ -506,8 +760,56 @@
         }
 
         function openCreateOrgModal() {
-            // TODO: Open modal to create new organization
-            alert('Create organization modal coming soon...');
+            document.getElementById('createOrgModal').style.display = 'flex';
+        }
+
+        function closeCreateOrgModal() {
+            document.getElementById('createOrgModal').style.display = 'none';
+            document.getElementById('createOrgForm').reset();
+        }
+
+        // Auto-generate slug from organization name
+        document.getElementById('org_name')?.addEventListener('input', function(e) {
+            const slug = e.target.value
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-|-$/g, '');
+            document.getElementById('org_slug').value = slug;
+            document.getElementById('slugPreview').textContent = slug || 'slug';
+        });
+
+        // Update slug preview when typing directly
+        document.getElementById('org_slug')?.addEventListener('input', function(e) {
+            document.getElementById('slugPreview').textContent = e.target.value || 'slug';
+        });
+
+        function submitCreateOrganization(event) {
+            event.preventDefault();
+
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+
+            fetch('/admin/organizations/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Organization created successfully!');
+                    closeCreateOrgModal();
+                    location.reload(); // Refresh to show new organization
+                } else {
+                    alert('❌ Error: ' + (data.error || 'Failed to create organization'));
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                alert('❌ Failed to create organization');
+            });
         }
 
         function logout() {
