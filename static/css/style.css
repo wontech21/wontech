@@ -116,6 +116,14 @@ body {
     font-style: italic;
 }
 
+/* Header Logout Section (Top Left) */
+.header-logout-section {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+}
+
 /* Header Profile Section (Top Right) */
 .header-profile-section {
     position: absolute;
@@ -224,6 +232,11 @@ body {
 
 /* Responsive adjustments for header profile */
 @media (max-width: 768px) {
+    .header-logout-section {
+        top: 15px;
+        left: 15px;
+    }
+
     .header-profile-section {
         top: 15px;
         right: 15px;

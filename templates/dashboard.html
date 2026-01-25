@@ -40,6 +40,13 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
+            <!-- Logout Button (Top Left) -->
+            {% if not g.is_super_admin %}
+            <div class="header-logout-section">
+                <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+            </div>
+            {% endif %}
+
             <!-- Profile Section (Top Right) -->
             <div class="header-profile-section">
                 <div class="profile-logo-container">
@@ -52,9 +59,6 @@
                     {% endif %}
                     <span class="active-indicator" title="Active"></span>
                 </div>
-                {% if not g.is_super_admin %}
-                <button class="logout-btn" onclick="logout()">🚪 Logout</button>
-                {% endif %}
             </div>
 
             <!-- Title Section (Centered) -->

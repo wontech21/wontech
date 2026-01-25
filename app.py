@@ -39,8 +39,8 @@ from inventory_warnings import (
     format_warning_message
 )
 
-# Multi-tenant route blueprints (commented out - routes.py doesn't exist)
-# from routes import admin_bp, employee_bp
+# Multi-tenant route blueprints
+from routes import admin_bp, employee_bp
 
 app = Flask(__name__)
 # IMPORTANT: Change this to a secure random secret key in production!
@@ -268,9 +268,9 @@ print("="*70)
 print("✅ FINISHED ensure_database_initialized()")
 print("="*70 + "\n")
 
-# Register multi-tenant blueprints (commented out - routes.py doesn't exist)
-# app.register_blueprint(admin_bp)
-# app.register_blueprint(employee_bp)
+# Register multi-tenant blueprints
+app.register_blueprint(admin_bp)
+app.register_blueprint(employee_bp)
 
 # Set up tenant context before every request
 @app.before_request
@@ -582,8 +582,14 @@ def login():
     conn.commit()
     conn.close()
 
-    # Redirect to dashboard (same for all users)
-    redirect_url = '/dashboard'
+    # Redirect based on user role
+    if user['role'] == 'super_admin':
+        redirect_url = '/admin/dashboard'
+    elif user['role'] == 'employee':
+        redirect_url = '/employee/portal'
+    else:
+        # organization_admin and others go to business dashboard
+        redirect_url = '/dashboard'
 
     if request.is_json:
         return jsonify({
@@ -661,6 +667,14 @@ def change_password():
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             """, (new_password_hash, user['id']))
+
+            # Get the new last_password_change timestamp to update current session
+            cursor.execute("""
+                SELECT last_password_change FROM users WHERE id = ?
+            """, (user['id'],))
+            updated_user = cursor.fetchone()
+            new_timestamp = updated_user['last_password_change'] if updated_user else None
+
         except sqlite3.OperationalError as e:
             # Column doesn't exist yet (pre-migration), update without it
             if 'no such column: last_password_change' in str(e):
@@ -670,11 +684,17 @@ def change_password():
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                 """, (new_password_hash, user['id']))
+                new_timestamp = None
             else:
                 raise
 
         conn.commit()
         conn.close()
+
+        # Update current session with new timestamp to keep THIS session valid
+        # This invalidates all OTHER sessions but keeps the current one active
+        if new_timestamp:
+            session['last_password_change'] = new_timestamp
 
         # Log successful password change
         log_audit('changed_password', 'user', user['id'], user['email'], {
@@ -683,7 +703,7 @@ def change_password():
 
         return jsonify({
             'success': True,
-            'message': ''
+            'message': 'Password changed successfully. All other sessions have been logged out for security.'
         })
 
     except Exception as e:
