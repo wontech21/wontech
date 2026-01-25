@@ -272,6 +272,22 @@ def force_reinit():
     log.append(f"Base directory: {base_dir}")
     log.append(f"Current working directory: {os.getcwd()}")
 
+    # List files in directory for debugging
+    try:
+        files_in_dir = sorted(os.listdir(base_dir))
+        python_files = [f for f in files_in_dir if f.endswith('.py')]
+        log.append(f"Python files in {base_dir}: {python_files}")
+
+        inline_file = os.path.join(base_dir, 'create_db_inline.py')
+        log.append(f"create_db_inline.py exists: {os.path.exists(inline_file)}")
+
+        if os.path.exists(inline_file):
+            log.append(f"create_db_inline.py size: {os.path.getsize(inline_file)} bytes")
+        else:
+            log.append("❌ create_db_inline.py NOT FOUND - this is the problem!")
+    except Exception as e:
+        log.append(f"Error listing directory: {e}")
+
     try:
         # Delete databases
         if os.path.exists(master_db_path):
@@ -283,7 +299,7 @@ def force_reinit():
             log.append(f"✓ Deleted {databases_dir}")
 
         # Reinitialize
-        log.append("Running create_db_inline.create_databases()...")
+        log.append("Attempting to import create_db_inline...")
         import create_db_inline
         result = create_db_inline.create_databases()
         log.append(f"Result: {result}")
