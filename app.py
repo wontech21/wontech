@@ -64,10 +64,35 @@ def ensure_database_initialized():
     print(f"✓ Master DB exists: {os.path.exists(master_db_path)}")
     print("="*70 + "\n")
 
+    # Check if database has tables (not just if file exists)
+    needs_init = False
     if not os.path.exists(master_db_path):
-        print("⚠️  Master database not found - initializing now...")
+        print("⚠️  Master database file not found")
+        needs_init = True
+    else:
+        # Check if database has tables
         try:
-            # Import and run directly
+            import sqlite3
+            conn = sqlite3.connect(master_db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='organizations'")
+            if cursor.fetchone() is None:
+                print("⚠️  Master database exists but has no tables")
+                needs_init = True
+            conn.close()
+        except Exception as e:
+            print(f"⚠️  Error checking database: {e}")
+            needs_init = True
+
+    if needs_init:
+        print("🔧 Initializing database with tables...")
+        try:
+            # Delete empty database file if it exists
+            if os.path.exists(master_db_path):
+                os.remove(master_db_path)
+                print("   Removed empty database file")
+
+            # Import and run initialization
             import init_database
             print("📝 Running init_database.init_database()...")
             result = init_database.init_database()
