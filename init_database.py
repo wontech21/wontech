@@ -50,11 +50,23 @@ def init_database():
         print("\n📝 Running master database creation script...")
         migrate()
 
+        # Create org_1.db for default organization
+        print("\n📝 Creating default organization database...")
+        sys.path.insert(0, script_dir)
+        from db_manager import create_org_database
+
+        org_1_db_path = create_org_database(1)
+        print(f"   ✓ Created organization database: {org_1_db_path}")
+
         print("\n✅ DATABASE INITIALIZATION COMPLETE!")
         print("\n🔐 Default Super Admin Credentials:")
         print("   📧 Email: admin@firingup.com")
         print("   🔑 Password: admin123")
         print("   ⚠️  CHANGE PASSWORD IMMEDIATELY AFTER FIRST LOGIN!")
+
+        print("\n📊 Database Structure:")
+        print(f"   📁 {master_db_path}")
+        print(f"   📁 {org_1_db_path}")
 
         print("\n" + "="*70 + "\n")
         return True
