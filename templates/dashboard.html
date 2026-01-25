@@ -40,7 +40,14 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <h1><img src="{{ url_for('static', filename='images/firinguplogo.png') }}" alt="Firing Up Logo" class="header-logo"> Firing Up Data Center</h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                {% if g.is_super_admin %}
+                <button onclick="exitOrganization()" class="btn-back-admin" title="Back to WONTECH Admin">
+                    ⚡ Back to Admin
+                </button>
+                {% endif %}
+                <h1><img src="{{ url_for('static', filename='images/firinguplogo.png') }}" alt="Firing Up Logo" class="header-logo"> Firing Up Data Center</h1>
+            </div>
             <div class="header-stats" id="headerStats">Loading...</div>
         </header>
 
@@ -1801,5 +1808,58 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
     <script src="{{ url_for('static', filename='js/layer4_sales.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sales_analytics.js') }}"></script>
     <script src="{{ url_for('static', filename='js/barcode_scanner.js') }}?v=2.0"></script>
+
+    <script>
+        // Super Admin: Exit organization and return to WONTECH admin dashboard
+        function exitOrganization() {
+            if (!confirm('Return to WONTECH Admin Dashboard?')) return;
+
+            fetch('/admin/exit-organization', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = '/admin/dashboard';
+                } else {
+                    alert('Failed to exit organization: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                console.error('Error exiting organization:', err);
+                alert('Error exiting organization');
+            });
+        }
+    </script>
+
+    <style>
+        .btn-back-admin {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-back-admin:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-back-admin:active {
+            transform: translateY(0);
+        }
+    </style>
 </body>
 </html>
