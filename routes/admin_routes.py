@@ -673,6 +673,229 @@ def invite_user_to_organization(org_id):
 # SYSTEM ANALYTICS
 # ==========================================
 
+# ==========================================
+# MANAGE ORGANIZATION MODAL API ENDPOINTS
+# ==========================================
+
+@admin_bp.route('/api/organizations/<int:org_id>')
+@login_required
+@super_admin_required
+def get_organization_details(org_id):
+    """Get organization details for manage modal"""
+    conn = get_master_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT * FROM organizations WHERE id = ?
+    """, (org_id,))
+
+    org = cursor.fetchone()
+    conn.close()
+
+    if not org:
+        return jsonify({'error': 'Organization not found'}), 404
+
+    return jsonify({'success': True, 'organization': dict(org)})
+
+@admin_bp.route('/api/organizations/<int:org_id>/users')
+@login_required
+@super_admin_required
+def get_organization_users(org_id):
+    """Get users in an organization"""
+    conn = get_master_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, email, first_name, last_name, role, active, created_at
+        FROM users
+        WHERE organization_id = ?
+        ORDER BY created_at DESC
+    """, (org_id,))
+
+    users = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+
+    return jsonify({'success': True, 'users': users})
+
+@admin_bp.route('/api/organizations/<int:org_id>/activity')
+@login_required
+@super_admin_required
+def get_organization_activity(org_id):
+    """Get recent activity for an organization"""
+    conn = get_master_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            a.action,
+            a.entity_type,
+            a.entity_id,
+            a.created_at,
+            u.email as user_email
+        FROM audit_log a
+        LEFT JOIN users u ON a.user_id = u.id
+        WHERE a.organization_id = ?
+        ORDER BY a.created_at DESC
+        LIMIT 50
+    """, (org_id,))
+
+    activities = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+
+    return jsonify({'success': True, 'activities': activities})
+
+@admin_bp.route('/api/organizations/<int:org_id>/stats')
+@login_required
+@super_admin_required
+def get_organization_stats(org_id):
+    """Get statistics for an organization"""
+    conn = get_master_db()
+    cursor = conn.cursor()
+
+    # Get org info from master db
+    cursor.execute("""
+        SELECT created_at,
+               (SELECT COUNT(*) FROM users WHERE organization_id = ?) as user_count
+        FROM organizations
+        WHERE id = ?
+    """, (org_id, org_id))
+
+    org_data = cursor.fetchone()
+    conn.close()
+
+    stats = {
+        'user_count': org_data['user_count'] if org_data else 0,
+        'created_at': org_data['created_at'] if org_data else None
+    }
+
+    # Get stats from organization database
+    from db_manager import get_org_db_path
+    org_db_path = get_org_db_path(org_id)
+
+    if org_db_path and os.path.exists(org_db_path):
+        try:
+            org_conn = sqlite3.connect(org_db_path)
+            org_conn.row_factory = sqlite3.Row
+            org_cursor = org_conn.cursor()
+
+            # Count employees
+            try:
+                org_cursor.execute("SELECT COUNT(*) as count FROM employees")
+                stats['employee_count'] = org_cursor.fetchone()['count']
+            except:
+                stats['employee_count'] = 0
+
+            # Count products
+            try:
+                org_cursor.execute("SELECT COUNT(*) as count FROM products")
+                stats['product_count'] = org_cursor.fetchone()['count']
+            except:
+                stats['product_count'] = 0
+
+            # Count active inventory
+            try:
+                org_cursor.execute("SELECT COUNT(*) as count FROM inventory WHERE status = 'active'")
+                stats['inventory_count'] = org_cursor.fetchone()['count']
+            except:
+                stats['inventory_count'] = 0
+
+            org_conn.close()
+
+            # Get database file size
+            db_size_bytes = os.path.getsize(org_db_path)
+            if db_size_bytes < 1024:
+                stats['db_size'] = f"{db_size_bytes} B"
+            elif db_size_bytes < 1024 * 1024:
+                stats['db_size'] = f"{db_size_bytes / 1024:.2f} KB"
+            else:
+                stats['db_size'] = f"{db_size_bytes / (1024 * 1024):.2f} MB"
+
+        except Exception as e:
+            print(f"Error getting stats for org {org_id}: {e}")
+            stats['employee_count'] = 0
+            stats['product_count'] = 0
+            stats['inventory_count'] = 0
+            stats['db_size'] = 'N/A'
+    else:
+        stats['employee_count'] = 0
+        stats['product_count'] = 0
+        stats['inventory_count'] = 0
+        stats['db_size'] = 'N/A'
+
+    return jsonify({'success': True, 'stats': stats})
+
+@admin_bp.route('/api/organizations/update', methods=['POST'])
+@login_required
+@super_admin_required
+def update_organization_api():
+    """Update organization details from manage modal"""
+    data = request.json
+    org_id = data.get('organization_id')
+
+    if not org_id:
+        return jsonify({'error': 'organization_id required'}), 400
+
+    conn = get_master_db()
+    cursor = conn.cursor()
+
+    try:
+        # Get current organization
+        cursor.execute("SELECT * FROM organizations WHERE id = ?", (org_id,))
+        org = cursor.fetchone()
+
+        if not org:
+            conn.close()
+            return jsonify({'error': 'Organization not found'}), 404
+
+        # Update organization
+        cursor.execute("""
+            UPDATE organizations
+            SET organization_name = ?,
+                slug = ?,
+                owner_name = ?,
+                owner_email = ?,
+                phone = ?,
+                plan_type = ?,
+                monthly_price = ?,
+                subscription_status = ?,
+                active = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (
+            data.get('organization_name'),
+            data.get('slug'),
+            data.get('owner_name'),
+            data.get('owner_email'),
+            data.get('phone', ''),
+            data.get('plan_type'),
+            float(data.get('monthly_price', 0)),
+            data.get('subscription_status'),
+            int(data.get('active', 1)),
+            org_id
+        ))
+
+        conn.commit()
+
+        log_audit('updated_organization', 'organization', org_id, data.get('organization_name'), {
+            'updated_fields': list(data.keys())
+        })
+
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': 'Organization updated successfully'
+        })
+
+    except sqlite3.Error as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+# ==========================================
+# SYSTEM ANALYTICS
+# ==========================================
+
 @admin_bp.route('/analytics/overview')
 @login_required
 @super_admin_required

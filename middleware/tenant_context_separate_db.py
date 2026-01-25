@@ -28,7 +28,8 @@ def get_current_user():
     cursor = conn.cursor()
     cursor.execute("""
         SELECT id, organization_id, email, first_name, last_name, role,
-               permissions, can_switch_organizations, current_organization_id, active
+               permissions, can_switch_organizations, current_organization_id, active,
+               last_password_change
         FROM users
         WHERE id = ? AND active = 1
     """, (user_id,))
@@ -39,7 +40,18 @@ def get_current_user():
     if not row:
         return None
 
-    return dict(row)
+    user = dict(row)
+
+    # Check if password was changed - invalidate session if timestamps don't match
+    session_password_timestamp = session.get('last_password_change')
+    db_password_timestamp = user.get('last_password_change')
+
+    if session_password_timestamp != db_password_timestamp:
+        # Password was changed - clear session to force re-login
+        session.clear()
+        return None
+
+    return user
 
 def get_organization_by_id(org_id):
     """Get organization by ID from master database"""
@@ -50,7 +62,7 @@ def get_organization_by_id(org_id):
     cursor = conn.cursor()
     cursor.execute("""
         SELECT id, organization_name, slug, db_filename, owner_name, owner_email,
-               plan_type, subscription_status, active
+               plan_type, subscription_status, active, logo_url
         FROM organizations
         WHERE id = ? AND active = 1
     """, (org_id,))
@@ -72,7 +84,7 @@ def get_organization_by_slug(slug):
     cursor = conn.cursor()
     cursor.execute("""
         SELECT id, organization_name, slug, db_filename, owner_name, owner_email,
-               plan_type, subscription_status, active
+               plan_type, subscription_status, active, logo_url
         FROM organizations
         WHERE slug = ? AND active = 1
     """, (slug,))

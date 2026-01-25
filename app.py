@@ -132,7 +132,7 @@ def login():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT id, organization_id, password_hash, role, active, first_name, last_name
+        SELECT id, organization_id, password_hash, role, active, first_name, last_name, last_password_change
         FROM users
         WHERE email = ?
     """, (email,))
@@ -155,8 +155,9 @@ def login():
             return jsonify({'error': 'Invalid credentials'}), 401
         return render_template('login.html', error='Invalid email or password')
 
-    # Set session
+    # Set session with password change timestamp for session invalidation
     session['user_id'] = user['id']
+    session['last_password_change'] = user['last_password_change']
 
     # Update last login
     conn = get_master_db()
@@ -209,50 +210,133 @@ def change_password():
     if len(new_password) < 8:
         return jsonify({'error': 'New password must be at least 8 characters'}), 400
 
+    # Check if user is authenticated
+    if not hasattr(g, 'user') or not g.user:
+        return jsonify({'error': 'User not authenticated'}), 401
+
     # Get current user from master database
     conn = get_master_db()
     cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT id, email, password_hash
-        FROM users
-        WHERE id = ?
-    """, (g.user['id'],))
+    try:
+        cursor.execute("""
+            SELECT id, email, password_hash
+            FROM users
+            WHERE id = ?
+        """, (g.user['id'],))
 
-    user = cursor.fetchone()
+        user = cursor.fetchone()
 
-    if not user:
+        if not user:
+            conn.close()
+            return jsonify({'error': 'User not found'}), 404
+
+        # Verify current password
+        if not verify_password(current_password, user['password_hash']):
+            conn.close()
+            log_audit('failed_password_change', 'user', user['id'], user['email'], {
+                'reason': 'incorrect_current_password'
+            })
+            return jsonify({'error': 'Current password is incorrect'}), 401
+
+        # Hash new password
+        new_password_hash = hash_password(new_password)
+
+        # Update password in database and set timestamp to invalidate all sessions
+        cursor.execute("""
+            UPDATE users
+            SET password_hash = ?,
+                last_password_change = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (new_password_hash, user['id']))
+
+        conn.commit()
         conn.close()
-        return jsonify({'error': 'User not found'}), 404
 
-    # Verify current password
-    if not verify_password(current_password, user['password_hash']):
-        conn.close()
-        log_audit('failed_password_change', 'user', user['id'], {
-            'reason': 'incorrect_current_password'
+        # Log successful password change
+        log_audit('changed_password', 'user', user['id'], user['email'], {
+            'action': 'password_changed'
         })
-        return jsonify({'error': 'Current password is incorrect'}), 401
 
-    # Hash new password
-    new_password_hash = hash_password(new_password)
+        return jsonify({
+            'success': True,
+            'message': ''
+        })
 
-    # Update password in database
-    cursor.execute("""
-        UPDATE users
-        SET password_hash = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-    """, (new_password_hash, user['id']))
+    except Exception as e:
+        if 'conn' in locals():
+            conn.close()
+        print(f"Error in change_password: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
-    conn.commit()
-    conn.close()
+@app.route('/api/organization/upload-logo', methods=['POST'])
+@login_required
+@organization_required
+def upload_organization_logo():
+    """Upload logo for current organization"""
+    try:
+        if 'logo' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
 
-    # Log successful password change
-    log_audit('changed_password', 'user', user['id'])
+        file = request.files['logo']
 
-    return jsonify({
-        'success': True,
-        'message': 'Password changed successfully'
-    })
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+
+        # Validate file type
+        allowed_extensions = {'.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp'}
+        file_ext = os.path.splitext(file.filename)[1].lower()
+
+        if file_ext not in allowed_extensions:
+            return jsonify({'error': 'Invalid file type. Allowed: PNG, JPG, SVG, GIF, WEBP'}), 400
+
+        # Create uploads directory if it doesn't exist
+        uploads_dir = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'logos')
+        os.makedirs(uploads_dir, exist_ok=True)
+
+        # Generate unique filename
+        org_id = g.organization['id']
+        timestamp = hashlib.md5(str(secrets.token_hex(8)).encode()).hexdigest()[:8]
+        filename = f"org_{org_id}_{timestamp}{file_ext}"
+        filepath = os.path.join(uploads_dir, filename)
+
+        # Save file
+        file.save(filepath)
+
+        # Update database with logo URL
+        logo_url = f"/static/uploads/logos/{filename}"
+
+        conn = get_master_db()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE organizations
+            SET logo_url = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (logo_url, org_id))
+
+        conn.commit()
+        conn.close()
+
+        # Log the action
+        log_audit('updated_organization_logo', 'organization', org_id, g.organization['organization_name'], {
+            'logo_url': logo_url
+        })
+
+        return jsonify({
+            'success': True,
+            'logo_url': logo_url,
+            'message': 'Logo uploaded successfully'
+        })
+
+    except Exception as e:
+        print(f"Error uploading logo: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Upload failed: {str(e)}'}), 500
 
 @app.route('/')
 def index():

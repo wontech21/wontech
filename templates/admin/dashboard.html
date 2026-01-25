@@ -11,12 +11,34 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUpFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .admin-container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 0;
+            animation: slideUpFadeIn 0.8s ease-out;
         }
 
         .admin-header {
@@ -31,6 +53,7 @@
             border-radius: 16px;
             border: 1px solid rgba(255, 255, 255, 0.3);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            animation: slideUpFadeIn 0.6s ease-out;
         }
 
         .admin-title {
@@ -46,6 +69,73 @@
             margin-top: 5px;
         }
 
+        .admin-header-left {
+            flex: 1;
+        }
+
+        .admin-header-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .admin-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            white-space: nowrap;
+        }
+
+        .admin-btn .btn-icon {
+            font-size: 16px;
+        }
+
+        .admin-btn-primary {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .admin-btn-primary:hover {
+            background: rgba(255, 255, 255, 0.35);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .admin-btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .admin-btn-logout {
+            background: rgba(239, 68, 68, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .admin-btn-logout:hover {
+            background: rgba(239, 68, 68, 0.4);
+            border-color: rgba(239, 68, 68, 0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
+        }
+
+        .admin-btn-logout:active {
+            transform: translateY(0);
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -59,10 +149,16 @@
             -webkit-backdrop-filter: blur(20px);
             border-radius: 16px;
             padding: 24px;
+            animation: slideUpFadeIn 0.6s ease-out backwards;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-left: 4px solid #3b82f6;
         }
+
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
 
         .stat-card.success {
             border-left-color: #10b981;
@@ -99,6 +195,7 @@
 
         .organizations-section {
             margin-top: 40px;
+            animation: slideUpFadeIn 0.8s ease-out 0.4s backwards;
         }
 
         .section-header {
@@ -113,26 +210,6 @@
             font-weight: 600;
             color: white;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .btn-primary {
-            background: rgba(255, 255, 255, 0.25);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            color: white;
-            padding: 10px 20px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-primary:hover {
-            background: rgba(255, 255, 255, 0.35);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-            border-color: rgba(255, 255, 255, 0.5);
         }
 
         .btn-secondary {
@@ -200,7 +277,15 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             transition: all 0.3s;
             border: 1px solid rgba(255, 255, 255, 0.3);
+            animation: slideUpFadeIn 0.6s ease-out backwards;
         }
+
+        .org-card:nth-child(1) { animation-delay: 0.5s; }
+        .org-card:nth-child(2) { animation-delay: 0.6s; }
+        .org-card:nth-child(3) { animation-delay: 0.7s; }
+        .org-card:nth-child(4) { animation-delay: 0.8s; }
+        .org-card:nth-child(5) { animation-delay: 0.9s; }
+        .org-card:nth-child(6) { animation-delay: 1.0s; }
 
         .org-card:hover {
             box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
@@ -303,43 +388,40 @@
         }
 
         .org-card-actions {
-            display: flex;
-            gap: 10px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
             margin-top: 16px;
         }
 
-        .btn-enter {
-            flex: 1;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px 20px;
-            border: none;
+        .org-action {
+            text-align: center;
+            padding: 16px 12px;
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 8px;
-            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.2);
             cursor: pointer;
-            transition: all 0.2s;
-            font-size: 14px;
+            transition: all 0.3s ease;
         }
 
-        .btn-enter:hover {
+        .org-action:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
             transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
         }
 
-        .btn-manage {
-            background: #f3f4f6;
-            color: #4b5563;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
+        .org-action-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .org-action-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
             font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 14px;
-        }
-
-        .btn-manage:hover {
-            background: #e5e7eb;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .empty-state {
@@ -360,24 +442,16 @@
             margin-bottom: 8px;
         }
 
-        .logout-btn {
-            background: rgba(239, 68, 68, 0.3);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            color: white;
-            padding: 10px 20px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-left: 10px;
-            transition: all 0.2s;
-        }
+        @media (max-width: 968px) {
+            .admin-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+            }
 
-        .logout-btn:hover {
-            background: rgba(239, 68, 68, 0.5);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
+            .admin-header-right {
+                flex-wrap: wrap;
+            }
         }
     </style>
 </head>
@@ -385,14 +459,20 @@
     <div class="admin-container">
         <!-- Header -->
         <div class="admin-header">
-            <div>
+            <div class="admin-header-left">
                 <div class="admin-title">⚡ WONTECH Super Admin</div>
                 <div class="admin-subtitle">Multi-Tenant Business Management Platform</div>
             </div>
-            <div>
-                <button class="btn-primary" onclick="openCreateOrgModal()">+ New Organization</button>
-                <button class="btn-primary" onclick="openPasswordChangeModal()" style="margin-left: 10px;">🔒 Change Password</button>
-                <button class="logout-btn" onclick="logout()">Logout</button>
+            <div class="admin-header-right">
+                <button class="admin-btn admin-btn-primary" onclick="openCreateOrgModal()">
+                    <span class="btn-icon">+</span> New Organization
+                </button>
+                <button class="admin-btn admin-btn-primary" onclick="openPasswordChangeModal()">
+                    <span class="btn-icon">🔒</span> Change Password
+                </button>
+                <button class="admin-btn admin-btn-logout" onclick="logout()">
+                    <span class="btn-icon">🚪</span> Logout
+                </button>
             </div>
         </div>
 
@@ -481,12 +561,14 @@
                         </div>
 
                         <div class="org-card-actions">
-                            <button class="btn-enter" onclick="enterOrganization({{ org.id }}, '{{ org.organization_name }}')">
-                                🚀 Enter Dashboard
-                            </button>
-                            <button class="btn-manage" onclick="manageOrganization({{ org.id }})">
-                                ⚙️
-                            </button>
+                            <div class="org-action" onclick="enterOrganization({{ org.id }}, '{{ org.organization_name }}')">
+                                <div class="org-action-icon">🚀</div>
+                                <div class="org-action-label">Enter Dashboard</div>
+                            </div>
+                            <div class="org-action" onclick="manageOrganization({{ org.id }})">
+                                <div class="org-action-icon">⚙️</div>
+                                <div class="org-action-label">Manage</div>
+                            </div>
                         </div>
                     </div>
                     {% endfor %}
@@ -569,8 +651,12 @@
                     </div>
 
                     <div class="modal-actions">
-                        <button type="submit" class="btn-primary">Create Organization</button>
-                        <button type="button" class="btn-secondary" onclick="closeCreateOrgModal()">Cancel</button>
+                        <button type="submit" class="modal-btn modal-btn-primary">
+                            <span class="btn-icon">✨</span> Create Organization
+                        </button>
+                        <button type="button" class="modal-btn modal-btn-secondary" onclick="closeCreateOrgModal()">
+                            <span class="btn-icon">✕</span> Cancel
+                        </button>
                     </div>
                 </form>
             </div>
@@ -609,10 +695,173 @@
                     <div id="adminPasswordSuccess" style="display: none; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px;"></div>
 
                     <div class="modal-actions">
-                        <button type="submit" class="btn-primary" id="adminChangePasswordBtn">Change Password</button>
-                        <button type="button" class="btn-secondary" onclick="closePasswordChangeModal()">Cancel</button>
+                        <button type="submit" class="modal-btn modal-btn-primary" id="adminChangePasswordBtn">
+                            <span class="btn-icon">🔒</span> Change Password
+                        </button>
+                        <button type="button" class="modal-btn modal-btn-secondary" onclick="closePasswordChangeModal()">
+                            <span class="btn-icon">✕</span> Cancel
+                        </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Organization Modal -->
+    <div id="manageOrgModal" class="modal" style="display: none;">
+        <div class="modal-content glass-modal" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>⚙️ <span id="manageOrgTitle">Manage Organization</span></h2>
+                <button class="modal-close" onclick="closeManageOrgModal()">&times;</button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="modal-tabs">
+                <button class="modal-tab active" onclick="switchManageTab('details', event)">📋 Details</button>
+                <button class="modal-tab" onclick="switchManageTab('users', event)">👥 Users</button>
+                <button class="modal-tab" onclick="switchManageTab('stats', event)">📊 Statistics</button>
+                <button class="modal-tab" onclick="switchManageTab('activity', event)">📜 Activity</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Details Tab -->
+                <div id="manageTab-details" class="manage-tab-content active">
+                    <form id="updateOrgForm" onsubmit="submitUpdateOrganization(event)">
+                        <input type="hidden" id="manage_org_id" name="organization_id">
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Organization Name *</label>
+                                <input type="text" id="manage_org_name" name="organization_name" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Subdomain Slug *</label>
+                                <input type="text" id="manage_org_slug" name="slug" required pattern="[a-z0-9-]+" title="Lowercase letters, numbers, and hyphens only">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Owner Name *</label>
+                                <input type="text" id="manage_owner_name" name="owner_name" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Owner Email *</label>
+                                <input type="email" id="manage_owner_email" name="owner_email" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="tel" id="manage_phone" name="phone">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Plan Type *</label>
+                                <select id="manage_plan_type" name="plan_type" required>
+                                    <option value="starter">Starter</option>
+                                    <option value="professional">Professional</option>
+                                    <option value="enterprise">Enterprise</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Monthly Price *</label>
+                                <input type="number" id="manage_monthly_price" name="monthly_price" step="0.01" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Subscription Status *</label>
+                                <select id="manage_subscription_status" name="subscription_status" required>
+                                    <option value="trial">Trial</option>
+                                    <option value="active">Active</option>
+                                    <option value="past_due">Past Due</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Status *</label>
+                                <select id="manage_active" name="active" required>
+                                    <option value="1">Active</option>
+                                    <option value="0">Inactive</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Database Filename</label>
+                                <input type="text" id="manage_db_filename" name="db_filename" readonly style="background: rgba(255, 255, 255, 0.05); cursor: not-allowed;">
+                            </div>
+                        </div>
+
+                        <div id="manageOrgError" style="display: none; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px;"></div>
+                        <div id="manageOrgSuccess" style="display: none; background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px;"></div>
+
+                        <div class="modal-actions">
+                            <button type="submit" class="modal-btn modal-btn-primary">
+                                <span class="btn-icon">💾</span> Save Changes
+                            </button>
+                            <button type="button" class="modal-btn modal-btn-secondary" onclick="closeManageOrgModal()">
+                                <span class="btn-icon">✕</span> Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Users Tab -->
+                <div id="manageTab-users" class="manage-tab-content">
+                    <div class="users-list" id="orgUsersList">
+                        <div style="text-align: center; padding: 40px; color: rgba(255, 255, 255, 0.6);">
+                            Loading users...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistics Tab -->
+                <div id="manageTab-stats" class="manage-tab-content">
+                    <div class="stats-overview">
+                        <div class="stat-item">
+                            <div class="stat-item-label">Total Users</div>
+                            <div class="stat-item-value" id="stat_user_count">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-item-label">Total Employees</div>
+                            <div class="stat-item-value" id="stat_employee_count">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-item-label">Total Products</div>
+                            <div class="stat-item-value" id="stat_product_count">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-item-label">Active Inventory Items</div>
+                            <div class="stat-item-value" id="stat_inventory_count">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-item-label">Database Size</div>
+                            <div class="stat-item-value" id="stat_db_size">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-item-label">Created Date</div>
+                            <div class="stat-item-value" id="stat_created_at">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Tab -->
+                <div id="manageTab-activity" class="manage-tab-content">
+                    <div class="activity-list" id="orgActivityList">
+                        <div style="text-align: center; padding: 40px; color: rgba(255, 255, 255, 0.6);">
+                            Loading activity...
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -628,9 +877,10 @@
             backdrop-filter: blur(5px);
             z-index: 1000;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
-            padding: 20px;
+            padding: 40px 20px 20px;
+            overflow-y: auto;
         }
 
         .glass-modal {
@@ -642,8 +892,9 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             max-width: 700px;
             width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
+            max-height: calc(100vh - 80px);
+            display: flex;
+            flex-direction: column;
         }
 
         .modal-header {
@@ -652,6 +903,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
 
         .modal-header h2 {
@@ -678,6 +930,9 @@
 
         .modal-body {
             padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
         }
 
         .form-row {
@@ -732,23 +987,257 @@
             margin-top: 24px;
             padding-top: 24px;
             border-top: 1px solid rgba(255, 255, 255, 0.2);
+            justify-content: flex-end;
         }
 
-        .btn-secondary {
-            background: rgba(107, 114, 128, 0.3);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 10px 20px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 8px;
-            font-size: 14px;
+        .modal-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            white-space: nowrap;
+            position: relative;
+            overflow: hidden;
         }
 
-        .btn-secondary:hover {
+        .modal-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .modal-btn:hover::before {
+            left: 100%;
+        }
+
+        .modal-btn .btn-icon {
+            font-size: 18px;
+            transition: transform 0.3s;
+        }
+
+        .modal-btn:hover .btn-icon {
+            transform: scale(1.1);
+        }
+
+        .modal-btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .modal-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .modal-btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .modal-btn-secondary {
+            background: rgba(107, 114, 128, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .modal-btn-secondary:hover {
             background: rgba(107, 114, 128, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(107, 114, 128, 0.3);
+        }
+
+        .modal-btn-secondary:active {
+            transform: translateY(0);
+        }
+
+        /* Manage Modal Tabs */
+        .modal-tabs {
+            display: flex;
+            gap: 8px;
+            padding: 16px 24px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+        }
+
+        .modal-tab {
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px 8px 0 0;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .modal-tab:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .modal-tab.active {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .manage-tab-content {
+            display: none;
+            min-height: 400px;
+        }
+
+        .manage-tab-content.active {
+            display: block;
+        }
+
+        /* Users List */
+        .users-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .user-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            color: white;
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .user-email {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+        }
+
+        .user-role {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(102, 126, 234, 0.3);
+            color: white;
+            margin-left: 12px;
+        }
+
+        /* Activity List */
+        .activity-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+        }
+
+        .activity-action {
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .activity-details {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .activity-time {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 11px;
+        }
+
+        /* Stats Overview */
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-item-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-item-value {
+            color: white;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        /* Manage modal specific styles */
+        #manageOrgModal .glass-modal {
+            margin: 0 auto;
+        }
+
+        #manageOrgModal .modal-body {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.1);
+        }
+
+        #manageOrgModal .modal-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #manageOrgModal .modal-body::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        #manageOrgModal .modal-body::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        #manageOrgModal .modal-body::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4);
         }
     </style>
 
@@ -771,8 +1260,6 @@
         }
 
         function enterOrganization(orgId, orgName) {
-            if (!confirm(`Enter dashboard for ${orgName}?`)) return;
-
             fetch('/admin/switch-organization', {
                 method: 'POST',
                 headers: {
@@ -795,9 +1282,202 @@
             });
         }
 
+        let currentManageOrgId = null;
+
         function manageOrganization(orgId) {
-            // TODO: Open modal with organization details and settings
-            alert('Organization management modal coming soon...');
+            currentManageOrgId = orgId;
+            const modal = document.getElementById('manageOrgModal');
+            modal.style.display = 'flex';
+
+            // Reset scroll position
+            const modalBody = modal.querySelector('.modal-body');
+            if (modalBody) modalBody.scrollTop = 0;
+
+            switchManageTab('details');
+            loadOrganizationDetails(orgId);
+        }
+
+        function closeManageOrgModal() {
+            document.getElementById('manageOrgModal').style.display = 'none';
+            currentManageOrgId = null;
+            document.getElementById('manageOrgError').style.display = 'none';
+            document.getElementById('manageOrgSuccess').style.display = 'none';
+        }
+
+        function switchManageTab(tabName, event) {
+            // Update tab buttons
+            document.querySelectorAll('.modal-tab').forEach(tab => tab.classList.remove('active'));
+            if (event && event.target) {
+                event.target.classList.add('active');
+            } else {
+                // If no event (called programmatically), find and activate the tab by data
+                document.querySelectorAll('.modal-tab').forEach(tab => {
+                    if (tab.textContent.includes(tabName) || tab.onclick.toString().includes(tabName)) {
+                        tab.classList.add('active');
+                    }
+                });
+            }
+
+            // Update tab content
+            document.querySelectorAll('.manage-tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById('manageTab-' + tabName).classList.add('active');
+
+            // Reset scroll position to top when switching tabs
+            const modalBody = document.querySelector('#manageOrgModal .modal-body');
+            if (modalBody) {
+                modalBody.scrollTop = 0;
+            }
+
+            // Load content for specific tabs
+            if (tabName === 'users') {
+                loadOrganizationUsers(currentManageOrgId);
+            } else if (tabName === 'activity') {
+                loadOrganizationActivity(currentManageOrgId);
+            } else if (tabName === 'stats') {
+                loadOrganizationStats(currentManageOrgId);
+            }
+        }
+
+        function loadOrganizationDetails(orgId) {
+            fetch(`/admin/api/organizations/${orgId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const org = data.organization;
+                        document.getElementById('manageOrgTitle').textContent = org.organization_name;
+                        document.getElementById('manage_org_id').value = org.id;
+                        document.getElementById('manage_org_name').value = org.organization_name;
+                        document.getElementById('manage_org_slug').value = org.slug;
+                        document.getElementById('manage_owner_name').value = org.owner_name;
+                        document.getElementById('manage_owner_email').value = org.owner_email;
+                        document.getElementById('manage_phone').value = org.phone || '';
+                        document.getElementById('manage_plan_type').value = org.plan_type;
+                        document.getElementById('manage_monthly_price').value = org.monthly_price;
+                        document.getElementById('manage_subscription_status').value = org.subscription_status;
+                        document.getElementById('manage_active').value = org.active ? '1' : '0';
+                        document.getElementById('manage_db_filename').value = org.db_filename;
+
+                        // Load stats
+                        loadOrganizationStats(orgId);
+                    } else {
+                        alert('Error loading organization: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    alert('Failed to load organization details');
+                });
+        }
+
+        function loadOrganizationUsers(orgId) {
+            const container = document.getElementById('orgUsersList');
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255, 255, 255, 0.6);">Loading users...</div>';
+
+            fetch(`/admin/api/organizations/${orgId}/users`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.users.length > 0) {
+                        container.innerHTML = data.users.map(user => `
+                            <div class="user-item">
+                                <div class="user-info">
+                                    <div class="user-name">${user.first_name} ${user.last_name}</div>
+                                    <div class="user-email">${user.email}</div>
+                                </div>
+                                <div>
+                                    <span class="user-role">${user.role.replace('_', ' ').toUpperCase()}</span>
+                                    ${user.active ? '<span style="color: #10b981; margin-left: 8px;">●</span>' : '<span style="color: #ef4444; margin-left: 8px;">●</span>'}
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255, 255, 255, 0.6);">No users found</div>';
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    container.innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255, 255, 255, 0.6);">Error loading users</div>';
+                });
+        }
+
+        function loadOrganizationActivity(orgId) {
+            const container = document.getElementById('orgActivityList');
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255, 255, 255, 0.6);">Loading activity...</div>';
+
+            fetch(`/admin/api/organizations/${orgId}/activity`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.activities.length > 0) {
+                        container.innerHTML = data.activities.map(activity => `
+                            <div class="activity-item">
+                                <div class="activity-action">${activity.action}</div>
+                                <div class="activity-details">
+                                    ${activity.user_email} - ${activity.entity_type || 'N/A'}
+                                    ${activity.entity_id ? '#' + activity.entity_id : ''}
+                                </div>
+                                <div class="activity-time">${new Date(activity.created_at).toLocaleString()}</div>
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255, 255, 255, 0.6);">No recent activity</div>';
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    container.innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255, 255, 255, 0.6);">Error loading activity</div>';
+                });
+        }
+
+        function loadOrganizationStats(orgId) {
+            fetch(`/admin/api/organizations/${orgId}/stats`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('stat_user_count').textContent = data.stats.user_count || 0;
+                        document.getElementById('stat_employee_count').textContent = data.stats.employee_count || 0;
+                        document.getElementById('stat_product_count').textContent = data.stats.product_count || 0;
+                        document.getElementById('stat_inventory_count').textContent = data.stats.inventory_count || 0;
+                        document.getElementById('stat_db_size').textContent = data.stats.db_size || 'N/A';
+                        document.getElementById('stat_created_at').textContent = data.stats.created_at ? new Date(data.stats.created_at).toLocaleDateString() : 'N/A';
+                    }
+                })
+                .catch(err => console.error('Error loading stats:', err));
+        }
+
+        function submitUpdateOrganization(event) {
+            event.preventDefault();
+
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+
+            const errorDiv = document.getElementById('manageOrgError');
+            const successDiv = document.getElementById('manageOrgSuccess');
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            fetch('/admin/api/organizations/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    successDiv.textContent = '✅ Organization updated successfully!';
+                    successDiv.style.display = 'block';
+                    setTimeout(() => {
+                        closeManageOrgModal();
+                        location.reload();
+                    }, 1500);
+                } else {
+                    errorDiv.textContent = '❌ ' + (data.error || 'Failed to update organization');
+                    errorDiv.style.display = 'block';
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                errorDiv.textContent = '❌ An error occurred. Please try again.';
+                errorDiv.style.display = 'block';
+            });
         }
 
         function openCreateOrgModal() {

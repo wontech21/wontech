@@ -40,6 +40,27 @@ body {
     background-attachment: fixed;
     min-height: 100vh;
     padding: 1.5vw;
+    animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUpFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .container {
@@ -50,6 +71,7 @@ body {
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     overflow: hidden;
+    animation: slideUpFadeIn 0.8s ease-out;
 }
 
 /* Larger screens get more constrained width */
@@ -71,21 +93,15 @@ body {
     color: white;
     padding: clamp(20px, 3vw, 40px);
     text-align: center;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .header h1 {
     font-size: clamp(1.5em, 4vw, 2.5em);
     margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-}
-
-.header-logo {
-    height: clamp(40px, 5vw, 60px);
-    width: auto;
-    vertical-align: middle;
 }
 
 .header-stats {
@@ -98,6 +114,146 @@ body {
     opacity: 0.85;
     margin-top: 8px;
     font-style: italic;
+}
+
+/* Header Profile Section (Top Right) */
+.header-profile-section {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    z-index: 10;
+}
+
+.profile-logo-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-logo {
+    height: 60px;
+    width: 60px;
+    object-fit: cover;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 3px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.profile-logo:hover {
+    transform: scale(1.08);
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.profile-logo-placeholder {
+    height: 60px;
+    width: 60px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 2px dashed rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.profile-logo-placeholder:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.8);
+    transform: scale(1.08);
+}
+
+.profile-logo-placeholder .upload-icon {
+    font-size: 28px;
+}
+
+.active-indicator {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
+    background: #10b981;
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    50% {
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 0 0 6px rgba(16, 185, 129, 0);
+    }
+}
+
+.logout-btn {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+}
+
+.logout-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive adjustments for header profile */
+@media (max-width: 768px) {
+    .header-profile-section {
+        top: 15px;
+        right: 15px;
+        gap: 8px;
+    }
+
+    .profile-logo,
+    .profile-logo-placeholder {
+        height: 50px;
+        width: 50px;
+    }
+
+    .profile-logo-placeholder .upload-icon {
+        font-size: 24px;
+    }
+
+    .active-indicator {
+        width: 14px;
+        height: 14px;
+        border-width: 2px;
+    }
+
+    .logout-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+}
+
+.logout-btn:active {
+    transform: translateY(0);
 }
 
 /* Navigation Tabs */

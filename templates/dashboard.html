@@ -40,7 +40,25 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <h1><img src="{{ url_for('static', filename='images/firinguplogo.png') }}" alt="Firing Up Logo" class="header-logo"> Firing Up Data Center</h1>
+            <!-- Profile Section (Top Right) -->
+            <div class="header-profile-section">
+                <div class="profile-logo-container">
+                    {% if g.organization.logo_url %}
+                    <img src="{{ g.organization.logo_url }}" alt="{{ g.organization.organization_name }} Logo" class="profile-logo" onclick="openLogoUploadModal()">
+                    {% else %}
+                    <div class="profile-logo-placeholder" onclick="openLogoUploadModal()" title="Click to upload logo">
+                        <span class="upload-icon">📸</span>
+                    </div>
+                    {% endif %}
+                    <span class="active-indicator" title="Active"></span>
+                </div>
+                {% if not g.is_super_admin %}
+                <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+                {% endif %}
+            </div>
+
+            <!-- Title Section (Centered) -->
+            <h1>{{ g.organization.organization_name }} Data Center</h1>
             <div class="header-stats" id="headerStats">Loading...</div>
         </header>
 
@@ -1869,6 +1887,12 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
 
     <!-- Password Change Script -->
     <script>
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.href = '/logout';
+            }
+        }
+
         function changePassword(event) {
             event.preventDefault();
 
@@ -1942,6 +1966,146 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                 errorDiv.style.display = 'block';
             });
         }
+
+        // Logo Upload Functions
+        let selectedLogoFile = null;
+        let dragDropInitialized = false;
+
+        function openLogoUploadModal() {
+            document.getElementById('logoUploadModal').style.display = 'flex';
+            if (!dragDropInitialized) {
+                setupDragAndDrop();
+                dragDropInitialized = true;
+            }
+        }
+
+        function closeLogoUploadModal() {
+            document.getElementById('logoUploadModal').style.display = 'none';
+            selectedLogoFile = null;
+            document.getElementById('uploadArea').style.display = 'block';
+            document.getElementById('logoPreview').style.display = 'none';
+            document.getElementById('uploadProgress').style.display = 'none';
+            document.getElementById('logoFileInput').value = '';
+        }
+
+        function setupDragAndDrop() {
+            const uploadArea = document.getElementById('uploadArea');
+
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('drag-over');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('drag-over');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleLogoFile(files[0]);
+                }
+            });
+
+            uploadArea.addEventListener('click', () => {
+                document.getElementById('logoFileInput').click();
+            });
+        }
+
+        function handleLogoFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleLogoFile(file);
+            }
+        }
+
+        function handleLogoFile(file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+
+            // Validate file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size must be less than 5MB');
+                return;
+            }
+
+            selectedLogoFile = file;
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('logoPreviewImage').src = e.target.result;
+                document.getElementById('uploadArea').style.display = 'none';
+                document.getElementById('logoPreview').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function cancelLogoUpload() {
+            selectedLogoFile = null;
+            document.getElementById('uploadArea').style.display = 'block';
+            document.getElementById('logoPreview').style.display = 'none';
+            document.getElementById('logoFileInput').value = '';
+        }
+
+        function uploadLogo() {
+            if (!selectedLogoFile) return;
+
+            const formData = new FormData();
+            formData.append('logo', selectedLogoFile);
+
+            // Show progress
+            document.getElementById('logoPreview').style.display = 'none';
+            document.getElementById('uploadProgress').style.display = 'block';
+            const progressFill = document.getElementById('progressFill');
+            const uploadStatus = document.getElementById('uploadStatus');
+
+            // Simulate progress
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 10;
+                progressFill.style.width = progress + '%';
+                if (progress >= 90) clearInterval(progressInterval);
+            }, 100);
+
+            fetch('/api/organization/upload-logo', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                clearInterval(progressInterval);
+                progressFill.style.width = '100%';
+
+                if (data.success) {
+                    uploadStatus.textContent = '✅ Logo uploaded successfully!';
+                    setTimeout(() => {
+                        closeLogoUploadModal();
+                        location.reload(); // Refresh to show new logo
+                    }, 1000);
+                } else {
+                    uploadStatus.textContent = '❌ Upload failed: ' + (data.error || 'Unknown error');
+                    setTimeout(() => {
+                        document.getElementById('uploadProgress').style.display = 'none';
+                        document.getElementById('uploadArea').style.display = 'block';
+                    }, 2000);
+                }
+            })
+            .catch(err => {
+                clearInterval(progressInterval);
+                console.error('Upload error:', err);
+                uploadStatus.textContent = '❌ Upload failed. Please try again.';
+                setTimeout(() => {
+                    document.getElementById('uploadProgress').style.display = 'none';
+                    document.getElementById('uploadArea').style.display = 'block';
+                }, 2000);
+            });
+        }
     </script>
 
     <!-- Include QuaggaJS for barcode scanning -->
@@ -1949,6 +2113,261 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
 
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sales_tracking_ui.js') }}"></script>
+    <!-- Logo Upload Modal -->
+    <div id="logoUploadModal" class="modal-overlay" style="display: none;">
+        <div class="upload-modal">
+            <div class="upload-modal-header">
+                <h2>🎨 Upload Company Logo</h2>
+                <button class="modal-close-btn" onclick="closeLogoUploadModal()">&times;</button>
+            </div>
+            <div class="upload-modal-body">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon-large">📸</div>
+                    <h3>Drag & Drop your logo here</h3>
+                    <p>or click to browse</p>
+                    <input type="file" id="logoFileInput" accept="image/*" style="display: none;" onchange="handleLogoFileSelect(event)">
+                    <button class="browse-btn" onclick="document.getElementById('logoFileInput').click()">
+                        <span>📁</span> Browse Files
+                    </button>
+                    <small>Supported formats: JPG, PNG, SVG (Max 5MB)</small>
+                </div>
+                <div id="logoPreview" class="logo-preview" style="display: none;">
+                    <img id="logoPreviewImage" src="" alt="Logo Preview">
+                    <div class="preview-actions">
+                        <button class="upload-btn" onclick="uploadLogo()">
+                            <span>✨</span> Upload Logo
+                        </button>
+                        <button class="cancel-btn" onclick="cancelLogoUpload()">
+                            <span>✕</span> Cancel
+                        </button>
+                    </div>
+                </div>
+                <div id="uploadProgress" class="upload-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p id="uploadStatus">Uploading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .upload-modal {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 90%;
+            animation: slideUpFadeIn 0.4s ease;
+            overflow: hidden;
+        }
+
+        .upload-modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .upload-modal-header h2 {
+            color: white;
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .modal-close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 32px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .modal-close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .upload-modal-body {
+            padding: 32px;
+        }
+
+        .upload-area {
+            border: 3px dashed #cbd5e0;
+            border-radius: 16px;
+            padding: 48px 24px;
+            text-align: center;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            transform: scale(1.02);
+        }
+
+        .upload-area.drag-over {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #e0e7ff 0%, #ddd6fe 100%);
+            transform: scale(1.02);
+        }
+
+        .upload-icon-large {
+            font-size: 64px;
+            margin-bottom: 16px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .upload-area h3 {
+            color: #1f2937;
+            margin: 0 0 8px 0;
+            font-size: 20px;
+        }
+
+        .upload-area p {
+            color: #6b7280;
+            margin: 0 0 24px 0;
+        }
+
+        .upload-area small {
+            color: #9ca3af;
+            font-size: 13px;
+            display: block;
+            margin-top: 16px;
+        }
+
+        .browse-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .browse-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .logo-preview {
+            text-align: center;
+        }
+
+        .logo-preview img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            margin-bottom: 24px;
+        }
+
+        .preview-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .upload-btn, .cancel-btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .cancel-btn {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .cancel-btn:hover {
+            background: #d1d5db;
+        }
+
+        .upload-progress {
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        #uploadStatus {
+            color: #6b7280;
+            font-weight: 600;
+        }
+    </style>
+
     <script src="{{ url_for('static', filename='js/layer4_sales.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sales_analytics.js') }}"></script>
     <script src="{{ url_for('static', filename='js/barcode_scanner.js') }}?v=2.0"></script>
