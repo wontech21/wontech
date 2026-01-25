@@ -46,6 +46,9 @@
 
         <!-- Navigation Tabs -->
         <nav class="nav-tabs">
+            {% if g.is_super_admin %}
+            <button class="tab-btn" onclick="window.location.href='/admin/dashboard'" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">⚡ Admin</button>
+            {% endif %}
             <button class="tab-btn active" onclick="showTab('inventory')">📊 Inventory</button>
             <button class="tab-btn" onclick="showTab('products')">🍔 Products</button>
             <button class="tab-btn" onclick="showTab('sales')">💰 Sales</button>
