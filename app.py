@@ -86,26 +86,61 @@ def ensure_database_initialized():
 
     if needs_init:
         print("🔧 Initializing database with tables...")
+        print(f"   Current working directory: {os.getcwd()}")
+        print(f"   __file__ location: {__file__}")
+        print(f"   master_db_path: {master_db_path}")
+
         try:
             # Delete empty database file if it exists
             if os.path.exists(master_db_path):
+                print(f"   Attempting to delete: {master_db_path}")
                 os.remove(master_db_path)
-                print("   Removed empty database file")
+                print(f"   ✓ Removed empty database file")
+
+            # Also clean up databases directory
+            databases_dir = os.path.join(base_dir, 'databases')
+            if os.path.exists(databases_dir):
+                import shutil
+                print(f"   Cleaning databases directory: {databases_dir}")
+                shutil.rmtree(databases_dir)
+                print("   ✓ Removed databases directory")
 
             # Use inline database creation (bulletproof, no external dependencies)
+            print("📝 Importing create_db_inline...")
             import create_db_inline
-            print("📝 Running inline database creation...")
+            print("📝 Running create_db_inline.create_databases()...")
             result = create_db_inline.create_databases()
-            if result:
-                print("✅ Database initialized successfully!")
+            print(f"📝 create_databases() returned: {result}")
+
+            # Verify it worked
+            if os.path.exists(master_db_path):
+                print(f"✓ master.db now exists at: {master_db_path}")
+                conn = sqlite3.connect(master_db_path)
+                cursor = conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                tables = [row[0] for row in cursor.fetchall()]
+                print(f"✓ Tables found: {tables}")
+                conn.close()
+                if 'organizations' in tables and 'users' in tables:
+                    print("✅ Database initialized successfully with all tables!")
+                else:
+                    print(f"⚠️  Missing tables! Expected organizations and users, got: {tables}")
             else:
-                print("❌ Database initialization returned False")
+                print(f"❌ master.db still doesn't exist after initialization!")
+
         except Exception as e:
-            print(f"❌ Database initialization failed: {e}")
+            print(f"❌ Database initialization failed with error: {type(e).__name__}: {e}")
             import traceback
+            print("Full traceback:")
             traceback.print_exc()
 
+print("\n" + "="*70)
+print("🚀 CALLING ensure_database_initialized() AT APP STARTUP")
+print("="*70)
 ensure_database_initialized()
+print("="*70)
+print("✅ FINISHED ensure_database_initialized()")
+print("="*70 + "\n")
 
 # Register multi-tenant blueprints
 app.register_blueprint(admin_bp)
@@ -223,6 +258,70 @@ def health_check():
         health_info['status'] = 'unhealthy'
 
     return jsonify(health_info), 200 if health_info['status'] == 'healthy' else 500
+
+@app.route('/force-reinit')
+def force_reinit():
+    """Force database reinitialization - FOR DEBUGGING ONLY"""
+    import shutil
+
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    master_db_path = os.path.join(base_dir, 'master.db')
+    databases_dir = os.path.join(base_dir, 'databases')
+
+    log = []
+    log.append(f"Base directory: {base_dir}")
+    log.append(f"Current working directory: {os.getcwd()}")
+
+    try:
+        # Delete databases
+        if os.path.exists(master_db_path):
+            os.remove(master_db_path)
+            log.append(f"✓ Deleted {master_db_path}")
+
+        if os.path.exists(databases_dir):
+            shutil.rmtree(databases_dir)
+            log.append(f"✓ Deleted {databases_dir}")
+
+        # Reinitialize
+        log.append("Running create_db_inline.create_databases()...")
+        import create_db_inline
+        result = create_db_inline.create_databases()
+        log.append(f"Result: {result}")
+
+        # Verify
+        if os.path.exists(master_db_path):
+            log.append(f"✓ master.db now exists")
+            conn = sqlite3.connect(master_db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = [row[0] for row in cursor.fetchall()]
+            log.append(f"✓ Tables: {tables}")
+
+            if 'organizations' in tables:
+                cursor.execute("SELECT COUNT(*) FROM organizations")
+                count = cursor.fetchone()[0]
+                log.append(f"✓ Organizations count: {count}")
+
+            if 'users' in tables:
+                cursor.execute("SELECT COUNT(*) FROM users")
+                count = cursor.fetchone()[0]
+                log.append(f"✓ Users count: {count}")
+
+            conn.close()
+
+        org1_path = os.path.join(databases_dir, 'org_1.db')
+        if os.path.exists(org1_path):
+            log.append(f"✓ org_1.db exists")
+        else:
+            log.append(f"❌ org_1.db missing!")
+
+        return jsonify({'status': 'success', 'log': log})
+
+    except Exception as e:
+        import traceback
+        log.append(f"❌ Error: {str(e)}")
+        log.append(traceback.format_exc())
+        return jsonify({'status': 'error', 'log': log}), 500
 
 def log_audit(action_type, entity_type, entity_id, entity_reference, details, user='System'):
     """Log an audit entry for tracking all system changes"""
