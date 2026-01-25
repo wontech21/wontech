@@ -879,7 +879,8 @@ def create_employee():
                 return jsonify({'error': f'User with email {data["email"]} already exists'}), 400
 
             # Create user account with role 'employee'
-            default_password = data.get('password', 'Welcome123!')  # Default password
+            password = data.get('password', '').strip()
+            default_password = password if password else 'Welcome123!'  # Use Welcome123! if empty
             password_hash = hash_password(default_password)
 
             cursor_master.execute("""
@@ -994,6 +995,7 @@ def update_employee(employee_id):
                 salary = ?,
                 employment_type = ?,
                 status = ?,
+                employee_code = ?,
                 address = ?,
                 city = ?,
                 state = ?,
@@ -1011,10 +1013,11 @@ def update_employee(employee_id):
             data.get('position', employee['position']),
             data.get('department', employee['department']),
             data.get('hire_date', employee['hire_date']),
-            float(data.get('hourly_rate', employee['hourly_rate'])),
-            float(data.get('salary', employee['salary'])),
+            float(data.get('hourly_rate', employee['hourly_rate'] or 0)),
+            float(data.get('salary', employee['salary'] or 0)),
             data.get('employment_type', employee['employment_type']),
             data.get('status', employee['status']),
+            data.get('employee_code', employee['employee_code']),
             data.get('address', employee['address']),
             data.get('city', employee['city']),
             data.get('state', employee['state']),
@@ -1027,9 +1030,12 @@ def update_employee(employee_id):
         ))
 
         conn.commit()
-        conn.close()
 
-        log_audit('updated_employee', 'employee', employee_id, f"{data.get('first_name')} {data.get('last_name')}")
+        employee_name = f"{data.get('first_name')} {data.get('last_name')}"
+
+        log_audit('updated_employee', 'employee', employee_id, employee_name, f"Updated employee {employee_name}")
+
+        conn.close()
 
         return jsonify({
             'success': True,
@@ -1100,6 +1106,546 @@ def delete_employee(employee_id):
         traceback.print_exc()
         return jsonify({'error': f'Failed to delete employee: {str(e)}'}), 500
 
+# ==================== ATTENDANCE ENDPOINTS ====================
+
+def get_current_employee_id():
+    """Get employee ID from either regular login or clock terminal session"""
+    # Check if using clock terminal session
+    if 'clock_employee_id' in session:
+        return session['clock_employee_id']
+
+    # Check if regular employee login
+    if hasattr(g, 'user') and g.user:
+        conn = get_org_db()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id FROM employees
+            WHERE user_id = ? AND organization_id = ?
+        """, (g.user['id'], g.organization['id']))
+        employee = cursor.fetchone()
+        conn.close()
+        return employee['id'] if employee else None
+
+    return None
+
+@app.route('/api/attendance/status', methods=['GET'])
+@organization_required
+def get_attendance_status():
+    """Get current attendance status for logged-in employee"""
+    employee_id = get_current_employee_id()
+
+    if not employee_id:
+        return jsonify({'error': 'Employee not authenticated'}), 401
+
+    conn = get_org_db()
+    cursor = conn.cursor()
+
+    try:
+        # Get current open attendance record
+        cursor.execute("""
+            SELECT * FROM attendance
+            WHERE employee_id = ? AND clock_out IS NULL
+            ORDER BY clock_in DESC
+            LIMIT 1
+        """, (employee_id,))
+
+        current_record = cursor.fetchone()
+        conn.close()
+
+        if current_record:
+            return jsonify({
+                'success': True,
+                'status': current_record['status'],
+                'clock_in': current_record['clock_in'],
+                'break_start': current_record['break_start'],
+                'break_end': current_record['break_end'],
+                'attendance_id': current_record['id']
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'status': 'clocked_out'
+            })
+
+    except Exception as e:
+        conn.close()
+        print(f"Error getting attendance status: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/attendance/clock-in', methods=['POST'])
+@organization_required
+def clock_in():
+    """Clock in employee"""
+    employee_id = get_current_employee_id()
+
+    if not employee_id:
+        return jsonify({'error': 'Employee not authenticated'}), 401
+
+    conn = get_org_db()
+    cursor = conn.cursor()
+
+    try:
+        # Get employee info for audit logging
+        cursor.execute("""
+            SELECT id, first_name, last_name FROM employees
+            WHERE id = ? AND organization_id = ?
+        """, (employee_id, g.organization['id']))
+
+        employee = cursor.fetchone()
+        if not employee:
+            conn.close()
+            return jsonify({'error': 'Employee record not found'}), 404
+
+        # Check if already clocked in
+        cursor.execute("""
+            SELECT id FROM attendance
+            WHERE employee_id = ? AND clock_out IS NULL
+        """, (employee_id,))
+
+        if cursor.fetchone():
+            conn.close()
+            return jsonify({'error': 'Already clocked in'}), 400
+
+        # Create new attendance record
+        user_id = g.user['id'] if g.user else None
+        cursor.execute("""
+            INSERT INTO attendance (
+                organization_id, employee_id, user_id, clock_in, status
+            ) VALUES (?, ?, ?, datetime('now', 'localtime'), 'clocked_in')
+        """, (g.organization['id'], employee_id, user_id))
+
+        attendance_id = cursor.lastrowid
+        conn.commit()
+
+        # Log audit entry
+        employee_name = f"{employee['first_name']} {employee['last_name']}"
+        log_audit('clock_in', 'attendance', attendance_id, employee_name, "Clocked in")
+
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': 'Clocked in successfully',
+            'attendance_id': attendance_id
+        })
+
+    except Exception as e:
+        try:
+            conn.rollback()
+        except:
+            pass
+        conn.close()
+        print(f"Error clocking in: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/attendance/clock-out', methods=['POST'])
+@organization_required
+def clock_out():
+    """Clock out employee"""
+    employee_id = get_current_employee_id()
+
+    if not employee_id:
+        return jsonify({'error': 'Employee not authenticated'}), 401
+
+    conn = get_org_db()
+    cursor = conn.cursor()
+
+    try:
+        # Get employee info for audit logging
+        cursor.execute("""
+            SELECT id, first_name, last_name FROM employees
+            WHERE id = ? AND organization_id = ?
+        """, (employee_id, g.organization['id']))
+
+        employee = cursor.fetchone()
+        if not employee:
+            conn.close()
+            return jsonify({'error': 'Employee record not found'}), 404
+
+        # Get current open attendance record
+        cursor.execute("""
+            SELECT * FROM attendance
+            WHERE employee_id = ? AND clock_out IS NULL
+            ORDER BY clock_in DESC
+            LIMIT 1
+        """, (employee_id,))
+
+        record = cursor.fetchone()
+        if not record:
+            conn.close()
+            return jsonify({'error': 'Not clocked in'}), 400
+
+        # Calculate total hours
+        cursor.execute("""
+            UPDATE attendance
+            SET clock_out = datetime('now', 'localtime'),
+                status = 'clocked_out',
+                total_hours = ROUND((julianday(datetime('now', 'localtime')) - julianday(clock_in)) * 24, 2),
+                updated_at = datetime('now', 'localtime')
+            WHERE id = ?
+        """, (record['id'],))
+
+        conn.commit()
+
+        # Get updated record to return total hours
+        cursor.execute("SELECT total_hours FROM attendance WHERE id = ?", (record['id'],))
+        updated = cursor.fetchone()
+
+        # Log audit entry
+        employee_name = f"{employee['first_name']} {employee['last_name']}"
+        log_audit('clock_out', 'attendance', record['id'], employee_name, f"Clocked out ({updated['total_hours']} hrs)")
+
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': 'Clocked out successfully',
+            'total_hours': updated['total_hours']
+        })
+
+    except Exception as e:
+        try:
+            conn.rollback()
+        except:
+            pass
+        conn.close()
+        print(f"Error clocking out: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/attendance/break-start', methods=['POST'])
+@organization_required
+def break_start():
+    """Start break"""
+    employee_id = get_current_employee_id()
+
+    if not employee_id:
+        return jsonify({'error': 'Employee not authenticated'}), 401
+
+    conn = get_org_db()
+    cursor = conn.cursor()
+
+    try:
+        # Get employee info for audit logging
+        cursor.execute("""
+            SELECT id, first_name, last_name FROM employees
+            WHERE id = ? AND organization_id = ?
+        """, (employee_id, g.organization['id']))
+
+        employee = cursor.fetchone()
+        if not employee:
+            conn.close()
+            return jsonify({'error': 'Employee record not found'}), 404
+
+        # Get current open attendance record
+        cursor.execute("""
+            SELECT * FROM attendance
+            WHERE employee_id = ? AND clock_out IS NULL
+            ORDER BY clock_in DESC
+            LIMIT 1
+        """, (employee_id,))
+
+        record = cursor.fetchone()
+        if not record:
+            conn.close()
+            return jsonify({'error': 'Not clocked in'}), 400
+
+        if record['break_start'] and not record['break_end']:
+            conn.close()
+            return jsonify({'error': 'Already on break'}), 400
+
+        # Start break
+        cursor.execute("""
+            UPDATE attendance
+            SET break_start = datetime('now', 'localtime'),
+                status = 'on_break',
+                updated_at = datetime('now', 'localtime')
+            WHERE id = ?
+        """, (record['id'],))
+
+        conn.commit()
+
+        # Log audit entry
+        employee_name = f"{employee['first_name']} {employee['last_name']}"
+        log_audit('break_start', 'attendance', record['id'], employee_name, "Started break")
+
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': 'Break started'
+        })
+
+    except Exception as e:
+        try:
+            conn.rollback()
+        except:
+            pass
+        conn.close()
+        print(f"Error starting break: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/attendance/break-end', methods=['POST'])
+@organization_required
+def break_end():
+    """End break"""
+    employee_id = get_current_employee_id()
+
+    if not employee_id:
+        return jsonify({'error': 'Employee not authenticated'}), 401
+
+    conn = get_org_db()
+    cursor = conn.cursor()
+
+    try:
+        # Get employee info for audit logging
+        cursor.execute("""
+            SELECT id, first_name, last_name FROM employees
+            WHERE id = ? AND organization_id = ?
+        """, (employee_id, g.organization['id']))
+
+        employee = cursor.fetchone()
+        if not employee:
+            conn.close()
+            return jsonify({'error': 'Employee record not found'}), 404
+
+        # Get current open attendance record
+        cursor.execute("""
+            SELECT * FROM attendance
+            WHERE employee_id = ? AND clock_out IS NULL
+            ORDER BY clock_in DESC
+            LIMIT 1
+        """, (employee['id'],))
+
+        record = cursor.fetchone()
+        if not record:
+            conn.close()
+            return jsonify({'error': 'Not clocked in'}), 400
+
+        if not record['break_start'] or record['break_end']:
+            conn.close()
+            return jsonify({'error': 'Not on break'}), 400
+
+        # End break and calculate duration
+        cursor.execute("""
+            UPDATE attendance
+            SET break_end = datetime('now', 'localtime'),
+                status = 'clocked_in',
+                break_duration = CAST((julianday(datetime('now', 'localtime')) - julianday(break_start)) * 1440 AS INTEGER),
+                updated_at = datetime('now', 'localtime')
+            WHERE id = ?
+        """, (record['id'],))
+
+        conn.commit()
+
+        # Log audit entry
+        employee_name = f"{employee['first_name']} {employee['last_name']}"
+        log_audit('break_end', 'attendance', record['id'], employee_name, "Ended break")
+
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': 'Break ended'
+        })
+
+    except Exception as e:
+        try:
+            conn.rollback()
+        except:
+            pass
+        conn.close()
+        print(f"Error ending break: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/attendance/history', methods=['GET'])
+@login_required
+@organization_required
+def get_attendance_history():
+    """Get attendance history for employee or all employees (admin)"""
+    conn = get_org_db()
+    cursor = conn.cursor()
+
+    try:
+        # Check if admin is requesting all attendance or employee is requesting their own
+        if g.user['role'] in ['organization_admin', 'super_admin']:
+            # Admin can see all attendance
+            cursor.execute("""
+                SELECT a.*, e.first_name, e.last_name, e.employee_code
+                FROM attendance a
+                JOIN employees e ON a.employee_id = e.id
+                WHERE a.organization_id = ?
+                ORDER BY a.clock_in DESC
+                LIMIT 100
+            """, (g.organization['id'],))
+        else:
+            # Employee can only see their own attendance
+            cursor.execute("""
+                SELECT id FROM employees
+                WHERE user_id = ? AND organization_id = ?
+            """, (g.user['id'], g.organization['id']))
+
+            employee = cursor.fetchone()
+            if not employee:
+                conn.close()
+                return jsonify({'error': 'Employee record not found'}), 404
+
+            cursor.execute("""
+                SELECT a.*, e.first_name, e.last_name, e.employee_code
+                FROM attendance a
+                JOIN employees e ON a.employee_id = e.id
+                WHERE a.employee_id = ?
+                ORDER BY a.clock_in DESC
+                LIMIT 100
+            """, (employee['id'],))
+
+        records = cursor.fetchall()
+        conn.close()
+
+        # Format records with employee_name for frontend
+        formatted_records = []
+        for record in records:
+            record_dict = dict(record)
+            record_dict['employee_name'] = f"{record_dict.get('first_name', '')} {record_dict.get('last_name', '')}".strip()
+            formatted_records.append(record_dict)
+
+        return jsonify({
+            'success': True,
+            'attendance': formatted_records
+        })
+
+    except Exception as e:
+        conn.close()
+        print(f"Error getting attendance history: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/attendance/<int:attendance_id>', methods=['GET'])
+@login_required
+@organization_required
+def get_attendance_record(attendance_id):
+    """Get a specific attendance record (for editing)"""
+    # Only admins can view/edit attendance records
+    if g.user['role'] not in ['organization_admin', 'super_admin']:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    conn = get_org_db()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            SELECT a.*, e.first_name, e.last_name, e.employee_code
+            FROM attendance a
+            JOIN employees e ON a.employee_id = e.id
+            WHERE a.id = ? AND a.organization_id = ?
+        """, (attendance_id, g.organization['id']))
+
+        record = cursor.fetchone()
+        conn.close()
+
+        if not record:
+            return jsonify({'error': 'Attendance record not found'}), 404
+
+        record_dict = dict(record)
+        record_dict['employee_name'] = f"{record_dict.get('first_name', '')} {record_dict.get('last_name', '')}".strip()
+
+        return jsonify({
+            'success': True,
+            'attendance': record_dict
+        })
+
+    except Exception as e:
+        conn.close()
+        print(f"Error getting attendance record: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/attendance/<int:attendance_id>', methods=['PUT'])
+@login_required
+@organization_required
+def update_attendance_record(attendance_id):
+    """Update an attendance record (admin only)"""
+    # Only admins can edit attendance records
+    if g.user['role'] not in ['organization_admin', 'super_admin']:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    data = request.json
+
+    conn = get_org_db()
+    cursor = conn.cursor()
+
+    try:
+        # Verify record exists and belongs to this organization
+        cursor.execute("""
+            SELECT * FROM attendance
+            WHERE id = ? AND organization_id = ?
+        """, (attendance_id, g.organization['id']))
+
+        record = cursor.fetchone()
+        if not record:
+            conn.close()
+            return jsonify({'error': 'Attendance record not found'}), 404
+
+        # Calculate total hours if clock_in and clock_out are provided
+        total_hours = data.get('total_hours', record['total_hours'])
+        if data.get('clock_in') and data.get('clock_out'):
+            from datetime import datetime
+            clock_in = datetime.fromisoformat(data['clock_in'].replace('Z', '+00:00'))
+            clock_out = datetime.fromisoformat(data['clock_out'].replace('Z', '+00:00'))
+            total_seconds = (clock_out - clock_in).total_seconds()
+            # Subtract break duration (in seconds)
+            break_duration_seconds = int(data.get('break_duration', record['break_duration'] or 0)) * 60
+            total_seconds -= break_duration_seconds
+            total_hours = max(0, total_seconds / 3600)  # Convert to hours
+
+        # Update attendance record
+        cursor.execute("""
+            UPDATE attendance
+            SET clock_in = ?,
+                clock_out = ?,
+                break_start = ?,
+                break_end = ?,
+                total_hours = ?,
+                break_duration = ?,
+                status = ?,
+                notes = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND organization_id = ?
+        """, (
+            data.get('clock_in', record['clock_in']),
+            data.get('clock_out', record['clock_out']),
+            data.get('break_start', record['break_start']),
+            data.get('break_end', record['break_end']),
+            total_hours,
+            data.get('break_duration', record['break_duration']),
+            data.get('status', record['status']),
+            data.get('notes', record['notes']),
+            attendance_id,
+            g.organization['id']
+        ))
+
+        conn.commit()
+
+        # Get employee name for audit log
+        cursor.execute("SELECT first_name, last_name FROM employees WHERE id = ?", (record['employee_id'],))
+        employee = cursor.fetchone()
+        employee_name = f"{employee['first_name']} {employee['last_name']}" if employee else "Unknown"
+
+        log_audit('updated_attendance', 'attendance', attendance_id, employee_name,
+                 f"Updated attendance record for {employee_name}")
+
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': 'Attendance record updated successfully'
+        })
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        print(f"Error updating attendance record: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to update attendance: {str(e)}'}), 500
+
 @app.route('/')
 def index():
     """Main dashboard - redirect based on authentication"""
@@ -1108,6 +1654,183 @@ def index():
 
     # Redirect all authenticated users to dashboard
     return redirect('/dashboard')
+
+@app.route('/clock/<int:org_id>')
+def employee_clock_login_page_with_org(org_id):
+    """Clock terminal login for specific organization"""
+    # Verify organization exists and set context
+    master_conn = get_master_db()
+    cursor = master_conn.cursor()
+    cursor.execute("SELECT * FROM organizations WHERE id = ?", (org_id,))
+    org = cursor.fetchone()
+    master_conn.close()
+
+    if not org:
+        return "Organization not found", 404
+
+    # Store org in session for clock terminal
+    session['clock_org_id'] = org['id']
+
+    # Set g.organization for template
+    g.organization = dict(org)
+
+    # If already logged in, go to clock page
+    if 'clock_employee_id' in session:
+        return redirect('/employee/clock')
+
+    return render_template('employee_clock_login.html')
+
+@app.route('/employee/clock/login-page')
+def employee_clock_login_page():
+    """Show employee code login page for clock terminal"""
+    # If already logged in via clock terminal, redirect to clock page
+    if 'clock_employee_id' in session and 'clock_org_id' in session:
+        return redirect('/employee/clock')
+
+    # Check if org is in session from previous access
+    if 'clock_org_id' in session:
+        master_conn = get_master_db()
+        cursor = master_conn.cursor()
+        cursor.execute("SELECT * FROM organizations WHERE id = ?", (session['clock_org_id'],))
+        org = cursor.fetchone()
+        master_conn.close()
+        if org:
+            g.organization = dict(org)
+            return render_template('employee_clock_login.html')
+
+    # Check if organization context is available from middleware
+    if hasattr(g, 'organization') and g.organization:
+        session['clock_org_id'] = g.organization['id']
+        return render_template('employee_clock_login.html')
+
+    # No organization context - provide help
+    return """
+    <html>
+    <head><title>Clock Terminal</title>
+    <style>
+        body { font-family: Arial; text-align: center; padding: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; min-height: 100vh; }
+        .box { background: white; color: #333; padding: 40px; border-radius: 20px; max-width: 600px; margin: 0 auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        a { color: #667eea; text-decoration: none; font-weight: bold; }
+        code { background: #f4f4f4; padding: 5px 10px; border-radius: 5px; color: #667eea; }
+    </style>
+    </head>
+    <body>
+        <div class="box">
+            <h1>⏰ Clock Terminal</h1>
+            <p>To access the clock terminal, use:</p>
+            <p><code>http://localhost:5001/clock/1</code></p>
+            <p style="font-size: 0.9em; color: #666;">(Replace '1' with your organization ID)</p>
+            <br>
+            <a href="/login">← Back to Main Login</a>
+        </div>
+    </body>
+    </html>
+    """, 200
+
+@app.route('/employee/clock/login', methods=['POST'])
+def employee_clock_login():
+    """Authenticate employee by code for clock terminal"""
+    data = request.json
+    employee_code = data.get('employee_code', '').strip()
+
+    if not employee_code:
+        return jsonify({'error': 'Employee code required'}), 400
+
+    # Get organization ID from session or g context
+    org_id = session.get('clock_org_id')
+    if not org_id and hasattr(g, 'organization') and g.organization:
+        org_id = g.organization['id']
+
+    if not org_id:
+        return jsonify({'error': 'Organization context required. Please refresh the page.'}), 400
+
+    # Get organization database connection
+    import sqlite3
+    from db_manager import get_org_db_path
+
+    org_db_path = get_org_db_path(org_id)
+    conn = sqlite3.connect(org_db_path)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    # Find employee by code
+    cursor.execute("""
+        SELECT *
+        FROM employees
+        WHERE employee_code = ? AND organization_id = ? AND status = 'active'
+    """, (employee_code, org_id))
+
+    employee = cursor.fetchone()
+    conn.close()
+
+    if not employee:
+        return jsonify({'error': 'Invalid employee code'}), 401
+
+    # Create session for clock terminal (limited access)
+    session['clock_employee_id'] = employee['id']
+    session['clock_employee_code'] = employee['employee_code']
+    session['clock_employee_name'] = f"{employee['first_name']} {employee['last_name']}"
+    session['organization_id'] = org_id
+    session['clock_org_id'] = org_id  # Store for clock terminal access
+
+    return jsonify({'success': True, 'message': 'Login successful'})
+
+@app.route('/employee/clock')
+def employee_clock_terminal():
+    """Simple clock in/out terminal - employee code authenticated"""
+    # Get org_id from session for redirect
+    org_id = session.get('clock_org_id', 1)
+
+    # Check if authenticated via employee code
+    if 'clock_employee_id' not in session:
+        return redirect(f'/clock/{org_id}')
+
+    # Verify organization context
+    if 'organization_id' not in session:
+        return redirect(f'/clock/{org_id}')
+
+    # Get employee info from session
+    employee_info = {
+        'id': session.get('clock_employee_id'),
+        'employee_code': session.get('clock_employee_code'),
+        'first_name': session.get('clock_employee_name', '').split()[0] if session.get('clock_employee_name') else '',
+        'last_name': ' '.join(session.get('clock_employee_name', '').split()[1:]) if session.get('clock_employee_name') else ''
+    }
+
+    # Set g.user for template context (clock terminal mode)
+    g.user = {
+        'id': session.get('clock_employee_id'),
+        'first_name': employee_info['first_name'],
+        'last_name': employee_info['last_name'],
+        'role': 'employee'
+    }
+
+    return render_template('employee_portal.html', is_clock_terminal=True)
+
+@app.route('/employee/clock/logout')
+def employee_clock_logout():
+    """Logout from clock terminal"""
+    # Get org_id before clearing session
+    org_id = session.get('clock_org_id', 1)  # Default to org 1 if not found
+
+    # Clear employee session but keep organization context
+    session.pop('clock_employee_id', None)
+    session.pop('clock_employee_code', None)
+    session.pop('clock_employee_name', None)
+    # Keep clock_org_id and organization_id in session
+
+    return redirect(f'/clock/{org_id}')
+
+@app.route('/employee/portal')
+@login_required
+@organization_required
+def employee_portal():
+    """Comprehensive employee portal with email/password login"""
+    # Verify user is an employee
+    if not hasattr(g, 'user') or not g.user or g.user.get('role') != 'employee':
+        return redirect('/dashboard')
+
+    return render_template('employee/portal.html', is_clock_terminal=False)
 
 @app.route('/dashboard')
 @login_required

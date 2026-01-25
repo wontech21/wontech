@@ -59,13 +59,7 @@ function displayEmployees(employees) {
     const tbody = document.getElementById('employeesTableBody');
 
     if (!employees || employees.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="8" class="loading" style="color: #6b7280;">
-                    No employees found
-                </td>
-            </tr>
-        `;
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="color: #6b7280; padding: 40px;">No employees found</td></tr>';
         updateEmployeesPagination(0);
         return;
     }
@@ -81,36 +75,37 @@ function displayEmployees(employees) {
 
     tbody.innerHTML = paginatedEmployees.map(emp => {
         const fullName = `${emp.first_name} ${emp.last_name}`;
-        const statusClass = emp.status === 'active' ? 'status-active' : 'status-inactive';
-        const statusText = emp.status === 'active' ? '✓ Active' : '✕ Inactive';
+        const statusClass = emp.status === 'active' ? 'badge-success' : 'badge-secondary';
+        const statusIcon = emp.status === 'active' ? '●' : '○';
 
         return `
-        <tr>
+        <tr class="hoverable-row">
             <td><strong style="color: #667eea;">${emp.employee_code}</strong></td>
             <td><strong>${fullName}</strong></td>
             <td>${emp.position || '<span style="color: #9ca3af;">—</span>'}</td>
             <td>${emp.email || '<span style="color: #9ca3af;">—</span>'}</td>
             <td>${emp.phone || '<span style="color: #9ca3af;">—</span>'}</td>
             <td>
-                <span class="status-badge ${statusClass}">
-                    ${statusText}
+                <span class="badge ${statusClass}">
+                    ${statusIcon} ${emp.status.charAt(0).toUpperCase() + emp.status.slice(1)}
                 </span>
             </td>
-            <td style="text-align: center;">
+            <td class="text-center">
                 ${emp.user_id
-                    ? '<span style="color: #10b981; font-weight: 600;">✓ Yes</span>'
-                    : '<span style="color: #9ca3af;">✕ No</span>'}
+                    ? '<span style="color: #10b981; font-weight: 600;">✓</span>'
+                    : '<span style="color: #9ca3af;">—</span>'}
             </td>
-            <td>
-                <div class="action-buttons">
-                    <button onclick="editEmployee(${emp.id})" class="btn-edit" title="Edit Employee">
-                        ✏️ Edit
-                    </button>
-                    <button onclick="deleteEmployee(${emp.id}, '${fullName.replace(/'/g, "\\'")}')"
-                            class="btn-delete" title="Deactivate Employee">
-                        🗑️ Delete
-                    </button>
-                </div>
+            <td class="actions-cell">
+                <button class="btn-edit-dark"
+                        onclick="editEmployee(${emp.id})"
+                        title="Edit Employee">
+                    <span style="font-weight: 700;">✏️</span>
+                </button>
+                <button class="btn-delete-dark"
+                        onclick="deleteEmployee(${emp.id}, '${fullName.replace(/'/g, "\\'")}')"
+                        title="Delete Employee">
+                    <span style="font-weight: 700;">🗑️</span>
+                </button>
             </td>
         </tr>
     `;
@@ -128,10 +123,8 @@ function openCreateEmployeeModal() {
     document.getElementById('employeeModalTitle').textContent = 'Add New Employee';
     document.getElementById('employeeForm').reset();
     document.getElementById('employeeId').value = '';
-    document.getElementById('passwordFieldGroup').style.display = 'none';
-    document.getElementById('createUserAccount').checked = false;
     document.getElementById('employeeFormError').style.display = 'none';
-    document.getElementById('employeeModal').style.display = 'block';
+    document.getElementById('employeeModal').classList.add('active');
 }
 
 function editEmployee(employeeId) {
@@ -156,11 +149,8 @@ function editEmployee(employeeId) {
                 document.getElementById('employeeHireDate').value = emp.hire_date || '';
                 document.getElementById('employeeHourlyRate').value = emp.hourly_rate || '';
 
-                // Hide user account creation option when editing
-                document.getElementById('createUserAccount').parentElement.parentElement.style.display = 'none';
-
                 document.getElementById('employeeFormError').style.display = 'none';
-                document.getElementById('employeeModal').style.display = 'block';
+                document.getElementById('employeeModal').classList.add('active');
             } else {
                 showError('Failed to load employee details');
             }
@@ -172,17 +162,9 @@ function editEmployee(employeeId) {
 }
 
 function closeEmployeeModal() {
-    document.getElementById('employeeModal').style.display = 'none';
+    document.getElementById('employeeModal').classList.remove('active');
     document.getElementById('employeeForm').reset();
     currentEmployeeId = null;
-    // Show user account creation option again
-    document.getElementById('createUserAccount').parentElement.parentElement.style.display = 'block';
-}
-
-function togglePasswordField() {
-    const checkbox = document.getElementById('createUserAccount');
-    const passwordField = document.getElementById('passwordFieldGroup');
-    passwordField.style.display = checkbox.checked ? 'block' : 'none';
 }
 
 function saveEmployee(event) {
@@ -198,9 +180,7 @@ function saveEmployee(event) {
         email: document.getElementById('employeeEmail').value,
         phone: document.getElementById('employeePhone').value,
         hire_date: document.getElementById('employeeHireDate').value,
-        hourly_rate: document.getElementById('employeeHourlyRate').value || 0,
-        create_user_account: document.getElementById('createUserAccount')?.checked || false,
-        password: document.getElementById('employeePassword')?.value || ''
+        hourly_rate: document.getElementById('employeeHourlyRate').value || 0
     };
 
     const employeeId = document.getElementById('employeeId').value;

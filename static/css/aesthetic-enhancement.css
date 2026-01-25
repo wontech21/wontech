@@ -630,10 +630,33 @@ category icon system (🍞🥩🧀🥬 etc.)
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     padding: 8px 8px 0 8px;
     gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(102, 126, 234, 0.3) transparent;
+}
+
+.nav-tabs::-webkit-scrollbar {
+    height: 6px;
+}
+
+.nav-tabs::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.nav-tabs::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.3);
+    border-radius: 3px;
+}
+
+.nav-tabs::-webkit-scrollbar-thumb:hover {
+    background: rgba(102, 126, 234, 0.5);
 }
 
 .tab-btn {
-    flex: 1;
+    flex: 0 0 auto;
     padding: 16px 20px;
     background: transparent;
     border: none;
@@ -645,6 +668,7 @@ category icon system (🍞🥩🧀🥬 etc.)
     position: relative;
     color: #6c757d;
     min-width: 120px;
+    white-space: nowrap;
 }
 
 .tab-btn::before {

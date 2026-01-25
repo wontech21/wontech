@@ -475,6 +475,11 @@ function showTab(tabName) {
         case 'settings':
             loadSettings();
             break;
+        case 'employees':
+            if (typeof loadEmployees === 'function') {
+                loadEmployees();
+            }
+            break;
     }
 }
 

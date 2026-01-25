@@ -164,6 +164,25 @@ def set_tenant_context():
     """
     user = get_current_user()
 
+    # Check for clock terminal session (employee code login)
+    if not user and 'clock_employee_id' in session and 'clock_org_id' in session:
+        # Set minimal context for clock terminal
+        g.user = None
+        g.is_super_admin = False
+        g.is_organization_admin = False
+        g.is_employee = True
+
+        # Set organization from clock terminal session
+        org_id = session.get('clock_org_id')
+        g.organization = get_organization_by_id(org_id)
+
+        if g.organization:
+            from db_manager import get_org_db_path
+            g.org_db_path = get_org_db_path(g.organization['id'])
+        else:
+            g.org_db_path = None
+        return
+
     if not user:
         g.user = None
         g.organization = None

@@ -824,6 +824,140 @@ def get_organization_stats(org_id):
 
     return jsonify({'success': True, 'stats': stats})
 
+# ==========================================
+# CREATE ADMIN USER
+# ==========================================
+
+@admin_bp.route('/api/organizations/<int:org_id>/create-admin', methods=['POST'])
+@login_required
+@super_admin_required
+def create_admin_user(org_id):
+    """Create an admin user for an organization directly (no invitation)"""
+    data = request.json
+
+    required_fields = ['email', 'first_name', 'last_name', 'password']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({'error': f'Missing required field: {field}'}), 400
+
+    role = data.get('role', 'organization_admin')
+    if role not in ['organization_admin', 'employee']:
+        return jsonify({'error': 'Invalid role. Must be organization_admin or employee'}), 400
+
+    conn = get_master_db()
+    cursor = conn.cursor()
+
+    try:
+        # Verify organization exists
+        cursor.execute("SELECT id, organization_name FROM organizations WHERE id = ? AND active = 1", (org_id,))
+        org = cursor.fetchone()
+        if not org:
+            conn.close()
+            return jsonify({'error': 'Organization not found'}), 404
+
+        # Check if user already exists
+        cursor.execute("SELECT id FROM users WHERE email = ?", (data['email'],))
+        if cursor.fetchone():
+            conn.close()
+            return jsonify({'error': 'User with this email already exists'}), 400
+
+        # Hash password with salt
+        import hashlib
+        import secrets
+        salt = secrets.token_hex(16)
+        pwd_hash = hashlib.sha256((data['password'] + salt).encode()).hexdigest()
+        password_hash = f"{salt}${pwd_hash}"
+
+        # Get role permissions
+        cursor.execute("""
+            SELECT default_permissions FROM role_templates WHERE role_name = ?
+        """, (role,))
+
+        role_template = cursor.fetchone()
+        default_permissions = role_template['default_permissions'] if role_template else '["*"]'
+
+        # Create user in master database
+        cursor.execute("""
+            INSERT INTO users
+            (organization_id, email, password_hash, first_name, last_name, role, permissions, active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+        """, (
+            org_id,
+            data['email'],
+            password_hash,
+            data['first_name'],
+            data['last_name'],
+            role,
+            default_permissions
+        ))
+
+        user_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+
+        # If role is employee, also create employee record in organization database
+        if role == 'employee':
+            from db_manager import get_org_db_path
+            org_db_path = get_org_db_path(org_id)
+
+            if org_db_path and os.path.exists(org_db_path):
+                try:
+                    org_conn = sqlite3.connect(org_db_path)
+                    org_conn.row_factory = sqlite3.Row
+                    org_cursor = org_conn.cursor()
+
+                    # Check if employee code is provided and validate uniqueness
+                    employee_code = data.get('employee_code', None)
+                    if employee_code:
+                        org_cursor.execute("""
+                            SELECT id FROM employees WHERE employee_code = ? AND organization_id = ?
+                        """, (employee_code, org_id))
+                        if org_cursor.fetchone():
+                            org_conn.close()
+                            # Delete the user we just created in master DB since employee creation will fail
+                            master_conn = get_master_db()
+                            master_conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+                            master_conn.commit()
+                            master_conn.close()
+                            return jsonify({'error': f'Employee code {employee_code} already exists in this organization'}), 400
+
+                    # Create employee record
+                    org_cursor.execute("""
+                        INSERT INTO employees
+                        (organization_id, user_id, first_name, last_name, email, employee_code, status, employment_type)
+                        VALUES (?, ?, ?, ?, ?, ?, 'active', 'full-time')
+                    """, (
+                        org_id,
+                        user_id,
+                        data['first_name'],
+                        data['last_name'],
+                        data['email'],
+                        employee_code
+                    ))
+
+                    org_conn.commit()
+                    org_conn.close()
+                except Exception as e:
+                    print(f"Error creating employee record: {str(e)}")
+
+        log_audit('created_admin_user', 'user', user_id, {
+            'email': data['email'],
+            'role': role,
+            'organization_id': org_id,
+            'organization_name': org['organization_name']
+        })
+
+        return jsonify({
+            'success': True,
+            'user_id': user_id,
+            'message': f'User {data["email"]} created successfully for {org["organization_name"]}'
+        })
+
+    except sqlite3.Error as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+
 @admin_bp.route('/api/organizations/update', methods=['POST'])
 @login_required
 @super_admin_required

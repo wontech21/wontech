@@ -83,6 +83,7 @@
             {% endif %}
             {% if g.user.role in ['organization_admin', 'super_admin'] %}
             <button class="tab-btn" onclick="showTab('employees')">👥 Employees</button>
+            <button class="tab-btn" onclick="showTab('attendance')">⏰ Attendance</button>
             {% endif %}
         </nav>
 
@@ -871,6 +872,162 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
             </div>
         </div>
 
+        <!-- Employees Tab -->
+        {% if g.user.role in ['organization_admin', 'super_admin'] %}
+        <div id="employees-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Employee Management</h2>
+                <button class="btn btn-primary" onclick="openCreateEmployeeModal()">
+                    ➕ Add Employee
+                </button>
+            </div>
+
+            <div class="filters">
+                <select id="employeeStatusFilter" onchange="filterAndDisplayEmployees()">
+                    <option value="active">Active Employees</option>
+                    <option value="inactive">Inactive Employees</option>
+                    <option value="all">All Employees</option>
+                </select>
+                <input type="text" id="employeeSearch" placeholder="🔍 Search employees..."
+                       onkeyup="searchEmployees()" class="search-input" style="flex: 1; min-width: 250px;">
+            </div>
+
+            <div class="employees-section">
+                <div class="table-container">
+                    <table id="employeesTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortEmployeesTable(0, 'string')">Employee Code <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortEmployeesTable(1, 'string')">Name <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortEmployeesTable(2, 'string')">Position <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortEmployeesTable(3, 'string')">Email <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortEmployeesTable(4, 'string')">Phone <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortEmployeesTable(5, 'string')">Status <span class="sort-arrow"></span></th>
+                                <th>Login</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeesTableBody">
+                            <tr><td colspan="8" class="loading">Loading employees...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        <span id="employeesPaginationInfo">Showing 0-0 of 0 items</span>
+                    </div>
+                    <div class="pagination-controls">
+                        <label>Show:
+                            <select id="employeesPageSize" onchange="changeEmployeesPageSize()">
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="all">All</option>
+                            </select>
+                        </label>
+                        <div class="pagination-buttons">
+                            <button onclick="changeEmployeesPage('first')" id="employeesFirstPage">«</button>
+                            <button onclick="changeEmployeesPage('prev')" id="employeesPrevPage">‹</button>
+                            <span id="employeesPageNumbers"></span>
+                            <button onclick="changeEmployeesPage('next')" id="employeesNextPage">›</button>
+                            <button onclick="changeEmployeesPage('last')" id="employeesLastPage">»</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Tab -->
+        <div id="attendance-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Employee Attendance</h2>
+                <p class="subtitle">View and track all employee clock in/out records</p>
+            </div>
+
+            <div class="filters">
+                <select id="attendanceEmployeeFilter" onchange="filterAndDisplayAttendance()">
+                    <option value="all">All Employees</option>
+                </select>
+                <select id="attendanceStatusFilter" onchange="filterAndDisplayAttendance()">
+                    <option value="all">All Statuses</option>
+                    <option value="clocked_in">Clocked In</option>
+                    <option value="on_break">On Break</option>
+                    <option value="clocked_out">Clocked Out</option>
+                </select>
+                <input type="date" id="attendanceDateFrom" onchange="filterAndDisplayAttendance()" class="search-input" style="max-width: 180px;">
+                <input type="date" id="attendanceDateTo" onchange="filterAndDisplayAttendance()" class="search-input" style="max-width: 180px;">
+            </div>
+
+            <div class="attendance-section">
+                <div class="table-container">
+                    <table id="attendanceTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortAttendanceTable(0, 'string')">Employee <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortAttendanceTable(1, 'date')">Clock In <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortAttendanceTable(2, 'date')">Clock Out <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortAttendanceTable(3, 'number')">Total Hours <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortAttendanceTable(4, 'number')">Break Duration <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortAttendanceTable(5, 'string')">Status <span class="sort-arrow"></span></th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTableBody">
+                            <tr><td colspan="8" class="loading">Loading attendance records...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        <span id="attendancePaginationInfo">Showing 0-0 of 0 records</span>
+                    </div>
+                    <div class="pagination-controls">
+                        <label>Show:
+                            <select id="attendancePageSize" onchange="changeAttendancePageSize()">
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="all">All</option>
+                            </select>
+                        </label>
+                        <div class="pagination-buttons">
+                            <button onclick="changeAttendancePage('first')" id="attendanceFirstPage">«</button>
+                            <button onclick="changeAttendancePage('prev')" id="attendancePrevPage">‹</button>
+                            <span id="attendancePageNumbers"></span>
+                            <button onclick="changeAttendancePage('next')" id="attendanceNextPage">›</button>
+                            <button onclick="changeAttendancePage('last')" id="attendanceLastPage">»</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Stats -->
+            <div class="attendance-stats">
+                <div class="stat-card">
+                    <h4>Total Records</h4>
+                    <p id="statTotalRecords">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Total Hours Worked</h4>
+                    <p id="statTotalHours">0.0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Currently Clocked In</h4>
+                    <p id="statClockedIn">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>On Break</h4>
+                    <p id="statOnBreak">0</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Settings Tab -->
         <div id="settings-tab" class="tab-content">
             <div class="section-header">
@@ -1146,83 +1303,6 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
             <div id="categoriesPagination" style="margin-top: 15px;"></div>
         </div>
     </div>
-
-    <!-- Employees Tab -->
-    {% if g.user.role in ['organization_admin', 'super_admin'] %}
-    <div id="employees-tab" class="tab-content">
-        <div class="employees-content-wrapper">
-            <div class="page-header">
-                <h2 class="page-title">Employee Management</h2>
-                <button class="btn-create-primary" onclick="openCreateEmployeeModal()">
-                    <span class="btn-icon">+</span> Add Employee
-                </button>
-            </div>
-
-            <div class="section-header">
-                <p class="subtitle">Manage employee profiles, access, and workforce information</p>
-            </div>
-
-            <div class="filters">
-                <select id="employeeStatusFilter" onchange="loadEmployees()">
-                    <option value="active">Active Employees</option>
-                    <option value="inactive">Inactive Employees</option>
-                    <option value="all">All Employees</option>
-                </select>
-                <input type="text" id="employeeSearch" placeholder="🔍 Search by name, code, email, or position..."
-                       onkeyup="searchEmployees()" class="search-input" style="min-width: 300px;">
-            </div>
-
-            <div class="table-container">
-                <table id="employeesTable">
-                    <thead>
-                        <tr>
-                            <th class="sortable" onclick="sortEmployeesTable(0, 'string')">Employee Code <span class="sort-arrow"></span></th>
-                            <th class="sortable" onclick="sortEmployeesTable(1, 'string')">Name <span class="sort-arrow"></span></th>
-                            <th class="sortable" onclick="sortEmployeesTable(2, 'string')">Position <span class="sort-arrow"></span></th>
-                            <th class="sortable" onclick="sortEmployeesTable(3, 'string')">Email <span class="sort-arrow"></span></th>
-                            <th class="sortable" onclick="sortEmployeesTable(4, 'string')">Phone <span class="sort-arrow"></span></th>
-                            <th class="sortable" onclick="sortEmployeesTable(5, 'string')">Status <span class="sort-arrow"></span></th>
-                            <th>Login Access</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="employeesTableBody">
-                        <tr>
-                            <td colspan="8" class="loading">
-                                <div class="loading-spinner"></div>
-                                Loading employees...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination Controls -->
-            <div class="pagination-container">
-                <div class="pagination-info">
-                    <span id="employeesPaginationInfo">Showing 0-0 of 0 employees</span>
-                </div>
-                <div class="pagination-controls">
-                    <label>Show:
-                        <select id="employeesPageSize" onchange="changeEmployeesPageSize()">
-                            <option value="10" selected>10</option>
-                            <option value="25">25</option>
-                            <option value="50">50</option>
-                            <option value="all">All</option>
-                        </select>
-                    </label>
-                    <div class="pagination-buttons">
-                        <button onclick="changeEmployeesPage('first')" id="employeesFirstPage">«</button>
-                        <button onclick="changeEmployeesPage('prev')" id="employeesPrevPage">‹</button>
-                        <span id="employeesPageNumbers"></span>
-                        <button onclick="changeEmployeesPage('next')" id="employeesNextPage">›</button>
-                        <button onclick="changeEmployeesPage('last')" id="employeesLastPage">»</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
 
     <!-- Tooltip Container -->
     <div id="tooltip" class="tooltip">
@@ -2293,30 +2373,6 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                         </div>
                     </div>
 
-                    <!-- System Access -->
-                    <div class="form-section">
-                        <h3>🔐 System Access</h3>
-                        <div class="access-checkbox-group">
-                            <label class="checkbox-container">
-                                <input type="checkbox" id="createUserAccount" name="create_user_account"
-                                       onchange="togglePasswordField()">
-                                <span class="checkbox-label">
-                                    <strong>Create login account for this employee</strong>
-                                    <small>Allow employee to log in and access the inventory system</small>
-                                </span>
-                            </label>
-
-                            <div id="passwordFieldGroup" class="password-field-group" style="display: none;">
-                                <div class="form-group">
-                                    <label>Initial Password</label>
-                                    <input type="password" id="employeePassword" name="password"
-                                           class="form-control" placeholder="Default: Welcome123!">
-                                    <small class="form-text">Employee can change this after first login. Default: Welcome123!</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <div id="employeeFormError" class="error-message" style="display: none;"></div>
 
                     <div class="modal-actions">
@@ -2324,6 +2380,68 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                             💾 Save Employee
                         </button>
                         <button type="button" class="btn btn-secondary" onclick="closeEmployeeModal()">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Attendance Modal -->
+    <div id="editAttendanceModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✏️ Edit Timesheet</h2>
+                <button class="modal-close" onclick="closeEditAttendanceModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editAttendanceForm" onsubmit="saveAttendanceEdit(event)">
+                    <input type="hidden" id="attendanceId" name="attendance_id">
+
+                    <div class="form-group">
+                        <label>Employee</label>
+                        <input type="text" id="attendanceEmployeeName" name="employee_name" readonly class="form-control" style="background: #f3f4f6; cursor: not-allowed;">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Clock In *</label>
+                            <input type="datetime-local" id="attendanceClockIn" name="clock_in" required class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Clock Out *</label>
+                            <input type="datetime-local" id="attendanceClockOut" name="clock_out" required class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Break Duration (minutes)</label>
+                            <input type="number" id="attendanceBreakDuration" name="break_duration" min="0" class="form-control" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="attendanceStatus" name="status" class="form-control">
+                                <option value="clocked_out">Clocked Out</option>
+                                <option value="clocked_in">Clocked In</option>
+                                <option value="on_break">On Break</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <textarea id="attendanceNotes" name="notes" rows="3" class="form-control" placeholder="Any notes about this timesheet entry..."></textarea>
+                    </div>
+
+                    <div id="attendanceFormError" class="error-message" style="display: none;"></div>
+
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-primary" id="saveAttendanceBtn">
+                            💾 Save Changes
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeEditAttendanceModal()">
                             Cancel
                         </button>
                     </div>
@@ -2589,24 +2707,6 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
 
     <style>
         /* Employee Management Specific Styles */
-        .employees-content-wrapper {
-            background: rgba(249, 250, 251, 0.6);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 16px;
-            padding: 30px;
-            margin: -15px;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-
-        .employees-content-wrapper .page-header {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
-            padding: 20px;
-            margin: -30px -30px 25px -30px;
-            border-radius: 16px 16px 0 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
         .form-section {
             margin-bottom: 30px;
             padding: 20px;
@@ -2686,68 +2786,6 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
             color: #6b7280;
         }
 
-        /* Employee table action buttons */
-        .action-buttons {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-        }
-
-        .btn-edit {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-
-        .btn-edit:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-delete {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-
-        .btn-delete:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
-        }
-
-        /* Status badges for employees */
-        .status-active {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            display: inline-block;
-        }
-
-        .status-inactive {
-            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            display: inline-block;
-        }
-
         /* Employee search input styling */
         .search-input {
             padding: 10px 16px;
@@ -2764,9 +2802,60 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
         }
     </style>
 
+    <style>
+        /* Attendance Management Specific Styles */
+        .attendance-section {
+            margin-top: 20px;
+        }
+
+        .attendance-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+            padding: 20px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.35);
+        }
+
+        .stat-card h4 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card p {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .badge-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: white;
+        }
+    </style>
+
     <script src="{{ url_for('static', filename='js/layer4_sales.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sales_analytics.js') }}"></script>
     <script src="{{ url_for('static', filename='js/barcode_scanner.js') }}?v=2.0"></script>
     <script src="{{ url_for('static', filename='js/employees.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/attendance.js') }}"></script>
 </body>
 </html>

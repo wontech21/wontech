@@ -234,7 +234,7 @@
 
         .search-box input {
             width: 100%;
-            padding: 12px 20px 12px 45px;
+            padding: 12px 20px 12px 40px;
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 12px;
             font-size: 14px;
@@ -523,7 +523,6 @@
                         <div class="org-card-header">
                             <div>
                                 <div class="org-name">{{ org.organization_name }}</div>
-                                <div class="org-slug">{{ org.slug }}.firingup.com</div>
                             </div>
                             <span class="org-status {{ 'active' if org.subscription_status == 'active' else 'inactive' }}">
                                 {{ org.subscription_status }}
@@ -817,6 +816,13 @@
 
                 <!-- Users Tab -->
                 <div id="manageTab-users" class="manage-tab-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0; color: white;">Users</h3>
+                        <button class="admin-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;" onclick="openAddUserModal()">
+                            <span class="btn-icon">👤</span>
+                            Add User
+                        </button>
+                    </div>
                     <div class="users-list" id="orgUsersList">
                         <div style="text-align: center; padding: 40px; color: rgba(255, 255, 255, 0.6);">
                             Loading users...
@@ -988,6 +994,26 @@
             padding-top: 24px;
             border-top: 1px solid rgba(255, 255, 255, 0.2);
             justify-content: flex-end;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        .success-message {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #6ee7b7;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 14px;
         }
 
         .modal-btn {
@@ -1240,6 +1266,68 @@
             background: rgba(255, 255, 255, 0.4);
         }
     </style>
+
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="modal" style="display: none;">
+        <div class="modal-content glass-modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>👤 Add User</h2>
+                <button class="modal-close" onclick="closeAddUserModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm" onsubmit="submitAddUser(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>First Name *</label>
+                            <input type="text" id="user_first_name" name="first_name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Last Name *</label>
+                            <input type="text" id="user_last_name" name="last_name" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email Address *</label>
+                        <input type="email" id="user_email" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Password *</label>
+                        <input type="password" id="user_password" name="password" required minlength="6">
+                        <small style="color: rgba(255, 255, 255, 0.6); font-size: 12px;">Minimum 6 characters</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Role *</label>
+                        <select id="user_role" name="role" required onchange="toggleEmployeeCodeField()">
+                            <option value="organization_admin">Organization Admin</option>
+                            <option value="employee">Employee</option>
+                        </select>
+                    </div>
+
+                    <div id="employeeCodeFieldGroup" class="form-group" style="display: none;">
+                        <label>Employee Code (4 digits)</label>
+                        <input type="text" id="user_employee_code" name="employee_code" pattern="[0-9]{4}" maxlength="4" placeholder="e.g., 1234">
+                        <small style="color: rgba(255, 255, 255, 0.6); font-size: 12px;">4-digit code for clock terminal access</small>
+                    </div>
+
+                    <div id="addUserError" class="error-message" style="display: none;"></div>
+                    <div id="addUserSuccess" class="success-message" style="display: none;"></div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="admin-btn" style="background: #6b7280; color: white;" onclick="closeAddUserModal()">
+                            Cancel
+                        </button>
+                        <button type="submit" class="admin-btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+                            <span class="btn-icon">✓</span>
+                            Create User
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script>
         function filterOrganizations() {
@@ -1632,6 +1720,81 @@
                 document.getElementById('orgSearch').focus();
             }
         });
+
+        // Add User Modal Functions
+        function openAddUserModal() {
+            const modal = document.getElementById('addUserModal');
+            modal.style.display = 'flex';
+            document.getElementById('addUserForm').reset();
+            document.getElementById('addUserError').style.display = 'none';
+            document.getElementById('addUserSuccess').style.display = 'none';
+            document.getElementById('employeeCodeFieldGroup').style.display = 'none';
+        }
+
+        function closeAddUserModal() {
+            const modal = document.getElementById('addUserModal');
+            modal.style.display = 'none';
+            document.getElementById('addUserForm').reset();
+        }
+
+        function toggleEmployeeCodeField() {
+            const role = document.getElementById('user_role').value;
+            const employeeCodeField = document.getElementById('employeeCodeFieldGroup');
+
+            if (role === 'employee') {
+                employeeCodeField.style.display = 'block';
+            } else {
+                employeeCodeField.style.display = 'none';
+                document.getElementById('user_employee_code').value = '';
+            }
+        }
+
+        function submitAddUser(event) {
+            event.preventDefault();
+
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+
+            const errorDiv = document.getElementById('addUserError');
+            const successDiv = document.getElementById('addUserSuccess');
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            // Submit to API
+            fetch(`/admin/api/organizations/${currentManageOrgId}/create-admin`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    successDiv.textContent = '✅ ' + data.message;
+                    successDiv.style.display = 'block';
+                    setTimeout(() => {
+                        closeAddUserModal();
+                        // Reload users list
+                        loadOrganizationUsers(currentManageOrgId);
+                    }, 1500);
+                } else {
+                    errorDiv.textContent = '❌ ' + (data.error || 'Failed to create user');
+                    errorDiv.style.display = 'block';
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                errorDiv.textContent = '❌ Network error. Please try again.';
+                errorDiv.style.display = 'block';
+            });
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const addUserModal = document.getElementById('addUserModal');
+            if (event.target === addUserModal) {
+                closeAddUserModal();
+            }
+        }
     </script>
 </body>
 </html>

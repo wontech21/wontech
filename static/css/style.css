@@ -273,10 +273,14 @@ body {
 .nav-tabs {
     display: flex;
     background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
 }
 
 .tab-btn {
-    flex: 1;
+    flex: 0 0 auto;
     padding: 15px 20px;
     background: rgba(108, 117, 125, 0.1);
     border: none;
@@ -286,6 +290,8 @@ body {
     transition: all 0.3s;
     border-bottom: 3px solid transparent;
     color: #495057;
+    min-width: 120px;
+    white-space: nowrap;
 }
 
 .tab-btn:hover {
@@ -1082,9 +1088,7 @@ tbody tr.hoverable-row:hover {
 
 /* Responsive */
 @media (max-width: 768px) {
-    .nav-tabs {
-        flex-direction: column;
-    }
+    /* Keep tabs horizontally scrollable on mobile - removed flex-direction: column */
 
     .filters {
         flex-direction: column;

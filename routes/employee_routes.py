@@ -60,7 +60,7 @@ def employee_portal():
     if not employee:
         return jsonify({'error': 'Employee record not found'}), 404
 
-    return render_template('employee/portal.html', employee=employee)
+    return render_template('employee_portal.html', employee=employee)
 
 # ==========================================
 # PROFILE MANAGEMENT
