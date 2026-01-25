@@ -19,10 +19,16 @@ def init_database():
     print("\n" + "="*70)
     print("🔄 DATABASE INITIALIZATION CHECK")
     print("="*70)
+    print(f"\n📁 Working directory: {os.getcwd()}")
+    print(f"📁 Script directory: {script_dir}")
+    print(f"📁 Database path: {master_db_path}")
+    print(f"📁 Databases directory: {databases_dir}")
 
     # Check if master.db exists
     if os.path.exists(master_db_path):
         print(f"\n✅ Database already exists at: {master_db_path}")
+        file_size = os.path.getsize(master_db_path)
+        print(f"   File size: {file_size} bytes")
         print("   Skipping initialization...")
         print("\n" + "="*70 + "\n")
         return True

@@ -48,6 +48,40 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'firing-up-secret-key-CH
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
+# Ensure database exists on startup (critical for cloud deployments)
+def ensure_database_initialized():
+    """Ensure master database exists when app starts"""
+    master_db_path = os.path.join(os.path.dirname(__file__), 'master.db')
+    if not os.path.exists(master_db_path):
+        print("\n" + "="*70)
+        print("⚠️  WARNING: Database not found on app startup!")
+        print(f"   Expected at: {master_db_path}")
+        print("   Initializing database now...")
+        print("="*70 + "\n")
+        try:
+            # Run initialization
+            import subprocess
+            result = subprocess.run(
+                ['python', os.path.join(os.path.dirname(__file__), 'init_database.py')],
+                capture_output=True,
+                text=True
+            )
+            if result.returncode == 0:
+                print("✅ Database initialized successfully!")
+            else:
+                print(f"❌ Database initialization failed:")
+                print(result.stderr)
+        except Exception as e:
+            print(f"❌ Failed to initialize database: {e}")
+            # Import and run directly as fallback
+            try:
+                import init_database
+                init_database.init_database()
+            except Exception as e2:
+                print(f"❌ Direct initialization also failed: {e2}")
+
+ensure_database_initialized()
+
 # Register multi-tenant blueprints
 app.register_blueprint(admin_bp)
 app.register_blueprint(employee_bp)
@@ -56,7 +90,25 @@ app.register_blueprint(employee_bp)
 @app.before_request
 def before_request_handler():
     """Set tenant context for multi-tenant isolation"""
-    set_tenant_context()
+    try:
+        set_tenant_context()
+    except sqlite3.OperationalError as e:
+        # Database doesn't exist or is corrupted
+        if 'no such table' in str(e) or 'no such column' in str(e):
+            print(f"⚠️  Database error: {e}")
+            print("   Attempting to initialize database...")
+            ensure_database_initialized()
+            # Try again after initialization
+            try:
+                set_tenant_context()
+            except Exception as e2:
+                print(f"❌ Still failing after initialization: {e2}")
+                # For public pages, continue without context
+                g.user = None
+                g.organization = None
+                g.org_db_path = None
+        else:
+            raise
 
 # Database paths (kept for backward compatibility reference only)
 INVENTORY_DB = 'inventory.db'
