@@ -480,14 +480,70 @@ function showTab(tabName) {
                 loadEmployees();
             }
             break;
+        case 'attendance':
+            if (typeof loadAttendance === 'function') {
+                loadAttendance();
+            }
+            break;
+        case 'schedules':
+            if (typeof initAdminSchedules === 'function') {
+                initAdminSchedules();
+            }
+            break;
+        case 'time-off-requests':
+            if (typeof initializeTimeOffTab === 'function') {
+                initializeTimeOffTab();
+            }
+            break;
+    }
+
+    // Update header stats to reflect current section - pass tab name directly
+    updateHeaderStatsForTab(tabName);
+}
+
+// Update stats based on tab name
+function updateHeaderStatsForTab(tabName) {
+    const employeeTabs = ['employees', 'attendance', 'schedules'];
+    if (employeeTabs.includes(tabName)) {
+        loadEmployeeHeaderStats();
+    } else {
+        loadInventoryHeaderStats();
     }
 }
 
 // Load header statistics
 async function loadHeaderStats() {
+    // Check which section is active
+    const inventoryTab = document.getElementById('inventory-tab');
+    const productsTab = document.getElementById('products-tab');
+    const salesTab = document.getElementById('sales-tab');
+    const invoicesTab = document.getElementById('invoices-tab');
+    const countsTab = document.getElementById('counts-tab');
+
+    const isInventorySection = (inventoryTab && inventoryTab.classList.contains('active')) ||
+                                (productsTab && productsTab.classList.contains('active')) ||
+                                (salesTab && salesTab.classList.contains('active')) ||
+                                (invoicesTab && invoicesTab.classList.contains('active')) ||
+                                (countsTab && countsTab.classList.contains('active'));
+
+    if (isInventorySection) {
+        await loadInventoryHeaderStats();
+    } else {
+        // Default to employee stats
+        await loadEmployeeHeaderStats();
+    }
+}
+
+async function loadInventoryHeaderStats() {
     try {
         const response = await fetch('/api/inventory/summary');
         const data = await response.json();
+
+        // Check if there's any inventory data
+        if (!data || data.total_items === 0 || data.total_items === null || data.total_items === undefined) {
+            document.getElementById('headerStats').innerHTML = '📦 No inventory data available yet';
+            return;
+        }
 
         const statsHTML = `
             💰 Total Value: ${formatCurrency(data.total_value)} |
@@ -497,7 +553,53 @@ async function loadHeaderStats() {
 
         document.getElementById('headerStats').innerHTML = statsHTML;
     } catch (error) {
-        console.error('Error loading stats:', error);
+        console.error('Error loading inventory stats:', error);
+        document.getElementById('headerStats').innerHTML = '📦 No inventory data available yet';
+    }
+}
+
+async function loadEmployeeHeaderStats() {
+    try {
+        // Get employee count
+        const employeesResponse = await fetch('/api/employees');
+        const employeesData = await employeesResponse.json();
+        const employees = employeesData.employees || [];
+        const activeEmployees = employees.filter(e => e.status === 'active').length;
+
+        // Get currently working count from attendance
+        let clockedInCount = 0;
+        const attendanceResponse = await fetch('/api/attendance/history');
+        if (attendanceResponse.ok) {
+            const attendanceData = await attendanceResponse.json();
+            if (attendanceData.success) {
+                const attendance = attendanceData.attendance || [];
+                clockedInCount = attendance.filter(a =>
+                    a.status === 'clocked_in' || a.status === 'on_break'
+                ).length;
+            }
+        }
+
+        // Get today's schedule count
+        let todaySchedules = 0;
+        const today = new Date().toISOString().split('T')[0];
+        const scheduleResponse = await fetch(`/api/schedules?start_date=${today}&end_date=${today}`);
+        if (scheduleResponse.ok) {
+            const scheduleData = await scheduleResponse.json();
+            if (scheduleData.success) {
+                todaySchedules = (scheduleData.schedules || []).length;
+            }
+        }
+
+        const statsHTML = `
+            👥 ${activeEmployees} Active Employees |
+            ⏰ ${clockedInCount} Currently Working |
+            📅 ${todaySchedules} Shifts Today
+        `;
+
+        document.getElementById('headerStats').innerHTML = statsHTML;
+    } catch (error) {
+        console.error('Error loading employee stats:', error);
+        document.getElementById('headerStats').innerHTML = '👥 Employee Management';
     }
 }
 
@@ -556,9 +658,6 @@ async function loadInventory() {
 
         // Render the table with pagination
         renderInventoryTable();
-
-        // Load category summary
-        loadCategorySummary();
     } catch (error) {
         console.error('Error loading inventory:', error);
         document.getElementById('inventoryTableBody').innerHTML =
@@ -850,36 +949,6 @@ function expandVariantsWithData(item) {
         true  // wide modal
     );
 }
-
-// Load category summary
-async function loadCategorySummary() {
-    try {
-        const response = await fetch('/api/inventory/summary');
-        const data = await response.json();
-
-        const summaryDiv = document.getElementById('categorySummary');
-        summaryDiv.innerHTML = data.by_category.map(cat => {
-            const style = getCategoryStyle(cat.category);
-            // Determine length class for adaptive sizing
-            const lengthClass = cat.category.length > 18 ? 'long' : cat.category.length > 12 ? 'medium' : 'short';
-
-            return `
-            <div class="category-card ${style.colorClass}"
-                 data-name-length="${lengthClass}"
-                 onmouseenter="showCategoryPreview('${cat.category.replace(/'/g, "\\'")}', event)"
-                 onmouseleave="hideTooltip()">
-                <div class="category-icon">${style.icon}</div>
-                <h3>${cat.category}</h3>
-                <div class="value">$${cat.category_value.toFixed(0)}</div>
-                <div class="count">${cat.item_count} items</div>
-            </div>
-            `;
-        }).join('');
-    } catch (error) {
-        console.error('Error loading category summary:', error);
-    }
-}
-
 
 // Load filter dropdowns
 async function loadFilters() {
@@ -1457,46 +1526,6 @@ async function showCostBreakdownTooltip(productName, event) {
         showTooltip(content, event);
     } catch (error) {
         console.error('Error loading cost breakdown:', error);
-    }
-}
-
-// Show category preview on category card hover
-async function showCategoryPreview(category, event) {
-    try {
-        const response = await fetch(`/api/inventory/category-preview/${encodeURIComponent(category)}`);
-        const items = await response.json();
-
-        if (items.length === 0) {
-            showTooltip(`<h4>${category}</h4><p>No items found</p>`, event);
-            return;
-        }
-
-        const content = `
-            <h4>${category} - Top Items</h4>
-            <table class="tooltip-4col">
-                ${items.map(item => {
-                    // Truncate long names
-                    const name = item.ingredient_name.length > 25
-                        ? item.ingredient_name.substring(0, 25) + '...'
-                        : item.ingredient_name;
-                    const brand = item.brand && item.brand.length > 15
-                        ? item.brand.substring(0, 15) + '...'
-                        : (item.brand || '-');
-                    return `
-                    <tr>
-                        <td title="${item.ingredient_name}">${name}</td>
-                        <td title="${item.brand || ''}">${brand}</td>
-                        <td class="text-right">${item.quantity_on_hand} ${item.unit_of_measure}</td>
-                        <td class="text-right">${formatCurrency(item.quantity_on_hand * item.unit_cost)}</td>
-                    </tr>
-                    `;
-                }).join('')}
-            </table>
-        `;
-
-        showTooltip(content, event);
-    } catch (error) {
-        console.error('Error loading category preview:', error);
     }
 }
 
@@ -8256,315 +8285,3 @@ console.log('  - updateProduct()');
 console.log('  - deleteProduct(productId, productName)');
 console.log('  - addIngredientToRecipe()');
 console.log('  - removeIngredientFromRecipe(ingredientId)');
-
-// ============================================================================
-// BACKGROUND CUSTOMIZATION
-// ============================================================================
-
-// Gradient definitions
-const GRADIENTS = {
-    default: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    sunset: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-    ocean: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-    forest: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-    lavender: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-    fire: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-    midnight: 'linear-gradient(135deg, #2c3e50 0%, #3498db 100%)',
-    cherry: 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)',
-    mint: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
-    gold: 'linear-gradient(135deg, #ffd89b 0%, #19547b 100%)'
-};
-
-// Theme color pairs for UI elements (extracted from gradients)
-const THEME_COLORS = {
-    default: { color1: '#667eea', color2: '#764ba2' },
-    sunset: { color1: '#f093fb', color2: '#f5576c' },
-    ocean: { color1: '#4facfe', color2: '#00f2fe' },
-    forest: { color1: '#43e97b', color2: '#38f9d7' },
-    lavender: { color1: '#a8edea', color2: '#fed6e3' },
-    fire: { color1: '#fa709a', color2: '#fee140' },
-    midnight: { color1: '#2c3e50', color2: '#3498db' },
-    cherry: { color1: '#eb3349', color2: '#f45c43' },
-    mint: { color1: '#30cfd0', color2: '#330867' },
-    gold: { color1: '#ffd89b', color2: '#19547b' }
-};
-
-/**
- * Load and apply saved background on page load
- */
-function loadSavedBackground() {
-    const savedGradient = localStorage.getItem('background_gradient');
-    const savedImage = localStorage.getItem('background_image');
-
-    if (savedImage) {
-        // Apply saved image
-        document.body.style.backgroundImage = `url(${savedImage})`;
-        document.body.style.background = 'none';
-        showBackgroundImagePreview(savedImage);
-
-        // Keep default theme colors for UI elements when using custom image
-        const defaultColors = THEME_COLORS.default;
-        document.documentElement.style.setProperty('--theme-color-1', defaultColors.color1);
-        document.documentElement.style.setProperty('--theme-color-2', defaultColors.color2);
-
-        // Set the gradient explicitly
-        const defaultGradient = `linear-gradient(135deg, ${defaultColors.color1} 0%, ${defaultColors.color2} 100%)`;
-        document.documentElement.style.setProperty('--theme-gradient', defaultGradient);
-
-        // Set RGB values too
-        const rgb1 = hexToRgb(defaultColors.color1);
-        const rgb2 = hexToRgb(defaultColors.color2);
-        if (rgb1 && rgb2) {
-            document.documentElement.style.setProperty('--theme-color-1-rgb', `${rgb1.r}, ${rgb1.g}, ${rgb1.b}`);
-            document.documentElement.style.setProperty('--theme-color-2-rgb', `${rgb2.r}, ${rgb2.g}, ${rgb2.b}`);
-        }
-    } else if (savedGradient && GRADIENTS[savedGradient]) {
-        // Apply saved gradient (which also sets theme colors)
-        applyGradient(savedGradient, false);
-    } else {
-        // No saved preference - apply default
-        applyGradient('default', false);
-    }
-
-    // Mark active gradient in UI
-    updateActiveGradient();
-}
-
-/**
- * Convert hex color to RGB values
- */
-function hexToRgb(hex) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    } : null;
-}
-
-/**
- * Apply a gradient theme
- */
-function applyGradient(gradientName, showMsg = true) {
-    const gradient = GRADIENTS[gradientName];
-    const themeColors = THEME_COLORS[gradientName];
-
-    if (!gradient || !themeColors) {
-        console.error('Unknown gradient:', gradientName);
-        return;
-    }
-
-    // Clear any inline background styles so CSS variables can take effect
-    document.body.style.backgroundImage = '';
-    document.body.style.background = '';
-
-    // Update CSS variables for theme colors (updates all UI elements including body and header)
-    document.documentElement.style.setProperty('--theme-color-1', themeColors.color1);
-    document.documentElement.style.setProperty('--theme-color-2', themeColors.color2);
-
-    // Manually construct and set the gradient (browsers don't always recalculate CSS var references)
-    const calculatedGradient = `linear-gradient(135deg, ${themeColors.color1} 0%, ${themeColors.color2} 100%)`;
-    document.documentElement.style.setProperty('--theme-gradient', calculatedGradient);
-
-    // Update RGB versions for rgba() usage
-    const rgb1 = hexToRgb(themeColors.color1);
-    const rgb2 = hexToRgb(themeColors.color2);
-    if (rgb1 && rgb2) {
-        document.documentElement.style.setProperty('--theme-color-1-rgb', `${rgb1.r}, ${rgb1.g}, ${rgb1.b}`);
-        document.documentElement.style.setProperty('--theme-color-2-rgb', `${rgb2.r}, ${rgb2.g}, ${rgb2.b}`);
-    }
-
-    // Save to localStorage
-    localStorage.setItem('background_gradient', gradientName);
-    localStorage.removeItem('background_image');
-
-    // Hide image preview
-    const preview = document.getElementById('backgroundImagePreview');
-    if (preview) {
-        preview.style.display = 'none';
-    }
-
-    // Update UI
-    updateActiveGradient();
-
-    if (showMsg) {
-        const displayName = gradientName.charAt(0).toUpperCase() + gradientName.slice(1);
-        showMessage(`✅ ${displayName} theme applied!`, 'success');
-    }
-}
-
-/**
- * Update active state on gradient options
- */
-function updateActiveGradient() {
-    const savedGradient = localStorage.getItem('background_gradient') || 'default';
-
-    // Remove all active classes
-    document.querySelectorAll('.gradient-option').forEach(opt => {
-        opt.classList.remove('active');
-    });
-
-    // Add active class to current gradient
-    const activeOption = document.querySelector(`[data-gradient="${savedGradient}"]`);
-    if (activeOption) {
-        activeOption.classList.add('active');
-    }
-}
-
-/**
- * Handle background image upload
- */
-function handleBackgroundImageUpload(event) {
-    const file = event.target.files[0];
-
-    if (!file) {
-        return;
-    }
-
-    // Check file type
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-        showMessage('Please upload a JPEG, PNG, or GIF image', 'error');
-        event.target.value = '';
-        return;
-    }
-
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        showMessage('Image size must be less than 5MB', 'error');
-        event.target.value = '';
-        return;
-    }
-
-    // Read the file
-    const reader = new FileReader();
-
-    reader.onload = function(e) {
-        const imageData = e.target.result;
-
-        // Apply background image
-        document.body.style.background = 'none';
-        document.body.style.backgroundImage = `url(${imageData})`;
-        document.body.style.backgroundSize = 'cover';
-        document.body.style.backgroundPosition = 'center';
-        document.body.style.backgroundAttachment = 'fixed';
-
-        // Keep default theme colors for UI elements when using custom image
-        const defaultColors = THEME_COLORS.default;
-        document.documentElement.style.setProperty('--theme-color-1', defaultColors.color1);
-        document.documentElement.style.setProperty('--theme-color-2', defaultColors.color2);
-
-        // Set the gradient explicitly
-        const defaultGradient = `linear-gradient(135deg, ${defaultColors.color1} 0%, ${defaultColors.color2} 100%)`;
-        document.documentElement.style.setProperty('--theme-gradient', defaultGradient);
-
-        // Set RGB values too
-        const rgb1 = hexToRgb(defaultColors.color1);
-        const rgb2 = hexToRgb(defaultColors.color2);
-        if (rgb1 && rgb2) {
-            document.documentElement.style.setProperty('--theme-color-1-rgb', `${rgb1.r}, ${rgb1.g}, ${rgb1.b}`);
-            document.documentElement.style.setProperty('--theme-color-2-rgb', `${rgb2.r}, ${rgb2.g}, ${rgb2.b}`);
-        }
-
-        // Save to localStorage
-        localStorage.setItem('background_image', imageData);
-        localStorage.removeItem('background_gradient');
-
-        // Show preview
-        showBackgroundImagePreview(imageData);
-
-        // Remove active state from gradients
-        document.querySelectorAll('.gradient-option').forEach(opt => {
-            opt.classList.remove('active');
-        });
-
-        showMessage('✅ Custom background image applied!', 'success');
-    };
-
-    reader.onerror = function() {
-        showMessage('Error reading file. Please try again.', 'error');
-        event.target.value = '';
-    };
-
-    reader.readAsDataURL(file);
-}
-
-/**
- * Show background image preview
- */
-function showBackgroundImagePreview(imageData) {
-    const preview = document.getElementById('backgroundImagePreview');
-    const previewImg = document.getElementById('backgroundImagePreviewImg');
-
-    if (preview && previewImg) {
-        previewImg.src = imageData;
-        preview.style.display = 'block';
-    }
-}
-
-/**
- * Remove background image
- */
-function removeBackgroundImage() {
-    if (!confirm('Remove custom background image and return to gradient theme?')) {
-        return;
-    }
-
-    // Clear file input
-    const fileInput = document.getElementById('backgroundImageUpload');
-    if (fileInput) {
-        fileInput.value = '';
-    }
-
-    // Remove from localStorage
-    localStorage.removeItem('background_image');
-
-    // Hide preview
-    const preview = document.getElementById('backgroundImagePreview');
-    if (preview) {
-        preview.style.display = 'none';
-    }
-
-    // Apply default gradient
-    applyGradient('default');
-
-    showMessage('✅ Background image removed', 'success');
-}
-
-/**
- * Reset to default theme
- */
-function resetBackgroundToDefault() {
-    if (!confirm('Reset to default theme? This will remove any custom backgrounds.')) {
-        return;
-    }
-
-    // Clear file input
-    const fileInput = document.getElementById('backgroundImageUpload');
-    if (fileInput) {
-        fileInput.value = '';
-    }
-
-    // Clear localStorage
-    localStorage.removeItem('background_gradient');
-    localStorage.removeItem('background_image');
-
-    // Hide preview
-    const preview = document.getElementById('backgroundImagePreview');
-    if (preview) {
-        preview.style.display = 'none';
-    }
-
-    // Apply default
-    applyGradient('default');
-
-    showMessage('✅ Reset to default theme', 'success');
-}
-
-// Initialize background on page load
-document.addEventListener('DOMContentLoaded', function() {
-    loadSavedBackground();
-});
-
-console.log('%c✓ Background Customization Ready', 'color: purple; font-weight: bold; font-size: 14px');
-console.log('Available gradients:', Object.keys(GRADIENTS));

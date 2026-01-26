@@ -7,17 +7,25 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="/static/css/admin.css">
     <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
         .employee-portal {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
+            position: relative;
         }
 
         .portal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 40px;
-            border-radius: 16px;
+            padding: 40px 40px 20px 40px;
             margin-bottom: 30px;
         }
 
@@ -29,7 +37,7 @@
 
         .portal-subtitle {
             font-size: 16px;
-            opacity: 0.9;
+            opacity: 0.95;
         }
 
         .quick-actions {
@@ -71,63 +79,6 @@
         .action-desc {
             font-size: 13px;
             color: #6b7280;
-        }
-
-        .clock-status {
-            background: white;
-            border-radius: 12px;
-            padding: 32px;
-            text-align: center;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .clock-status.clocked-in {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-        }
-
-        .clock-status.clocked-out {
-            background: #f9fafb;
-            color: #1f2937;
-        }
-
-        .clock-time {
-            font-size: 48px;
-            font-weight: 700;
-            margin: 20px 0;
-            font-family: monospace;
-        }
-
-        .clock-button {
-            padding: 16px 48px;
-            font-size: 18px;
-            font-weight: 600;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .clock-button.clock-in {
-            background: #10b981;
-            color: white;
-        }
-
-        .clock-button.clock-out {
-            background: #ef4444;
-            color: white;
-        }
-
-        .clock-button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
-        }
-
-        .clock-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
         }
 
         .section {
@@ -220,37 +171,93 @@
             color: #92400e;
         }
 
-        .logout-btn {
-            background: #ef4444;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
+        .pagination-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .pagination-info {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .pagination-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .pagination-buttons button {
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
             cursor: pointer;
-            float: right;
+            font-size: 14px;
+            color: #374151;
+            transition: all 0.2s;
+        }
+
+        .pagination-buttons button:hover:not(:disabled) {
+            background: #f3f4f6;
+            border-color: #667eea;
+        }
+
+        .pagination-buttons button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .pagination-buttons button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            white-space: nowrap;
+            z-index: 100;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .logout-btn:active {
+            transform: translateY(0);
         }
     </style>
 </head>
 <body>
     <div class="employee-portal">
+        <!-- Logout Button (Top Right) -->
+        <button class="logout-btn" onclick="window.location.href='/logout'">🚪 Logout</button>
+
         <!-- Header -->
         <div class="portal-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <div class="portal-welcome">Welcome back, {{ employee.first_name }}! 👋</div>
-                    <div class="portal-subtitle">{{ g.organization.organization_name }} Employee Portal</div>
-                </div>
-                <button class="logout-btn" onclick="window.location.href='/logout'">Logout</button>
-            </div>
-        </div>
-
-        <!-- Clock Status -->
-        <div class="clock-status" id="clockStatus">
-            <div id="clockStatusText">Loading...</div>
-            <div class="clock-time" id="clockTime">--:--:--</div>
-            <button class="clock-button" id="clockButton" disabled>
-                Loading...
-            </button>
+            <div class="portal-welcome">Welcome back, {{ employee.first_name }}! 👋</div>
+            <div class="portal-subtitle">{{ g.organization.organization_name }} Employee Portal</div>
         </div>
 
         <!-- Quick Actions -->
@@ -278,6 +285,18 @@
                 <div class="action-title">Schedule</div>
                 <div class="action-desc">View your work schedule</div>
             </div>
+
+            <div class="action-card" onclick="window.location.href='/employee/time-off'">
+                <div class="action-icon">🏖️</div>
+                <div class="action-title">Request Time Off</div>
+                <div class="action-desc">Submit PTO requests</div>
+            </div>
+
+            <div class="action-card" onclick="window.location.href='/employee/availability-page'">
+                <div class="action-icon">📆</div>
+                <div class="action-title">My Availability</div>
+                <div class="action-desc">Set your schedule preferences</div>
+            </div>
         </div>
 
         <!-- Profile Summary -->
@@ -303,6 +322,25 @@
             </div>
         </div>
 
+        <!-- PTO Balance -->
+        <div class="section">
+            <div class="section-title">PTO Balance</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Available</div>
+                    <div class="info-value" id="ptoAvailable" style="color: #667eea; font-weight: 700;">--</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Used This Year</div>
+                    <div class="info-value" id="ptoUsed">--</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Total Annual</div>
+                    <div class="info-value" id="ptoTotal">--</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Recent Time Entries -->
         <div class="section">
             <div class="section-title">Recent Time Entries</div>
@@ -311,160 +349,196 @@
                     Loading...
                 </li>
             </ul>
+
+            <div class="pagination-controls" id="paginationControls" style="display: none;">
+                <div class="pagination-info" id="paginationInfo">
+                    Showing 1-5 of 0 entries
+                </div>
+                <div class="pagination-buttons">
+                    <button onclick="changePage('first')" id="btnFirst">«</button>
+                    <button onclick="changePage('prev')" id="btnPrev">‹</button>
+                    <span id="pageNumbers" style="display: flex; gap: 4px;"></span>
+                    <button onclick="changePage('next')" id="btnNext">›</button>
+                    <button onclick="changePage('last')" id="btnLast">»</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        let clockedIn = false;
-        let clockInTime = null;
-        let clockInterval = null;
-
-        // Load clock status
-        async function loadClockStatus() {
-            try {
-                const res = await fetch('/employee/clock/status');
-                const data = await res.json();
-
-                clockedIn = data.clocked_in;
-
-                const statusEl = document.getElementById('clockStatus');
-                const statusText = document.getElementById('clockStatusText');
-                const button = document.getElementById('clockButton');
-
-                if (clockedIn) {
-                    clockInTime = new Date(data.entry.clock_in);
-                    statusEl.className = 'clock-status clocked-in';
-                    statusText.textContent = '✅ Currently Clocked In';
-                    button.className = 'clock-button clock-out';
-                    button.textContent = 'Clock Out';
-                    button.disabled = false;
-                    button.onclick = handleClockOut;
-
-                    // Start timer
-                    startTimer();
-                } else {
-                    statusEl.className = 'clock-status clocked-out';
-                    statusText.textContent = '⏸️ Not Clocked In';
-                    document.getElementById('clockTime').textContent = '--:--:--';
-                    button.className = 'clock-button clock-in';
-                    button.textContent = 'Clock In';
-                    button.disabled = false;
-                    button.onclick = handleClockIn;
-                }
-            } catch (err) {
-                console.error('Error loading clock status:', err);
-                document.getElementById('clockStatusText').textContent = 'Error loading status';
-            }
-        }
-
-        // Start elapsed time timer
-        function startTimer() {
-            if (clockInterval) clearInterval(clockInterval);
-
-            function updateTime() {
-                if (!clockInTime) return;
-
-                const now = new Date();
-                const elapsed = now - clockInTime;
-
-                const hours = Math.floor(elapsed / (1000 * 60 * 60));
-                const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
-
-                document.getElementById('clockTime').textContent =
-                    `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            }
-
-            updateTime();
-            clockInterval = setInterval(updateTime, 1000);
-        }
-
-        // Handle clock in
-        async function handleClockIn() {
-            if (!confirm('Clock in now?')) return;
-
-            try {
-                const res = await fetch('/employee/clock/in', { method: 'POST' });
-                const data = await res.json();
-
-                if (data.success) {
-                    alert('✅ ' + data.message);
-                    loadClockStatus();
-                } else {
-                    alert('❌ ' + (data.error || 'Failed to clock in'));
-                }
-            } catch (err) {
-                console.error('Error:', err);
-                alert('Error clocking in');
-            }
-        }
-
-        // Handle clock out
-        async function handleClockOut() {
-            if (!confirm('Clock out now?')) return;
-
-            try {
-                const res = await fetch('/employee/clock/out', { method: 'POST' });
-                const data = await res.json();
-
-                if (data.success) {
-                    alert('✅ ' + data.message);
-                    if (clockInterval) clearInterval(clockInterval);
-                    loadClockStatus();
-                    loadRecentTimeEntries();
-                } else {
-                    alert('❌ ' + (data.error || 'Failed to clock out'));
-                }
-            } catch (err) {
-                console.error('Error:', err);
-                alert('Error clocking out');
-            }
-        }
+        let allTimeEntries = [];
+        let currentPage = 1;
+        const pageSize = 5;
 
         // Load recent time entries
         async function loadRecentTimeEntries() {
             try {
-                const res = await fetch('/employee/time-entries?days=7');
+                const res = await fetch('/employee/time-entries/data?days=365');
                 const data = await res.json();
 
-                const listEl = document.getElementById('recentTimeEntries');
+                allTimeEntries = data.entries || [];
 
-                if (data.entries.length === 0) {
-                    listEl.innerHTML = `
+                if (allTimeEntries.length === 0) {
+                    document.getElementById('recentTimeEntries').innerHTML = `
                         <li style="text-align: center; padding: 20px; color: #9ca3af;">
-                            No time entries in the last 7 days
+                            No time entries found
                         </li>
                     `;
+                    document.getElementById('paginationControls').style.display = 'none';
                     return;
                 }
 
-                listEl.innerHTML = data.entries.slice(0, 5).map(entry => {
-                    const date = new Date(entry.clock_in);
-                    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    const hours = entry.hours_worked ? entry.hours_worked.toFixed(2) : 'In Progress';
-
-                    return `
-                        <li class="recent-item">
-                            <div>
-                                <div style="font-weight: 600; color: #1f2937;">${dateStr}</div>
-                                <div class="recent-date">
-                                    ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                    ${entry.clock_out ? '- ' + new Date(entry.clock_out).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ''}
-                                </div>
-                            </div>
-                            <div class="recent-hours">${hours} hrs</div>
-                        </li>
-                    `;
-                }).join('');
+                displayTimeEntries();
 
             } catch (err) {
                 console.error('Error loading time entries:', err);
+                document.getElementById('recentTimeEntries').innerHTML = `
+                    <li style="text-align: center; padding: 20px; color: #ef4444;">
+                        Error loading time entries
+                    </li>
+                `;
+            }
+        }
+
+        function displayTimeEntries() {
+            const listEl = document.getElementById('recentTimeEntries');
+            const totalPages = Math.ceil(allTimeEntries.length / pageSize);
+
+            // Ensure current page is valid
+            currentPage = Math.min(currentPage, totalPages || 1);
+
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = startIdx + pageSize;
+            const pageEntries = allTimeEntries.slice(startIdx, endIdx);
+
+            listEl.innerHTML = pageEntries.map(entry => {
+                const date = new Date(entry.clock_in);
+                const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const hours = (entry.hours_worked || 0).toFixed(2);
+
+                return `
+                    <li class="recent-item">
+                        <div>
+                            <div style="font-weight: 600; color: #1f2937;">${dateStr}</div>
+                            <div class="recent-date">
+                                ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                ${entry.clock_out ? '- ' + new Date(entry.clock_out).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '(No clock out)'}
+                            </div>
+                        </div>
+                        <div class="recent-hours">${hours} hrs</div>
+                    </li>
+                `;
+            }).join('');
+
+            updatePagination();
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(allTimeEntries.length / pageSize);
+            const startIdx = (currentPage - 1) * pageSize + 1;
+            const endIdx = Math.min(currentPage * pageSize, allTimeEntries.length);
+
+            // Update info
+            document.getElementById('paginationInfo').textContent =
+                `Showing ${startIdx}-${endIdx} of ${allTimeEntries.length} entries`;
+
+            // Show/hide pagination controls
+            document.getElementById('paginationControls').style.display =
+                allTimeEntries.length > pageSize ? 'flex' : 'none';
+
+            // Update buttons
+            document.getElementById('btnFirst').disabled = currentPage === 1;
+            document.getElementById('btnPrev').disabled = currentPage === 1;
+            document.getElementById('btnNext').disabled = currentPage === totalPages;
+            document.getElementById('btnLast').disabled = currentPage === totalPages;
+
+            // Update page numbers
+            const pageNumbersDiv = document.getElementById('pageNumbers');
+            let pageNumbersHTML = '';
+
+            if (totalPages <= 7) {
+                for (let i = 1; i <= totalPages; i++) {
+                    pageNumbersHTML += `<button class="${i === currentPage ? 'active' : ''}"
+                        onclick="goToPage(${i})">${i}</button>`;
+                }
+            } else {
+                if (currentPage <= 4) {
+                    for (let i = 1; i <= 5; i++) {
+                        pageNumbersHTML += `<button class="${i === currentPage ? 'active' : ''}"
+                            onclick="goToPage(${i})">${i}</button>`;
+                    }
+                    pageNumbersHTML += `<span style="padding: 6px;">...</span>`;
+                    pageNumbersHTML += `<button onclick="goToPage(${totalPages})">${totalPages}</button>`;
+                } else if (currentPage >= totalPages - 3) {
+                    pageNumbersHTML += `<button onclick="goToPage(1)">1</button>`;
+                    pageNumbersHTML += `<span style="padding: 6px;">...</span>`;
+                    for (let i = totalPages - 4; i <= totalPages; i++) {
+                        pageNumbersHTML += `<button class="${i === currentPage ? 'active' : ''}"
+                            onclick="goToPage(${i})">${i}</button>`;
+                    }
+                } else {
+                    pageNumbersHTML += `<button onclick="goToPage(1)">1</button>`;
+                    pageNumbersHTML += `<span style="padding: 6px;">...</span>`;
+                    for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                        pageNumbersHTML += `<button class="${i === currentPage ? 'active' : ''}"
+                            onclick="goToPage(${i})">${i}</button>`;
+                    }
+                    pageNumbersHTML += `<span style="padding: 6px;">...</span>`;
+                    pageNumbersHTML += `<button onclick="goToPage(${totalPages})">${totalPages}</button>`;
+                }
+            }
+
+            pageNumbersDiv.innerHTML = pageNumbersHTML;
+        }
+
+        function changePage(direction) {
+            const totalPages = Math.ceil(allTimeEntries.length / pageSize);
+
+            switch (direction) {
+                case 'first':
+                    currentPage = 1;
+                    break;
+                case 'prev':
+                    currentPage = Math.max(1, currentPage - 1);
+                    break;
+                case 'next':
+                    currentPage = Math.min(totalPages, currentPage + 1);
+                    break;
+                case 'last':
+                    currentPage = totalPages;
+                    break;
+            }
+
+            displayTimeEntries();
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            displayTimeEntries();
+        }
+
+        // Load PTO Balance
+        async function loadPTOBalance() {
+            try {
+                const response = await fetch('/employee/pto-balance');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('ptoAvailable').textContent = data.available.toFixed(1) + ' hours';
+                    document.getElementById('ptoUsed').textContent = data.used.toFixed(1) + ' hours';
+                    document.getElementById('ptoTotal').textContent = data.total.toFixed(1) + ' hours';
+                }
+            } catch (error) {
+                console.error('Error loading PTO balance:', error);
+                document.getElementById('ptoAvailable').textContent = 'Error';
+                document.getElementById('ptoUsed').textContent = 'Error';
+                document.getElementById('ptoTotal').textContent = 'Error';
             }
         }
 
         // Initialize
-        loadClockStatus();
         loadRecentTimeEntries();
+        loadPTOBalance();
     </script>
 </body>
 </html>

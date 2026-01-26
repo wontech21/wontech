@@ -40,13 +40,6 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <!-- Logout Button (Top Left) -->
-            {% if not g.is_super_admin %}
-            <div class="header-logout-section">
-                <button class="logout-btn" onclick="logout()">🚪 Logout</button>
-            </div>
-            {% endif %}
-
             <!-- Profile Section (Top Right) -->
             <div class="header-profile-section">
                 <div class="profile-logo-container">
@@ -59,10 +52,19 @@
                     {% endif %}
                     <span class="active-indicator" title="Active"></span>
                 </div>
+                {% if not section and not g.is_super_admin %}
+                <button class="logout-btn" onclick="logout()" style="margin-left: 15px;">🚪 Logout</button>
+                {% endif %}
             </div>
 
             <!-- Title Section (Centered) -->
+            {% if section == 'inventory' %}
+            <h1>Inventory & Sales</h1>
+            {% elif section == 'attendance' %}
+            <h1>Employees</h1>
+            {% else %}
             <h1>{{ g.organization.organization_name }} Data Center</h1>
+            {% endif %}
             <div class="header-stats" id="headerStats">Loading...</div>
         </header>
 
@@ -71,6 +73,13 @@
             {% if g.is_super_admin %}
             <button class="tab-btn" onclick="window.location.href='/admin/dashboard'" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">⚡ Admin</button>
             {% endif %}
+
+            {% if section and not g.is_super_admin %}
+            <button class="tab-btn" onclick="window.location.href='/dashboard'" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">🏠 Main</button>
+            {% endif %}
+
+            {% if not section or section == 'inventory' %}
+            <!-- Inventory & Sales Tabs -->
             <button class="tab-btn active" onclick="showTab('inventory')">📊 Inventory</button>
             {% if g.user.role != 'employee' %}
             <button class="tab-btn" onclick="showTab('products')">🍔 Products</button>
@@ -81,9 +90,16 @@
             <button class="tab-btn" onclick="showTab('history')">📜 History</button>
             <button class="tab-btn" onclick="showTab('settings')">⚙️ Settings</button>
             {% endif %}
+            {% endif %}
+
+            {% if not section or section == 'attendance' %}
+            <!-- Attendance Management Tabs -->
             {% if g.user.role in ['organization_admin', 'super_admin'] %}
-            <button class="tab-btn" onclick="showTab('employees')">👥 Employees</button>
+            <button class="tab-btn active" onclick="showTab('employees')">👥 Employees</button>
             <button class="tab-btn" onclick="showTab('attendance')">⏰ Attendance</button>
+            <button class="tab-btn" onclick="showTab('schedules')">📅 Schedules</button>
+            <button class="tab-btn" onclick="showTab('time-off-requests')">🏖️ Time Off</button>
+            {% endif %}
             {% endif %}
         </nav>
 
@@ -123,8 +139,6 @@
                 <button class="btn-apply-filter" onclick="applyInventoryDateFilter()">✓ Apply</button>
                 <button class="btn-clear-dates" onclick="clearDateFilter()">Clear</button>
             </div>
-
-            <div class="category-summary" id="categorySummary"></div>
 
             <div class="selection-controls" id="selectionControls">
                 <label class="checkbox-label">
@@ -874,7 +888,7 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
 
         <!-- Employees Tab -->
         {% if g.user.role in ['organization_admin', 'super_admin'] %}
-        <div id="employees-tab" class="tab-content">
+        <div id="employees-tab" class="tab-content active">
             <div class="section-header">
                 <h2>Employee Management</h2>
                 <button class="btn btn-primary" onclick="openCreateEmployeeModal()">
@@ -1026,6 +1040,360 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                 </div>
             </div>
         </div>
+
+        <!-- Schedules Tab -->
+        <div id="schedules-tab" class="tab-content">
+            <div class="section-header">
+                <h2>📅 Schedule Management</h2>
+                <p class="subtitle">Create and manage employee work schedules</p>
+                <button class="btn btn-primary" onclick="openCreateScheduleModal()">
+                    ➕ Create Shift
+                </button>
+            </div>
+
+            <!-- Schedule Controls -->
+            <div class="schedule-controls-bar">
+                <div class="schedule-view-controls">
+                    <button class="schedule-view-btn active" data-view="week" onclick="switchAdminScheduleView('week')">
+                        📅 Week
+                    </button>
+                    <button class="schedule-view-btn" data-view="month" onclick="switchAdminScheduleView('month')">
+                        📆 Month
+                    </button>
+                </div>
+
+                <div class="schedule-filters-admin">
+                    <select id="scheduleEmployeeFilter" onchange="filterAdminSchedules()" autocomplete="off">
+                        <option value="">All Employees</option>
+                    </select>
+                    <select id="schedulePositionFilter" onchange="filterAdminSchedules()" autocomplete="off">
+                        <option value="">All Positions</option>
+                    </select>
+                    <select id="scheduleStatusFilter" onchange="filterAdminSchedules()" autocomplete="off">
+                        <option value="">All Statuses</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="schedule-navigation-admin">
+                    <button class="btn-icon" onclick="navigateAdminSchedule('prev')">← Previous</button>
+                    <button class="btn-primary" onclick="navigateAdminSchedule('today')">Today</button>
+                    <button class="btn-icon" onclick="navigateAdminSchedule('next')">Next →</button>
+                </div>
+            </div>
+
+            <!-- Week View -->
+            <div id="adminWeekView" class="admin-schedule-view active">
+                <div class="admin-week-calendar">
+                    <div id="adminWeekGrid">
+                        <!-- Week grid will be populated by JavaScript -->
+                        <div class="schedule-loading">
+                            <div class="loader"></div>
+                            <p>Loading schedules...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Month View -->
+            <div id="adminMonthView" class="admin-schedule-view" style="display: none;">
+                <div class="admin-month-calendar">
+                    <div id="adminMonthGrid">
+                        <!-- Month grid will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Change Requests Section -->
+            <div class="change-requests-section">
+                <h3>Pending Change Requests</h3>
+                <div class="table-container">
+                    <table id="changeRequestsTable">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Current Schedule</th>
+                                <th>Requested By</th>
+                                <th>Reason</th>
+                                <th>Requested Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="changeRequestsTableBody">
+                            <tr><td colspan="6" class="loading">No pending change requests</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Off Requests Tab -->
+        <div id="time-off-requests-tab" class="tab-content">
+            <div class="section-header">
+                <h2>Time Off Requests</h2>
+                <p class="subtitle">Review and manage employee time off requests</p>
+            </div>
+
+            <div class="filters">
+                <select id="timeOffEmployeeFilter" onchange="filterTimeOffRequests()">
+                    <option value="all">All Employees</option>
+                </select>
+                <select id="timeOffStatusFilter" onchange="filterTimeOffRequests()">
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="denied">Denied</option>
+                    <option value="all">All Statuses</option>
+                </select>
+                <select id="timeOffTypeFilter" onchange="filterTimeOffRequests()">
+                    <option value="all">All Types</option>
+                    <option value="pto">PTO</option>
+                    <option value="sick">Sick Leave</option>
+                    <option value="unpaid">Unpaid Leave</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+
+            <div class="time-off-section">
+                <div class="table-container">
+                    <table id="timeOffRequestsTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable" onclick="sortTimeOffTable(0, 'string')">Employee <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTimeOffTable(1, 'string')">Position <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTimeOffTable(2, 'date')">Start Date <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTimeOffTable(3, 'date')">End Date <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTimeOffTable(4, 'string')">Type <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTimeOffTable(5, 'number')">Hours <span class="sort-arrow"></span></th>
+                                <th class="sortable" onclick="sortTimeOffTable(6, 'string')">Status <span class="sort-arrow"></span></th>
+                                <th>Reason</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="timeOffRequestsTableBody">
+                            <tr><td colspan="9" class="loading">Loading time off requests...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        <span id="timeOffPaginationInfo">Showing 0-0 of 0 items</span>
+                    </div>
+                    <div class="pagination-controls">
+                        <label>Show:
+                            <select id="timeOffPageSize" onchange="changeTimeOffPageSize()">
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="all">All</option>
+                            </select>
+                        </label>
+                        <div class="pagination-buttons">
+                            <button onclick="changeTimeOffPage('first')" id="timeOffFirstPage">«</button>
+                            <button onclick="changeTimeOffPage('prev')" id="timeOffPrevPage">‹</button>
+                            <span id="timeOffPageNumbers"></span>
+                            <button onclick="changeTimeOffPage('next')" id="timeOffNextPage">›</button>
+                            <button onclick="changeTimeOffPage('last')" id="timeOffLastPage">»</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedule Modals -->
+        <div id="createScheduleModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Create Shift</h2>
+                    <button class="modal-close" onclick="closeScheduleModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="createScheduleForm">
+                        <div class="form-group">
+                            <label for="scheduleEmployee">Employee *</label>
+                            <select id="scheduleEmployee" required>
+                                <option value="">Select Employee</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="scheduleDate">Date *</label>
+                            <input type="date" id="scheduleDate" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="scheduleStartTime">Start Time *</label>
+                                <input type="time" id="scheduleStartTime" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="scheduleEndTime">End Time *</label>
+                                <input type="time" id="scheduleEndTime" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="scheduleShiftType">Shift Type</label>
+                            <select id="scheduleShiftType">
+                                <option value="regular">Regular</option>
+                                <option value="overtime">Overtime</option>
+                                <option value="on-call">On-Call</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="schedulePosition">Position (Optional)</label>
+                            <input type="text" id="schedulePosition" placeholder="Override default position">
+                        </div>
+                        <div class="form-group">
+                            <label for="scheduleBreak">Break Duration (minutes)</label>
+                            <input type="number" id="scheduleBreak" value="30" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="scheduleNotes">Notes</label>
+                            <textarea id="scheduleNotes" rows="3" placeholder="Optional notes"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeScheduleModal()">Cancel</button>
+                    <button class="btn-primary" onclick="saveSchedule()">Create Shift</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="editScheduleModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Edit Shift</h2>
+                    <button class="modal-close" onclick="closeScheduleModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editScheduleId">
+                    <div class="schedule-detail-info">
+                        <strong>Employee:</strong> <span id="editScheduleEmployeeName"></span>
+                    </div>
+                    <form id="editScheduleForm">
+                        <div class="form-group">
+                            <label for="editScheduleDate">Date *</label>
+                            <input type="date" id="editScheduleDate" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="editScheduleStartTime">Start Time *</label>
+                                <input type="time" id="editScheduleStartTime" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="editScheduleEndTime">End Time *</label>
+                                <input type="time" id="editScheduleEndTime" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="editScheduleShiftType">Shift Type</label>
+                            <select id="editScheduleShiftType">
+                                <option value="regular">Regular</option>
+                                <option value="overtime">Overtime</option>
+                                <option value="on-call">On-Call</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editSchedulePosition">Position</label>
+                            <input type="text" id="editSchedulePosition">
+                        </div>
+                        <div class="form-group">
+                            <label for="editScheduleBreak">Break Duration (minutes)</label>
+                            <input type="number" id="editScheduleBreak" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="editScheduleNotes">Notes</label>
+                            <textarea id="editScheduleNotes" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="editScheduleStatus">Status</label>
+                            <select id="editScheduleStatus">
+                                <option value="scheduled">Scheduled</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-danger" onclick="deleteScheduleConfirm()">Delete</button>
+                    <button class="btn-secondary" onclick="closeScheduleModal()">Cancel</button>
+                    <button class="btn-primary" onclick="updateSchedule()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="approveChangeModal" class="modal" style="display: none;">
+            <div class="modal-content modal-small">
+                <div class="modal-header">
+                    <h2>Approve Change Request</h2>
+                    <button class="modal-close" onclick="closeScheduleModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="approveScheduleId">
+                    <div id="approveChangeDetails"></div>
+                    <p style="margin-top: 20px; font-weight: 600;">Are you sure you want to approve this change request?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeScheduleModal()">Cancel</button>
+                    <button class="btn-primary" onclick="confirmApproveChange()">Approve</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="replaceShiftModal" class="modal" style="display: none;">
+            <div class="modal-content modal-small">
+                <div class="modal-header">
+                    <h2>✓ Shift Cancelled</h2>
+                    <button class="modal-close" onclick="closeReplaceShiftModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="replacementDate">
+                    <input type="hidden" id="replacementStartTime">
+                    <input type="hidden" id="replacementEndTime">
+                    <input type="hidden" id="replacementPosition">
+
+                    <div class="success-message" style="background: #d1fae5; border: 1px solid #10b981; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <p style="margin: 0; color: #065f46; font-weight: 600;">The shift has been cancelled.</p>
+                    </div>
+
+                    <div id="replaceShiftDetails" style="background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <!-- Details will be populated by JS -->
+                    </div>
+
+                    <p style="font-weight: 600; margin-bottom: 10px;">Would you like to assign someone else to this time slot?</p>
+                    <p style="color: #6b7280; font-size: 14px;">You can assign a replacement employee now, or discard and leave the slot empty.</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeReplaceShiftModal()">Discard</button>
+                    <button class="btn-primary" onclick="openReplacementScheduleModal()">+ Assign Replacement</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="denyChangeModal" class="modal" style="display: none;">
+            <div class="modal-content modal-small">
+                <div class="modal-header">
+                    <h2>Deny Change Request</h2>
+                    <button class="modal-close" onclick="closeScheduleModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="denyScheduleId">
+                    <div id="denyChangeDetails"></div>
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label for="denyReason">Reason for Denial *</label>
+                        <textarea id="denyReason" rows="3" required placeholder="Explain why this request is being denied"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closeScheduleModal()">Cancel</button>
+                    <button class="btn-danger" onclick="confirmDenyChange()">Deny Request</button>
+                </div>
+            </div>
+        </div>
         {% endif %}
 
         <!-- Settings Tab -->
@@ -1156,91 +1524,6 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                         <button class="btn btn-primary" onclick="bulkUpdateSupplier()">
                             Update Supplier
                         </button>
-                    </div>
-                </div>
-
-                <!-- Background Customization -->
-                <div class="settings-card">
-                    <h3>🎨 Background Customization</h3>
-                    <p class="settings-description">Personalize your dashboard with gradients or custom images</p>
-
-                    <div class="settings-form">
-                        <!-- Gradient Selection -->
-                        <div class="form-group">
-                            <label>Gradient Themes</label>
-                            <div class="gradient-palette">
-                                <div class="gradient-option" data-gradient="default" onclick="applyGradient('default')" title="Default Blue Purple">
-                                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
-                                    <span>Default</span>
-                                </div>
-                                <div class="gradient-option" data-gradient="sunset" onclick="applyGradient('sunset')" title="Sunset Orange Pink">
-                                    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"></div>
-                                    <span>Sunset</span>
-                                </div>
-                                <div class="gradient-option" data-gradient="ocean" onclick="applyGradient('ocean')" title="Ocean Blue">
-                                    <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);"></div>
-                                    <span>Ocean</span>
-                                </div>
-                                <div class="gradient-option" data-gradient="forest" onclick="applyGradient('forest')" title="Forest Green">
-                                    <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);"></div>
-                                    <span>Forest</span>
-                                </div>
-                                <div class="gradient-option" data-gradient="lavender" onclick="applyGradient('lavender')" title="Lavender Purple">
-                                    <div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);"></div>
-                                    <span>Lavender</span>
-                                </div>
-                                <div class="gradient-option" data-gradient="fire" onclick="applyGradient('fire')" title="Fire Red Orange">
-                                    <div style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);"></div>
-                                    <span>Fire</span>
-                                </div>
-                                <div class="gradient-option" data-gradient="midnight" onclick="applyGradient('midnight')" title="Midnight Dark Blue">
-                                    <div style="background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);"></div>
-                                    <span>Midnight</span>
-                                </div>
-                                <div class="gradient-option" data-gradient="cherry" onclick="applyGradient('cherry')" title="Cherry Blossom">
-                                    <div style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);"></div>
-                                    <span>Cherry</span>
-                                </div>
-                                <div class="gradient-option" data-gradient="mint" onclick="applyGradient('mint')" title="Mint Fresh">
-                                    <div style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);"></div>
-                                    <span>Mint</span>
-                                </div>
-                                <div class="gradient-option" data-gradient="gold" onclick="applyGradient('gold')" title="Golden Hour">
-                                    <div style="background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);"></div>
-                                    <span>Gold</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Custom Image Upload -->
-                        <div class="form-group" style="margin-top: 30px;">
-                            <label>Custom Background Image</label>
-                            <p style="font-size: 0.9em; color: #666; margin: 5px 0 10px 0;">
-                                Upload a high-res image (JPEG, PNG, or GIF) to use as your background
-                            </p>
-                            <div style="display: flex; gap: 10px; align-items: center;">
-                                <label for="backgroundImageUpload" class="btn-upload" style="cursor: pointer; padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
-                                    📸 Upload Image
-                                    <input type="file" id="backgroundImageUpload" accept=".jpg,.jpeg,.png,.gif" style="display: none;" onchange="handleBackgroundImageUpload(event)">
-                                </label>
-                                <button class="btn-secondary" onclick="removeBackgroundImage()" style="padding: 10px 20px;">
-                                    ✕ Remove Image
-                                </button>
-                            </div>
-                            <div id="backgroundImagePreview" style="margin-top: 15px; display: none;">
-                                <strong>Current Background:</strong>
-                                <div style="margin-top: 10px; border: 2px solid #ddd; border-radius: 8px; overflow: hidden; max-width: 300px;">
-                                    <img id="backgroundImagePreviewImg" src="" alt="Background preview" style="width: 100%; height: auto;">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Reset to Default -->
-                        <div class="form-group" style="margin-top: 20px;">
-                            <button class="btn btn-secondary" onclick="resetBackgroundToDefault()" style="width: 100%;">
-                                🔄 Reset to Default Theme
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -2373,6 +2656,71 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                         </div>
                     </div>
 
+                    <!-- Address Information -->
+                    <div class="form-section">
+                        <h3>📍 Address</h3>
+
+                        <div class="form-group">
+                            <label>Street Address</label>
+                            <input type="text" id="employeeAddress" name="address"
+                                   class="form-control" placeholder="123 Main Street">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>City</label>
+                                <input type="text" id="employeeCity" name="city"
+                                       class="form-control" placeholder="San Francisco">
+                            </div>
+
+                            <div class="form-group">
+                                <label>State</label>
+                                <input type="text" id="employeeState" name="state"
+                                       class="form-control" placeholder="CA" maxlength="2">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>ZIP Code</label>
+                            <input type="text" id="employeeZipCode" name="zip_code"
+                                   class="form-control" placeholder="94102" maxlength="10">
+                        </div>
+                    </div>
+
+                    <!-- Emergency Contact -->
+                    <div class="form-section">
+                        <h3>🚨 Emergency Contact</h3>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Contact Name</label>
+                                <input type="text" id="employeeEmergencyName" name="emergency_contact_name"
+                                       class="form-control" placeholder="Jane Doe">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Contact Phone</label>
+                                <input type="tel" id="employeeEmergencyPhone" name="emergency_contact_phone"
+                                       class="form-control" placeholder="(555) 987-6543">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile Picture -->
+                    <div class="form-section">
+                        <h3>📸 Profile Picture</h3>
+                        <div style="display: flex; align-items: center; gap: 20px;">
+                            <div id="employeeProfilePicPreview" style="width: 80px; height: 80px; border-radius: 50%; background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 600; color: #6b7280; border: 3px solid #e5e7eb;">
+                                ?
+                            </div>
+                            <div style="flex: 1;">
+                                <div id="employeeProfilePicUrl" style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">
+                                    No profile picture uploaded
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="employeeFormError" class="error-message" style="display: none;"></div>
 
                     <div class="modal-actions">
@@ -2857,5 +3205,66 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
     <script src="{{ url_for('static', filename='js/barcode_scanner.js') }}?v=2.0"></script>
     <script src="{{ url_for('static', filename='js/employees.js') }}"></script>
     <script src="{{ url_for('static', filename='js/attendance.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/schedule_admin.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/time_off_admin.js') }}"></script>
+
+    <script>
+        // Initialize correct tab based on section
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if section == 'attendance' %}
+            // Show employees tab for attendance section
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            const employeesTab = document.getElementById('employees-tab');
+            if (employeesTab) {
+                employeesTab.classList.add('active');
+            }
+
+            // Find and activate employees button
+            const employeesBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn =>
+                btn.textContent.includes('Employees')
+            );
+            if (employeesBtn) {
+                employeesBtn.classList.add('active');
+            }
+
+            // Load employees data
+            if (typeof loadEmployees === 'function') {
+                loadEmployees();
+            }
+            {% elif section == 'inventory' or not section %}
+            // Show inventory tab for inventory section or no section
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            const inventoryTab = document.getElementById('inventory-tab');
+            if (inventoryTab) {
+                inventoryTab.classList.add('active');
+            }
+
+            // Find and activate inventory button
+            const inventoryBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn =>
+                btn.textContent.includes('Inventory')
+            );
+            if (inventoryBtn) {
+                inventoryBtn.classList.add('active');
+            }
+
+            // Load inventory data
+            if (typeof loadInventory === 'function') {
+                loadInventory();
+            }
+            {% endif %}
+        });
+    </script>
 </body>
 </html>

@@ -50,23 +50,26 @@ def get_current_employee():
 # EMPLOYEE PORTAL DASHBOARD
 # ==========================================
 
-@employee_bp.route('/portal')
-@login_required
-@organization_required
-def employee_portal():
-    """Employee self-service portal homepage"""
-    employee = get_current_employee()
-
-    if not employee:
-        return jsonify({'error': 'Employee record not found'}), 404
-
-    return render_template('employee_portal.html', employee=employee)
+# NOTE: The /employee/portal route is defined in app.py to render the comprehensive portal
+# This blueprint only contains API endpoints for employee data
 
 # ==========================================
 # PROFILE MANAGEMENT
 # ==========================================
 
 @employee_bp.route('/profile')
+@login_required
+@organization_required
+def profile_page():
+    """Employee profile page"""
+    employee = get_current_employee()
+
+    if not employee:
+        return jsonify({'error': 'Employee record not found'}), 404
+
+    return render_template('employee/profile.html', employee=dict(employee))
+
+@employee_bp.route('/profile/data')
 @login_required
 @organization_required
 @permission_required('employees.view_own')
@@ -82,7 +85,6 @@ def get_own_profile():
 @employee_bp.route('/profile/update', methods=['PUT'])
 @login_required
 @organization_required
-@permission_required('employees.edit_own')
 def update_own_profile():
     """Update current employee's editable profile fields"""
     data = request.json
@@ -124,147 +126,76 @@ def update_own_profile():
 
     return jsonify({'success': True, 'message': 'Profile updated successfully'})
 
-# ==========================================
-# TIME CLOCK
-# ==========================================
-
-@employee_bp.route('/clock/status')
+@employee_bp.route('/profile/upload-picture', methods=['POST'])
 @login_required
 @organization_required
-@permission_required('timeclock.clockin')
-def get_clock_status():
-    """Get current clock in/out status"""
+def upload_profile_picture():
+    """Upload profile picture for employee"""
     employee = get_current_employee()
 
     if not employee:
         return jsonify({'error': 'Employee record not found'}), 404
 
-    conn = get_org_db()
-    cursor = conn.cursor()
+    if 'profile_picture' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
 
-    # Check for open time entry (clocked in but not clocked out)
-    cursor.execute("""
-        SELECT * FROM time_entries
-        WHERE employee_id = ? AND organization_id = ? AND clock_out IS NULL
-        ORDER BY clock_in DESC
-        LIMIT 1
-    """, (employee['id'], g.organization['id']))
+    file = request.files['profile_picture']
 
-    current_entry = cursor.fetchone()
-    conn.close()
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
 
-    if current_entry:
-        return jsonify({
-            'clocked_in': True,
-            'entry': dict(current_entry)
-        })
-    else:
-        return jsonify({
-            'clocked_in': False,
-            'entry': None
-        })
+    # Check file extension
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+    file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
 
-@employee_bp.route('/clock/in', methods=['POST'])
-@login_required
-@organization_required
-@permission_required('timeclock.clockin')
-def clock_in():
-    """Clock in for work"""
-    employee = get_current_employee()
+    if file_ext not in allowed_extensions:
+        return jsonify({'error': 'Invalid file type. Allowed: PNG, JPG, JPEG, GIF, WEBP'}), 400
 
-    if not employee:
-        return jsonify({'error': 'Employee record not found'}), 404
+    # Create uploads directory if it doesn't exist
+    import os
+    from werkzeug.utils import secure_filename
+
+    upload_dir = os.path.join('static', 'uploads', 'profiles')
+    os.makedirs(upload_dir, exist_ok=True)
+
+    # Generate unique filename
+    filename = f"employee_{employee['id']}_{int(datetime.now().timestamp())}.{file_ext}"
+    filename = secure_filename(filename)
+    filepath = os.path.join(upload_dir, filename)
+
+    # Save file
+    file.save(filepath)
+
+    # Update database with profile picture path
+    profile_picture_url = f"/static/uploads/profiles/{filename}"
 
     conn = get_org_db()
     cursor = conn.cursor()
 
-    # Check if already clocked in
     cursor.execute("""
-        SELECT id FROM time_entries
-        WHERE employee_id = ? AND organization_id = ? AND clock_out IS NULL
-    """, (employee['id'], g.organization['id']))
-
-    if cursor.fetchone():
-        conn.close()
-        return jsonify({'error': 'Already clocked in'}), 400
-
-    # Create new time entry
-    now = datetime.now().isoformat()
-
-    cursor.execute("""
-        INSERT INTO time_entries (organization_id, employee_id, clock_in)
-        VALUES (?, ?, ?)
-    """, (g.organization['id'], employee['id'], now))
-
-    entry_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
-
-    log_audit('clocked_in', 'time_entry', entry_id)
-
-    return jsonify({
-        'success': True,
-        'entry_id': entry_id,
-        'clock_in': now,
-        'message': 'Clocked in successfully'
-    })
-
-@employee_bp.route('/clock/out', methods=['POST'])
-@login_required
-@organization_required
-@permission_required('timeclock.clockin')
-def clock_out():
-    """Clock out from work"""
-    employee = get_current_employee()
-
-    if not employee:
-        return jsonify({'error': 'Employee record not found'}), 404
-
-    conn = get_org_db()
-    cursor = conn.cursor()
-
-    # Find open time entry
-    cursor.execute("""
-        SELECT * FROM time_entries
-        WHERE employee_id = ? AND organization_id = ? AND clock_out IS NULL
-        ORDER BY clock_in DESC
-        LIMIT 1
-    """, (employee['id'], g.organization['id']))
-
-    entry = cursor.fetchone()
-
-    if not entry:
-        conn.close()
-        return jsonify({'error': 'Not clocked in'}), 400
-
-    # Update time entry with clock out
-    now = datetime.now().isoformat()
-
-    # Calculate hours worked
-    clock_in = datetime.fromisoformat(entry['clock_in'])
-    clock_out = datetime.fromisoformat(now)
-    hours_worked = (clock_out - clock_in).total_seconds() / 3600
-
-    cursor.execute("""
-        UPDATE time_entries
-        SET clock_out = ?, hours_worked = ?
+        UPDATE employees
+        SET profile_picture = ?
         WHERE id = ? AND organization_id = ?
-    """, (now, hours_worked, entry['id'], g.organization['id']))
+    """, (profile_picture_url, employee['id'], g.organization['id']))
 
     conn.commit()
     conn.close()
 
-    log_audit('clocked_out', 'time_entry', entry['id'], {
-        'hours_worked': hours_worked
+    log_audit('updated_profile_picture', 'employee', employee['id'], {
+        'profile_picture': profile_picture_url
     })
 
     return jsonify({
         'success': True,
-        'entry_id': entry['id'],
-        'clock_out': now,
-        'hours_worked': round(hours_worked, 2),
-        'message': f'Clocked out successfully. Hours worked: {round(hours_worked, 2)}'
+        'message': 'Profile picture updated successfully',
+        'profile_picture': profile_picture_url
     })
+
+# ==========================================
+# TIME CLOCK - REMOVED
+# Clock in/out functionality removed from comprehensive portal
+# Clock terminal uses /api/attendance/* endpoints instead
+# ==========================================
 
 # ==========================================
 # TIME ENTRIES HISTORY
@@ -273,7 +204,18 @@ def clock_out():
 @employee_bp.route('/time-entries')
 @login_required
 @organization_required
-@permission_required('timeclock.view_own')
+def time_entries_page():
+    """Time entries page"""
+    employee = get_current_employee()
+
+    if not employee:
+        return jsonify({'error': 'Employee record not found'}), 404
+
+    return render_template('employee/time_entries.html', employee=dict(employee))
+
+@employee_bp.route('/time-entries/data')
+@login_required
+@organization_required
 def get_own_time_entries():
     """Get current employee's time entries"""
     employee = get_current_employee()
@@ -288,16 +230,22 @@ def get_own_time_entries():
     conn = get_org_db()
     cursor = conn.cursor()
 
+    # Query attendance table (not time_entries)
+    # Get all attendance records for this employee, sorted by date
     cursor.execute("""
-        SELECT * FROM time_entries
-        WHERE employee_id = ? AND organization_id = ? AND clock_in >= ?
+        SELECT * FROM attendance
+        WHERE employee_id = ? AND organization_id = ? AND clock_in IS NOT NULL
         ORDER BY clock_in DESC
-    """, (employee['id'], g.organization['id'], start_date))
+    """, (employee['id'], g.organization['id']))
 
     entries = [dict(row) for row in cursor.fetchall()]
 
-    # Calculate total hours
-    total_hours = sum(entry['hours_worked'] or 0 for entry in entries)
+    # Calculate total hours - attendance uses total_hours column
+    total_hours = sum(entry.get('total_hours', 0) or 0 for entry in entries)
+
+    # Map attendance fields to match expected time_entries format
+    for entry in entries:
+        entry['hours_worked'] = entry.get('total_hours', 0)
 
     conn.close()
 
@@ -401,45 +349,24 @@ def get_own_schedule():
     if not employee:
         return jsonify({'error': 'Employee record not found'}), 404
 
-    # Get date range from query params
-    start_date = request.args.get('start_date', datetime.now().date().isoformat())
-    end_date = request.args.get('end_date', (datetime.now() + timedelta(days=14)).date().isoformat())
-
-    conn = get_org_db()
-    cursor = conn.cursor()
-
-    # Check if schedule table exists
-    cursor.execute("""
-        SELECT name FROM sqlite_master
-        WHERE type='table' AND name='schedules'
-    """)
-
-    if not cursor.fetchone():
-        conn.close()
-        return jsonify({
-            'message': 'Schedule feature not yet implemented',
-            'schedule': []
-        })
-
-    cursor.execute("""
-        SELECT * FROM schedules
-        WHERE employee_id = ? AND organization_id = ?
-          AND date >= ? AND date <= ?
-        ORDER BY date, start_time
-    """, (employee['id'], g.organization['id'], start_date, end_date))
-
-    schedule = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-
-    return jsonify({
-        'schedule': schedule,
-        'start_date': start_date,
-        'end_date': end_date
-    })
+    # Render the schedule template - JavaScript will fetch data via API
+    return render_template('employee/schedule.html', employee=dict(employee))
 
 # ==========================================
 # PTO/TIME OFF REQUESTS
 # ==========================================
+
+@employee_bp.route('/time-off')
+@login_required
+@organization_required
+def time_off_page():
+    """Time off request page"""
+    employee = get_current_employee()
+
+    if not employee:
+        return jsonify({'error': 'Employee record not found'}), 404
+
+    return render_template('employee/time_off.html', employee=dict(employee))
 
 @employee_bp.route('/pto-balance')
 @login_required
@@ -452,11 +379,12 @@ def get_pto_balance():
     if not employee:
         return jsonify({'error': 'Employee record not found'}), 404
 
-    # Assuming PTO balance is stored in employees table
     return jsonify({
-        'pto_hours_available': employee.get('pto_hours_available', 0),
-        'pto_hours_used': employee.get('pto_hours_used', 0),
-        'pto_hours_accrued': employee.get('pto_hours_accrued', 0)
+        'success': True,
+        'available': employee.get('pto_hours_available', 80.0),
+        'used': employee.get('pto_hours_used', 0.0),
+        'total': employee.get('pto_hours_available', 80.0) + employee.get('pto_hours_used', 0.0),
+        'accrual_rate': employee.get('pto_accrual_rate', 0.0385)
     })
 
 @employee_bp.route('/time-off-requests')
@@ -473,29 +401,16 @@ def get_time_off_requests():
     conn = get_org_db()
     cursor = conn.cursor()
 
-    # Check if table exists
-    cursor.execute("""
-        SELECT name FROM sqlite_master
-        WHERE type='table' AND name='time_off_requests'
-    """)
-
-    if not cursor.fetchone():
-        conn.close()
-        return jsonify({
-            'message': 'Time off requests feature not yet implemented',
-            'requests': []
-        })
-
     cursor.execute("""
         SELECT * FROM time_off_requests
         WHERE employee_id = ? AND organization_id = ?
-        ORDER BY request_date DESC
+        ORDER BY created_at DESC
     """, (employee['id'], g.organization['id']))
 
     requests = [dict(row) for row in cursor.fetchall()]
     conn.close()
 
-    return jsonify({'requests': requests})
+    return jsonify({'success': True, 'requests': requests})
 
 @employee_bp.route('/time-off-requests', methods=['POST'])
 @login_required
@@ -510,43 +425,315 @@ def submit_time_off_request():
 
     data = request.json
 
+    # Validate required fields
+    required_fields = ['start_date', 'end_date', 'request_type', 'total_hours']
+    for field in required_fields:
+        if field not in data:
+            return jsonify({'error': f'Missing required field: {field}'}), 400
+
+    # Validate PTO balance if request type is PTO
+    if data['request_type'] == 'pto':
+        pto_available = employee.get('pto_hours_available', 0)
+        if data['total_hours'] > pto_available:
+            return jsonify({
+                'error': f'Insufficient PTO balance. Available: {pto_available} hours, Requested: {data["total_hours"]} hours'
+            }), 400
+
     conn = get_org_db()
     cursor = conn.cursor()
 
-    # Check if table exists, if not return message
-    cursor.execute("""
-        SELECT name FROM sqlite_master
-        WHERE type='table' AND name='time_off_requests'
-    """)
+    try:
+        cursor.execute("""
+            INSERT INTO time_off_requests
+            (organization_id, employee_id, start_date, end_date, request_type, total_hours, reason, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+        """, (
+            g.organization['id'],
+            employee['id'],
+            data['start_date'],
+            data['end_date'],
+            data['request_type'],
+            data['total_hours'],
+            data.get('reason', '')
+        ))
 
-    if not cursor.fetchone():
-        conn.close()
+        request_id = cursor.lastrowid
+        conn.commit()
+
+        log_audit('submitted_time_off_request', 'time_off_request', request_id)
+
         return jsonify({
-            'error': 'Time off requests feature not yet implemented'
-        }), 501
+            'success': True,
+            'request_id': request_id,
+            'message': 'Time off request submitted successfully'
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@employee_bp.route('/time-off-requests/<int:request_id>', methods=['DELETE'])
+@login_required
+@organization_required
+@permission_required('employees.view_own')
+def cancel_time_off_request(request_id):
+    """Cancel a pending time off request"""
+    employee = get_current_employee()
+
+    if not employee:
+        return jsonify({'error': 'Employee record not found'}), 404
+
+    conn = get_org_db()
+    cursor = conn.cursor()
+
+    try:
+        # First check if the request exists and belongs to this employee
+        cursor.execute("""
+            SELECT status FROM time_off_requests
+            WHERE id = ? AND employee_id = ? AND organization_id = ?
+        """, (request_id, employee['id'], g.organization['id']))
+
+        result = cursor.fetchone()
+
+        if not result:
+            conn.close()
+            return jsonify({'error': 'Time off request not found'}), 404
+
+        if result['status'] != 'pending':
+            conn.close()
+            return jsonify({'error': 'Can only cancel pending requests'}), 400
+
+        # Delete the request
+        cursor.execute("""
+            DELETE FROM time_off_requests
+            WHERE id = ? AND employee_id = ? AND organization_id = ?
+        """, (request_id, employee['id'], g.organization['id']))
+
+        conn.commit()
+
+        log_audit('cancelled_time_off_request', 'time_off_request', request_id)
+
+        return jsonify({
+            'success': True,
+            'message': 'Time off request cancelled successfully'
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+# ============================================================================
+# Availability Management Endpoints
+# ============================================================================
+
+@employee_bp.route('/availability-page')
+@login_required
+@organization_required
+def availability_page():
+    """Availability management page"""
+    employee = get_current_employee()
+
+    if not employee:
+        return jsonify({'error': 'Employee record not found'}), 404
+
+    return render_template('employee/availability.html', employee=dict(employee))
+
+@employee_bp.route('/availability')
+@login_required
+@organization_required
+@permission_required('employees.view_own')
+def get_availability():
+    """Get current employee's availability preferences"""
+    employee = get_current_employee()
+
+    if not employee:
+        return jsonify({'error': 'Employee record not found'}), 404
+
+    conn = get_org_db()
+    cursor = conn.cursor()
 
     cursor.execute("""
-        INSERT INTO time_off_requests
-        (organization_id, employee_id, start_date, end_date, hours_requested, reason, status, request_date)
-        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
-    """, (
-        g.organization['id'],
-        employee['id'],
-        data['start_date'],
-        data['end_date'],
-        data.get('hours_requested'),
-        data.get('reason'),
-        datetime.now().isoformat()
-    ))
+        SELECT * FROM employee_availability
+        WHERE employee_id = ? AND organization_id = ?
+        ORDER BY day_of_week, start_time
+    """, (employee['id'], g.organization['id']))
 
-    request_id = cursor.lastrowid
-    conn.commit()
+    availability = [dict(row) for row in cursor.fetchall()]
     conn.close()
 
-    log_audit('submitted_time_off_request', 'time_off_request', request_id)
+    return jsonify({'success': True, 'availability': availability})
 
-    return jsonify({
-        'success': True,
-        'request_id': request_id,
-        'message': 'Time off request submitted successfully'
-    })
+@employee_bp.route('/availability', methods=['POST'])
+@login_required
+@organization_required
+@permission_required('employees.view_own')
+def add_availability():
+    """Add a new availability entry"""
+    employee = get_current_employee()
+
+    if not employee:
+        return jsonify({'error': 'Employee record not found'}), 404
+
+    data = request.json
+
+    # Validate required fields
+    required_fields = ['day_of_week', 'start_time', 'end_time']
+    for field in required_fields:
+        if field not in data:
+            return jsonify({'error': f'Missing required field: {field}'}), 400
+
+    # Validate day_of_week is between 0-6
+    if not (0 <= data['day_of_week'] <= 6):
+        return jsonify({'error': 'day_of_week must be between 0 (Sunday) and 6 (Saturday)'}), 400
+
+    conn = get_org_db()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            INSERT INTO employee_availability
+            (organization_id, employee_id, day_of_week, start_time, end_time,
+             effective_from, effective_until, availability_type, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            g.organization['id'],
+            employee['id'],
+            data['day_of_week'],
+            data['start_time'],
+            data['end_time'],
+            data.get('effective_from'),
+            data.get('effective_until'),
+            data.get('availability_type', 'recurring'),
+            data.get('notes', '')
+        ))
+
+        availability_id = cursor.lastrowid
+        conn.commit()
+
+        log_audit('added_availability', 'employee_availability', availability_id)
+
+        return jsonify({
+            'success': True,
+            'availability_id': availability_id,
+            'message': 'Availability added successfully'
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@employee_bp.route('/availability/<int:availability_id>', methods=['PUT'])
+@login_required
+@organization_required
+@permission_required('employees.view_own')
+def update_availability(availability_id):
+    """Update an existing availability entry"""
+    employee = get_current_employee()
+
+    if not employee:
+        return jsonify({'error': 'Employee record not found'}), 404
+
+    data = request.json
+
+    conn = get_org_db()
+    cursor = conn.cursor()
+
+    try:
+        # First check if the availability exists and belongs to this employee
+        cursor.execute("""
+            SELECT id FROM employee_availability
+            WHERE id = ? AND employee_id = ? AND organization_id = ?
+        """, (availability_id, employee['id'], g.organization['id']))
+
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'error': 'Availability entry not found'}), 404
+
+        # Build update query dynamically based on provided fields
+        update_fields = []
+        update_values = []
+
+        allowed_fields = ['day_of_week', 'start_time', 'end_time', 'effective_from',
+                         'effective_until', 'availability_type', 'notes']
+
+        for field in allowed_fields:
+            if field in data:
+                update_fields.append(f"{field} = ?")
+                update_values.append(data[field])
+
+        if not update_fields:
+            conn.close()
+            return jsonify({'error': 'No fields to update'}), 400
+
+        # Add updated_at
+        update_fields.append("updated_at = CURRENT_TIMESTAMP")
+
+        update_values.extend([availability_id, employee['id'], g.organization['id']])
+
+        cursor.execute(f"""
+            UPDATE employee_availability
+            SET {', '.join(update_fields)}
+            WHERE id = ? AND employee_id = ? AND organization_id = ?
+        """, update_values)
+
+        conn.commit()
+
+        log_audit('updated_availability', 'employee_availability', availability_id)
+
+        return jsonify({
+            'success': True,
+            'message': 'Availability updated successfully'
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@employee_bp.route('/availability/<int:availability_id>', methods=['DELETE'])
+@login_required
+@organization_required
+@permission_required('employees.view_own')
+def delete_availability(availability_id):
+    """Delete an availability entry"""
+    employee = get_current_employee()
+
+    if not employee:
+        return jsonify({'error': 'Employee record not found'}), 404
+
+    conn = get_org_db()
+    cursor = conn.cursor()
+
+    try:
+        # First check if the availability exists and belongs to this employee
+        cursor.execute("""
+            SELECT id FROM employee_availability
+            WHERE id = ? AND employee_id = ? AND organization_id = ?
+        """, (availability_id, employee['id'], g.organization['id']))
+
+        if not cursor.fetchone():
+            conn.close()
+            return jsonify({'error': 'Availability entry not found'}), 404
+
+        # Delete the entry
+        cursor.execute("""
+            DELETE FROM employee_availability
+            WHERE id = ? AND employee_id = ? AND organization_id = ?
+        """, (availability_id, employee['id'], g.organization['id']))
+
+        conn.commit()
+
+        log_audit('deleted_availability', 'employee_availability', availability_id)
+
+        return jsonify({
+            'success': True,
+            'message': 'Availability deleted successfully'
+        })
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()

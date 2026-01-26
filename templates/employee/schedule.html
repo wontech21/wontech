@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Schedule - Employee Portal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .schedule-container {
+            padding-top: 80px;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+    </style>
+</head>
+<body>
+    <a href="/employee/portal" class="back-btn">← Back to Portal</a>
+
+    <div class="schedule-container">
+        <!-- Header with View Toggle and Filters -->
+        <div class="schedule-header">
+            <div class="schedule-title-section">
+                <h1>📅 My Schedule</h1>
+                <div class="schedule-subtitle">
+                    <span id="currentDateRange"></span>
+                </div>
+            </div>
+
+            <div class="schedule-controls">
+                <!-- View Toggle -->
+                <div class="view-toggle">
+                    <button class="view-btn active" data-view="week" onclick="switchView('week')">
+                        📅 Week
+                    </button>
+                    <button class="view-btn" data-view="month" onclick="switchView('month')">
+                        📆 Month
+                    </button>
+                    <button class="view-btn" data-view="day" onclick="switchView('day')">
+                        📋 Day
+                    </button>
+                    <button class="view-btn" data-view="list" onclick="switchView('list')">
+                        📄 List
+                    </button>
+                </div>
+
+                <!-- Team View Toggle -->
+                <button class="team-toggle-btn" onclick="toggleTeamView()" id="teamToggleBtn">
+                    👥 Show Team Schedule
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters (visible when team view is active) -->
+        <div class="schedule-filters" id="scheduleFilters" style="display: none;">
+            <div class="filter-group">
+                <label for="positionFilter">Position:</label>
+                <select id="positionFilter" onchange="applyFilters()">
+                    <option value="">All Positions</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="departmentFilter">Department:</label>
+                <select id="departmentFilter" onchange="applyFilters()">
+                    <option value="">All Departments</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="nameFilter">Employee:</label>
+                <select id="nameFilter" onchange="applyFilters()">
+                    <option value="">All Employees</option>
+                </select>
+            </div>
+            <button class="filter-reset-btn" onclick="resetFilters()">Clear Filters</button>
+        </div>
+
+        <!-- Navigation Controls -->
+        <div class="schedule-navigation">
+            <button class="nav-btn" onclick="navigatePrevious()">
+                ← Previous
+            </button>
+            <button class="nav-btn today-btn" onclick="navigateToday()">
+                Today
+            </button>
+            <button class="nav-btn" onclick="navigateNext()">
+                Next →
+            </button>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div class="schedule-loading" id="scheduleLoading" style="display: none;">
+            <div class="loader"></div>
+            <p>Loading schedule...</p>
+        </div>
+
+        <!-- Week View -->
+        <div id="weekView" class="schedule-view active">
+            <div class="week-calendar">
+                <div class="week-grid" id="weekGrid">
+                    <!-- Week grid will be dynamically populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Month View -->
+        <div id="monthView" class="schedule-view" style="display: none;">
+            <div class="month-calendar">
+                <div class="month-header">
+                    <h2 id="monthViewTitle"></h2>
+                </div>
+                <div class="month-grid" id="monthGrid">
+                    <!-- Month grid will be dynamically populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Day View -->
+        <div id="dayView" class="schedule-view" style="display: none;">
+            <div class="day-schedule">
+                <div class="day-header">
+                    <h2 id="dayViewTitle"></h2>
+                </div>
+                <div class="day-grid" id="dayGrid">
+                    <!-- Day grid will be dynamically populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- List View -->
+        <div id="listView" class="schedule-view" style="display: none;">
+            <div class="list-schedule">
+                <table class="schedule-list-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Employee</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Hours</th>
+                            <th>Position</th>
+                            <th>Status</th>
+                            <th>Attendance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listViewBody">
+                        <!-- List rows will be dynamically populated by JavaScript -->
+                    </tbody>
+                </table>
+                <div class="list-pagination" id="listPagination">
+                    <!-- Pagination controls -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="schedule-empty" id="scheduleEmpty" style="display: none;">
+            <div class="empty-icon">📭</div>
+            <h3>No Schedules Found</h3>
+            <p>There are no schedules for the selected period.</p>
+        </div>
+    </div>
+
+    <!-- Shift Detail Modal -->
+    <div class="modal" id="shiftDetailModal" style="display: none;">
+        <div class="modal-content schedule-modal">
+            <div class="modal-header">
+                <h2>Shift Details</h2>
+                <button class="modal-close" onclick="closeShiftDetailModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="shiftDetailBody">
+                <!-- Shift details will be populated by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeShiftDetailModal()">Close</button>
+                <button class="btn-primary" onclick="openChangeRequestModal()" id="requestChangeBtn">
+                    Request Change
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Request Modal -->
+    <div class="modal" id="changeRequestModal" style="display: none;">
+        <div class="modal-content schedule-modal">
+            <div class="modal-header">
+                <h2>Request Schedule Change</h2>
+                <button class="modal-close" onclick="closeChangeRequestModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="changeRequestForm" onsubmit="submitChangeRequest(event)">
+                    <input type="hidden" id="changeScheduleId">
+
+                    <div class="form-group">
+                        <label>Current Schedule:</label>
+                        <div class="current-schedule-info" id="currentScheduleInfo">
+                            <!-- Current schedule info -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="changeReason">Reason for Change Request: *</label>
+                        <textarea
+                            id="changeReason"
+                            name="reason"
+                            rows="4"
+                            required
+                            placeholder="Please explain why you need to change this shift..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="suggestChanges" onchange="toggleSuggestedChanges()">
+                            Suggest specific changes (optional)
+                        </label>
+                    </div>
+
+                    <div id="suggestedChangesSection" style="display: none;">
+                        <div class="form-group">
+                            <label for="newDate">New Date:</label>
+                            <input type="date" id="newDate" name="new_date">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="newStartTime">New Start Time:</label>
+                                <input type="time" id="newStartTime" name="new_start_time">
+                            </div>
+                            <div class="form-group">
+                                <label for="newEndTime">New End Time:</label>
+                                <input type="time" id="newEndTime" name="new_end_time">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-note">
+                        * Change requests require admin approval. You will be notified once your request is reviewed.
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeChangeRequestModal()">Cancel</button>
+                        <button type="submit" class="btn-primary">Submit Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="schedule-legend">
+        <h4>Legend:</h4>
+        <div class="legend-items">
+            <div class="legend-item">
+                <span class="legend-badge status-scheduled"></span>
+                <span>Scheduled</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-badge status-confirmed"></span>
+                <span>Confirmed</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-badge on-time"></span>
+                <span>On Time (Attendance)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-badge late"></span>
+                <span>Late/Early</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-badge missed"></span>
+                <span>Missed Shift</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-badge change-requested"></span>
+                <span>Change Requested</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Schedule JavaScript -->
+    <script>
+        // Pass employee data to JavaScript
+        window.employeeData = {
+            id: {{ employee.id }},
+            name: "{{ employee.first_name }} {{ employee.last_name }}",
+            position: "{{ employee.position or '' }}",
+            department: "{{ employee.department or '' }}"
+        };
+    </script>
+    <script src="{{ url_for('static', filename='js/schedule.js') }}"></script>
+</body>
+</html>
