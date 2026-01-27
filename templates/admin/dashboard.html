@@ -11,7 +11,7 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
-            animation: fadeIn 0.6s ease-out;
+            animation: fadeIn 0.2s ease-out;
         }
 
         @keyframes fadeIn {
@@ -389,7 +389,7 @@
 
         .org-card-actions {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 12px;
             margin-top: 16px;
         }
@@ -560,9 +560,13 @@
                         </div>
 
                         <div class="org-card-actions">
-                            <div class="org-action" onclick="enterOrganization({{ org.id }}, '{{ org.organization_name }}')">
-                                <div class="org-action-icon">🚀</div>
-                                <div class="org-action-label">Enter Dashboard</div>
+                            <div class="org-action" onclick="enterOrganizationSection({{ org.id }}, '{{ org.organization_name }}', 'inventory')">
+                                <div class="org-action-icon">📦</div>
+                                <div class="org-action-label">Inventory & Sales</div>
+                            </div>
+                            <div class="org-action" onclick="enterOrganizationSection({{ org.id }}, '{{ org.organization_name }}', 'attendance')">
+                                <div class="org-action-icon">👥</div>
+                                <div class="org-action-label">Employees</div>
                             </div>
                             <div class="org-action" onclick="manageOrganization({{ org.id }})">
                                 <div class="org-action-icon">⚙️</div>
@@ -1360,6 +1364,29 @@
                 if (data.success) {
                     // Redirect to main dashboard (now in context of selected organization)
                     window.location.href = '/dashboard';
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to switch organization'));
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                alert('Failed to switch organization');
+            });
+        }
+
+        function enterOrganizationSection(orgId, orgName, section) {
+            fetch('/admin/switch-organization', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ organization_id: orgId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Redirect to specific section of dashboard
+                    window.location.href = `/dashboard/${section}`;
                 } else {
                     alert('Error: ' + (data.error || 'Failed to switch organization'));
                 }

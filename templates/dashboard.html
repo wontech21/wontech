@@ -95,16 +95,17 @@
             {% if not section or section == 'attendance' %}
             <!-- Attendance Management Tabs -->
             {% if g.user.role in ['organization_admin', 'super_admin'] %}
-            <button class="tab-btn active" onclick="showTab('employees')">👥 Employees</button>
+            <button class="tab-btn active" onclick="showTab('schedules')">📅 Schedules</button>
             <button class="tab-btn" onclick="showTab('attendance')">⏰ Attendance</button>
-            <button class="tab-btn" onclick="showTab('schedules')">📅 Schedules</button>
             <button class="tab-btn" onclick="showTab('time-off-requests')">🏖️ Time Off</button>
+            <button class="tab-btn" onclick="showTab('payroll')">💰 Payroll</button>
+            <button class="tab-btn" onclick="showTab('employees')">👥 Employees</button>
             {% endif %}
             {% endif %}
         </nav>
 
         <!-- Inventory View Tab -->
-        <div id="inventory-tab" class="tab-content active">
+        <div id="inventory-tab" class="tab-content {% if not section or section == 'inventory' %}active{% endif %}">
             <div class="page-header">
                 <h2 class="page-title">Inventory Details</h2>
                 <button class="btn-create-primary" onclick="openCreateIngredientModal()">
@@ -888,7 +889,7 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
 
         <!-- Employees Tab -->
         {% if g.user.role in ['organization_admin', 'super_admin'] %}
-        <div id="employees-tab" class="tab-content active">
+        <div id="employees-tab" class="tab-content">
             <div class="section-header">
                 <h2>Employee Management</h2>
                 <button class="btn btn-primary" onclick="openCreateEmployeeModal()">
@@ -970,8 +971,8 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                     <option value="on_break">On Break</option>
                     <option value="clocked_out">Clocked Out</option>
                 </select>
-                <input type="date" id="attendanceDateFrom" onchange="filterAndDisplayAttendance()" class="search-input" style="max-width: 180px;">
-                <input type="date" id="attendanceDateTo" onchange="filterAndDisplayAttendance()" class="search-input" style="max-width: 180px;">
+                <input type="date" id="attendanceDateFrom" onchange="loadAttendance()" class="search-input" style="max-width: 180px;">
+                <input type="date" id="attendanceDateTo" onchange="loadAttendance()" class="search-input" style="max-width: 180px;">
             </div>
 
             <div class="attendance-section">
@@ -1042,7 +1043,7 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
         </div>
 
         <!-- Schedules Tab -->
-        <div id="schedules-tab" class="tab-content">
+        <div id="schedules-tab" class="tab-content {% if section == 'attendance' %}active{% endif %}">
             <div class="section-header">
                 <h2>📅 Schedule Management</h2>
                 <p class="subtitle">Create and manage employee work schedules</p>
@@ -1199,6 +1200,131 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                             <button onclick="changeTimeOffPage('last')" id="timeOffLastPage">»</button>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payroll Tab -->
+        <div id="payroll-tab" class="tab-content">
+            <div class="section-header">
+                <h2>💰 Payroll</h2>
+                <p class="subtitle">Review and export weekly payroll data</p>
+            </div>
+
+            <div class="payroll-controls" style="display: flex; gap: 15px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label style="font-weight: 600; margin-right: 10px;">View:</label>
+                    <select id="payrollViewType" onchange="togglePayrollView()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #d1d5db;">
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+
+                <!-- Weekly Selection -->
+                <div id="weeklySelector" class="form-group" style="margin-bottom: 0;">
+                    <label for="payrollWeekSelect" style="font-weight: 600; margin-right: 10px;">Week:</label>
+                    <select id="payrollWeekSelect" onchange="loadPayrollData()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #d1d5db; min-width: 250px;">
+                        <option value="">Loading weeks...</option>
+                    </select>
+                </div>
+
+                <!-- Monthly Selection -->
+                <div id="monthlySelector" style="display: none; gap: 10px; align-items: center;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="payrollMonthSelect" style="font-weight: 600; margin-right: 10px;">Month:</label>
+                        <select id="payrollMonthSelect" onchange="loadMonthlyPayroll()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #d1d5db;">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="payrollYearSelect" style="font-weight: 600; margin-right: 10px;">Year:</label>
+                        <select id="payrollYearSelect" onchange="loadMonthlyPayroll()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #d1d5db;">
+                            <option value="">Loading...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="exportPayrollCSV()" style="display: flex; align-items: center; gap: 6px;">
+                    📥 Export CSV
+                </button>
+                <button class="btn btn-secondary" onclick="printPayroll()" style="display: flex; align-items: center; gap: 6px;">
+                    🖨️ Print
+                </button>
+            </div>
+
+            <div class="payroll-summary-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div class="summary-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 0.85rem; opacity: 0.9;">Total Hours</div>
+                    <div id="payrollTotalHours" style="font-size: 1.8rem; font-weight: 700;">0</div>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 0.85rem; opacity: 0.9;">Regular Wages</div>
+                    <div id="payrollRegularWages" style="font-size: 1.8rem; font-weight: 700;">$0</div>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #F2994A 0%, #F2C94C 100%); color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 0.85rem; opacity: 0.9;">Overtime</div>
+                    <div id="payrollOTWages" style="font-size: 1.8rem; font-weight: 700;">$0</div>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 0.85rem; opacity: 0.9;">Tips</div>
+                    <div id="payrollTips" style="font-size: 1.8rem; font-weight: 700;">$0</div>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 0.85rem; opacity: 0.9;">Salaries</div>
+                    <div id="payrollSalaries" style="font-size: 1.8rem; font-weight: 700;">$0</div>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #232526 0%, #414345 100%); color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 0.85rem; opacity: 0.9;">Total Gross Pay</div>
+                    <div id="payrollGrossPay" style="font-size: 1.8rem; font-weight: 700;">$0</div>
+                </div>
+            </div>
+
+            <div class="payroll-section">
+                <div class="table-container" id="payrollTableContainer">
+                    <table id="payrollTable">
+                        <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <tr>
+                                <th style="color: white; background: transparent;">Employee</th>
+                                <th style="color: white; background: transparent;">Hourly</th>
+                                <th style="color: white; background: transparent;">Total Hrs</th>
+                                <th style="color: white; background: transparent;">Reg Hrs</th>
+                                <th style="color: white; background: transparent;">Reg Wage</th>
+                                <th style="color: white; background: transparent;">OT Hrs</th>
+                                <th style="color: white; background: transparent;">OT Wage</th>
+                                <th style="color: white; background: transparent;">Tips</th>
+                                <th style="color: white; background: transparent;">Salary</th>
+                                <th style="color: white; background: transparent;">Classification</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payrollTableBody">
+                            <tr><td colspan="10" class="loading">Select a pay period to view payroll data</td></tr>
+                        </tbody>
+                        <tfoot id="payrollTableFoot" style="display: none;">
+                            <tr style="background: #f3f4f6; font-weight: 700;">
+                                <td>TOTAL</td>
+                                <td></td>
+                                <td id="footTotalHours">0</td>
+                                <td id="footRegHours">0</td>
+                                <td id="footRegWages">$0</td>
+                                <td id="footOTHours">0</td>
+                                <td id="footOTWages">$0</td>
+                                <td id="footTips">$0</td>
+                                <td id="footSalary">$0</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
             </div>
         </div>
@@ -3207,6 +3333,7 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
     <script src="{{ url_for('static', filename='js/attendance.js') }}"></script>
     <script src="{{ url_for('static', filename='js/schedule_admin.js') }}"></script>
     <script src="{{ url_for('static', filename='js/time_off_admin.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/payroll_admin.js') }}"></script>
 
     <script>
         // Initialize correct tab based on section

@@ -12,7 +12,18 @@ let attendanceSortDirection = 'desc';
 
 // Load attendance records when attendance tab is shown
 function loadAttendance() {
-    fetch('/api/attendance/history')
+    // Get date filters
+    const dateFrom = document.getElementById('attendanceDateFrom')?.value || '';
+    const dateTo = document.getElementById('attendanceDateTo')?.value || '';
+
+    // Build URL with optional date filters
+    let url = '/api/attendance/history';
+    const params = new URLSearchParams();
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    if (params.toString()) url += '?' + params.toString();
+
+    fetch(url)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -88,7 +99,9 @@ function filterAndDisplayAttendance() {
     if (dateFrom) {
         filtered = filtered.filter(record => {
             if (!record.clock_in) return false;
-            const recordDate = new Date(record.clock_in).toISOString().split('T')[0];
+            // Convert SQL format to ISO if needed
+            const isoString = record.clock_in.replace(' ', 'T');
+            const recordDate = new Date(isoString).toISOString().split('T')[0];
             return recordDate >= dateFrom;
         });
     }
@@ -96,7 +109,9 @@ function filterAndDisplayAttendance() {
     if (dateTo) {
         filtered = filtered.filter(record => {
             if (!record.clock_in) return false;
-            const recordDate = new Date(record.clock_in).toISOString().split('T')[0];
+            // Convert SQL format to ISO if needed
+            const isoString = record.clock_in.replace(' ', 'T');
+            const recordDate = new Date(isoString).toISOString().split('T')[0];
             return recordDate <= dateTo;
         });
     }
@@ -170,7 +185,20 @@ function displayAttendance(records) {
 }
 
 function formatDateTime(dateString) {
-    const date = new Date(dateString);
+    if (!dateString) return '—';
+
+    // Convert SQL datetime format to ISO format if needed
+    // "2026-01-25 13:53:00" -> "2026-01-25T13:53:00"
+    const isoString = dateString.replace(' ', 'T');
+
+    const date = new Date(isoString);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+        console.error('Invalid date string:', dateString);
+        return 'Invalid Date';
+    }
+
     return date.toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',

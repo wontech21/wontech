@@ -87,7 +87,7 @@ function openAddAvailabilityModal() {
     document.getElementById('modalTitle').textContent = 'Add Availability';
     document.getElementById('availabilityForm').reset();
     document.getElementById('temporaryDatesGroup').style.display = 'none';
-    document.getElementById('availabilityModal').style.display = 'block';
+    document.getElementById('availabilityModal').style.display = 'flex';
 }
 
 // Close availability modal
@@ -119,7 +119,7 @@ function editAvailability(id) {
         temporaryGroup.style.display = 'none';
     }
 
-    document.getElementById('availabilityModal').style.display = 'block';
+    document.getElementById('availabilityModal').style.display = 'flex';
 }
 
 // Delete availability
@@ -217,11 +217,17 @@ function formatTime(timeString) {
     return `${displayHours}:${minutes} ${period}`;
 }
 
+// Save availability (wrapper for button click)
+function saveAvailability() {
+    const form = document.getElementById('availabilityForm');
+    form.requestSubmit();
+}
+
 // Show notification
 function showNotification(message, type = 'success') {
     const notification = document.getElementById('notification');
     notification.textContent = message;
-    notification.className = `notification ${type}`;
+    notification.className = `ep-notification ep-notification-${type}`;
     notification.style.display = 'block';
 
     setTimeout(() => {

@@ -124,6 +124,11 @@ function openCreateEmployeeModal() {
     document.getElementById('employeeForm').reset();
     document.getElementById('employeeId').value = '';
     document.getElementById('employeeFormError').style.display = 'none';
+
+    // Reset profile picture preview
+    document.getElementById('employeeProfilePicPreview').textContent = '?';
+    document.getElementById('employeeProfilePicUrl').textContent = 'No profile picture uploaded';
+
     document.getElementById('employeeModal').classList.add('active');
 }
 
@@ -148,6 +153,29 @@ function editEmployee(employeeId) {
                 document.getElementById('employeePhone').value = emp.phone || '';
                 document.getElementById('employeeHireDate').value = emp.hire_date || '';
                 document.getElementById('employeeHourlyRate').value = emp.hourly_rate || '';
+
+                // Address fields
+                document.getElementById('employeeAddress').value = emp.address || '';
+                document.getElementById('employeeCity').value = emp.city || '';
+                document.getElementById('employeeState').value = emp.state || '';
+                document.getElementById('employeeZipCode').value = emp.zip_code || '';
+
+                // Emergency contact fields
+                document.getElementById('employeeEmergencyName').value = emp.emergency_contact_name || '';
+                document.getElementById('employeeEmergencyPhone').value = emp.emergency_contact_phone || '';
+
+                // Profile picture
+                const profilePicPreview = document.getElementById('employeeProfilePicPreview');
+                const profilePicUrl = document.getElementById('employeeProfilePicUrl');
+
+                if (emp.profile_picture) {
+                    profilePicPreview.innerHTML = `<img src="${emp.profile_picture}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                    profilePicUrl.textContent = emp.profile_picture;
+                } else {
+                    const initials = (emp.first_name?.charAt(0) || '') + (emp.last_name?.charAt(0) || '');
+                    profilePicPreview.textContent = initials || '?';
+                    profilePicUrl.textContent = 'No profile picture uploaded';
+                }
 
                 document.getElementById('employeeFormError').style.display = 'none';
                 document.getElementById('employeeModal').classList.add('active');
@@ -180,7 +208,13 @@ function saveEmployee(event) {
         email: document.getElementById('employeeEmail').value,
         phone: document.getElementById('employeePhone').value,
         hire_date: document.getElementById('employeeHireDate').value,
-        hourly_rate: document.getElementById('employeeHourlyRate').value || 0
+        hourly_rate: document.getElementById('employeeHourlyRate').value || 0,
+        address: document.getElementById('employeeAddress').value,
+        city: document.getElementById('employeeCity').value,
+        state: document.getElementById('employeeState').value,
+        zip_code: document.getElementById('employeeZipCode').value,
+        emergency_contact_name: document.getElementById('employeeEmergencyName').value,
+        emergency_contact_phone: document.getElementById('employeeEmergencyPhone').value
     };
 
     const employeeId = document.getElementById('employeeId').value;

@@ -41,6 +41,8 @@ from inventory_warnings import (
 
 # Multi-tenant route blueprints
 from routes import admin_bp, employee_bp
+from routes.schedule_routes import schedule_bp
+from routes.payroll_routes import payroll_bp
 
 app = Flask(__name__)
 # IMPORTANT: Change this to a secure random secret key in production!
@@ -271,6 +273,8 @@ print("="*70 + "\n")
 # Register multi-tenant blueprints
 app.register_blueprint(admin_bp)
 app.register_blueprint(employee_bp)
+app.register_blueprint(schedule_bp)
+app.register_blueprint(payroll_bp)
 
 # Set up tenant context before every request
 @app.before_request
@@ -1465,18 +1469,34 @@ def get_attendance_history():
     conn = get_org_db()
     cursor = conn.cursor()
 
+    # Optional date range filters
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+
     try:
         # Check if admin is requesting all attendance or employee is requesting their own
         if g.user['role'] in ['organization_admin', 'super_admin']:
             # Admin can see all attendance
-            cursor.execute("""
-                SELECT a.*, e.first_name, e.last_name, e.employee_code
+            query = """
+                SELECT a.*, e.first_name, e.last_name,
+                       e.first_name || ' ' || e.last_name as employee_name,
+                       e.employee_code
                 FROM attendance a
                 JOIN employees e ON a.employee_id = e.id
                 WHERE a.organization_id = ?
-                ORDER BY a.clock_in DESC
-                LIMIT 100
-            """, (g.organization['id'],))
+            """
+            params = [g.organization['id']]
+
+            # Add date filters if provided
+            if date_from:
+                query += " AND DATE(a.clock_in) >= ?"
+                params.append(date_from)
+            if date_to:
+                query += " AND DATE(a.clock_in) <= ?"
+                params.append(date_to)
+
+            query += " ORDER BY a.clock_in DESC"
+            cursor.execute(query, params)
         else:
             # Employee can only see their own attendance
             cursor.execute("""
@@ -1489,14 +1509,26 @@ def get_attendance_history():
                 conn.close()
                 return jsonify({'error': 'Employee record not found'}), 404
 
-            cursor.execute("""
-                SELECT a.*, e.first_name, e.last_name, e.employee_code
+            query = """
+                SELECT a.*, e.first_name, e.last_name,
+                       e.first_name || ' ' || e.last_name as employee_name,
+                       e.employee_code
                 FROM attendance a
                 JOIN employees e ON a.employee_id = e.id
                 WHERE a.employee_id = ?
-                ORDER BY a.clock_in DESC
-                LIMIT 100
-            """, (employee['id'],))
+            """
+            params = [employee['id']]
+
+            # Add date filters if provided
+            if date_from:
+                query += " AND DATE(a.clock_in) >= ?"
+                params.append(date_from)
+            if date_to:
+                query += " AND DATE(a.clock_in) <= ?"
+                params.append(date_to)
+
+            query += " ORDER BY a.clock_in DESC"
+            cursor.execute(query, params)
 
         records = cursor.fetchall()
         conn.close()
@@ -1532,7 +1564,9 @@ def get_attendance_record(attendance_id):
 
     try:
         cursor.execute("""
-            SELECT a.*, e.first_name, e.last_name, e.employee_code
+            SELECT a.*, e.first_name, e.last_name,
+                   e.first_name || ' ' || e.last_name as employee_name,
+                   e.employee_code
             FROM attendance a
             JOIN employees e ON a.employee_id = e.id
             WHERE a.id = ? AND a.organization_id = ?
@@ -1830,14 +1864,36 @@ def employee_portal():
     if not hasattr(g, 'user') or not g.user or g.user.get('role') != 'employee':
         return redirect('/dashboard')
 
-    return render_template('employee/portal.html', is_clock_terminal=False)
+    # Get employee record for the logged-in user
+    conn = get_org_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT * FROM employees
+        WHERE user_id = ? AND organization_id = ?
+    """, (g.user['id'], g.organization['id']))
+
+    employee = cursor.fetchone()
+    conn.close()
+
+    if not employee:
+        return jsonify({'error': 'Employee record not found'}), 404
+
+    return render_template('employee/portal.html', employee=dict(employee), is_clock_terminal=False)
 
 @app.route('/dashboard')
 @login_required
-def dashboard():
-    """Main business dashboard (for organization users)"""
-    # Temporarily removed @organization_required decorator to fix redirect loop
-    return render_template('dashboard.html')
+def dashboard_home():
+    """Landing page showing Inventory & Sales and Attendance Management sections"""
+    return render_template('dashboard_home.html')
+
+@app.route('/dashboard/<section>')
+@login_required
+def dashboard_section(section):
+    """Dashboard filtered to specific section (inventory or attendance)"""
+    if section not in ['inventory', 'attendance']:
+        return redirect('/dashboard')
+
+    return render_template('dashboard.html', section=section)
 
 @app.route('/test-scanner')
 def test_scanner():

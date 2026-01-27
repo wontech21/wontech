@@ -7133,6 +7133,632 @@ textarea.form-control {
 }
 
 /* ============================================================================
+   TIME GRID WEEK VIEW - Full-length shift blocks
+   ============================================================================ */
+
+.time-grid-week-view {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.time-grid-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.time-grid-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.time-grid-header h3 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 18px;
+}
+
+.time-grid-hint {
+    font-size: 12px;
+    color: #9ca3af;
+    font-weight: 400;
+}
+
+.time-grid-day-headers {
+    display: flex;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.time-grid-time-label-header {
+    width: 60px;
+    min-width: 60px;
+    flex-shrink: 0;
+}
+
+.time-grid-day-header {
+    flex: 1;
+    text-align: center;
+    padding: 12px 4px;
+    border-left: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.time-grid-day-header.today {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.time-grid-day-header .day-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b7280;
+    text-transform: uppercase;
+}
+
+.time-grid-day-header .day-number {
+    font-size: 20px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.time-grid-day-header .today-number {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.time-grid-body {
+    display: flex;
+    max-height: 600px;
+    overflow-y: auto;
+    position: relative;
+}
+
+.time-grid-time-labels {
+    width: 60px;
+    min-width: 60px;
+    flex-shrink: 0;
+    background: #f9fafb;
+    border-right: 1px solid #e5e7eb;
+}
+
+.time-grid-time-label {
+    height: 60px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #6b7280;
+    text-align: right;
+    box-sizing: border-box;
+}
+
+.time-grid-days-container {
+    display: flex;
+    flex: 1;
+    position: relative;
+}
+
+.time-grid-day-column {
+    flex: 1;
+    position: relative;
+    border-left: 1px solid #e5e7eb;
+    min-height: 100%;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.time-grid-day-column:hover {
+    background: rgba(102, 126, 234, 0.02);
+}
+
+.time-grid-day-column.today {
+    background: rgba(102, 126, 234, 0.03);
+}
+
+.time-grid-day-column.today:hover {
+    background: rgba(102, 126, 234, 0.06);
+}
+
+.time-grid-hour-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 60px;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.time-grid-hour-line:hover {
+    background: rgba(102, 126, 234, 0.08);
+}
+
+.time-grid-shift-block {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    z-index: 1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.time-grid-shift-block:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+}
+
+.time-grid-shift-block.has-change-request {
+    border: 2px solid #fbbf24;
+}
+
+.shift-block-content {
+    padding: 6px 8px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.shift-block-name {
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.shift-block-time {
+    font-size: 10px;
+    opacity: 0.9;
+    white-space: nowrap;
+}
+
+.change-request-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 16px;
+    height: 16px;
+    background: #fbbf24;
+    color: #1f2937;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Own shift highlighting (employee view) */
+.time-grid-shift-block.own-shift {
+    border: 3px solid #fbbf24;
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.3);
+}
+
+/* Attendance status styling for time-grid blocks */
+.time-grid-shift-block.on-time {
+    border-left: 4px solid #10b981;
+}
+
+.time-grid-shift-block.late {
+    border-left: 4px solid #f59e0b;
+}
+
+.time-grid-shift-block.missed {
+    opacity: 0.6;
+    border-left: 4px solid #ef4444;
+}
+
+.time-grid-shift-block.change-requested {
+    border-left: 4px solid #fbbf24;
+}
+
+/* Mobile responsive time grid */
+@media (max-width: 768px) {
+    .time-grid-day-headers {
+        display: none;
+    }
+
+    .time-grid-body {
+        flex-direction: column;
+        max-height: none;
+    }
+
+    .time-grid-time-labels {
+        display: none;
+    }
+
+    .time-grid-days-container {
+        flex-direction: column;
+    }
+
+    .time-grid-day-column {
+        border-left: none;
+        border-top: 1px solid #e5e7eb;
+        min-height: auto;
+        padding: 12px;
+    }
+
+    .time-grid-day-column::before {
+        content: attr(data-label);
+        display: block;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 10px;
+        font-size: 14px;
+    }
+
+    .time-grid-hour-line {
+        display: none;
+    }
+
+    .time-grid-shift-block {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        width: 100% !important;
+        height: auto !important;
+        margin-bottom: 8px;
+        min-height: 60px;
+    }
+
+    .shift-block-content {
+        padding: 12px;
+    }
+
+    .shift-block-name {
+        font-size: 14px;
+    }
+
+    .shift-block-time {
+        font-size: 12px;
+    }
+
+    /* Mobile: Show day name in the column */
+    .time-grid-week-view {
+        padding: 0;
+    }
+
+    .time-grid-day-column.today {
+        background: rgba(102, 126, 234, 0.08);
+        border-left: 3px solid #667eea;
+    }
+
+    /* Hide empty day columns on mobile */
+    .time-grid-day-column:empty::before {
+        display: none;
+    }
+
+    .time-grid-day-column:empty {
+        display: none;
+    }
+
+    /* Show shift duration on mobile */
+    .shift-block-content::after {
+        content: attr(data-duration);
+        font-size: 11px;
+        opacity: 0.85;
+        margin-top: 4px;
+    }
+}
+
+/* Tablet adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .time-grid-time-label-header,
+    .time-grid-time-labels {
+        width: 50px;
+        min-width: 50px;
+    }
+
+    .time-grid-time-label {
+        font-size: 10px;
+        padding: 4px 4px;
+    }
+
+    .time-grid-day-header .day-name {
+        font-size: 10px;
+    }
+
+    .time-grid-day-header .day-number {
+        font-size: 16px;
+    }
+
+    .shift-block-name {
+        font-size: 11px;
+    }
+
+    .shift-block-time {
+        font-size: 9px;
+    }
+}
+
+/* ============================================================================
+   EXPANDED DAY VIEW (Double-click to expand)
+   ============================================================================ */
+
+.expanded-day-view {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    animation: expandIn 0.3s ease-out;
+}
+
+@keyframes expandIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.expanded-day-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.expanded-day-title {
+    text-align: center;
+    flex: 1;
+}
+
+.expanded-day-title h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.expanded-day-hint {
+    display: block;
+    font-size: 12px;
+    opacity: 0.8;
+    margin-top: 4px;
+}
+
+.btn-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.btn-nav:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.btn-nav .nav-arrow {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.btn-nav .nav-text {
+    font-size: 13px;
+}
+
+.expanded-day-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.shift-count {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.expanded-day-empty {
+    padding: 60px 24px;
+    text-align: center;
+    color: #6b7280;
+}
+
+.expanded-day-empty .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.expanded-day-empty h3 {
+    margin: 0 0 8px 0;
+    color: #374151;
+}
+
+.expanded-day-grid {
+    display: flex;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.expanded-day-time-labels {
+    width: 80px;
+    min-width: 80px;
+    background: #f9fafb;
+    border-right: 1px solid #e5e7eb;
+}
+
+.expanded-day-time-label {
+    height: 60px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #6b7280;
+    text-align: right;
+    box-sizing: border-box;
+}
+
+.expanded-day-shifts-column {
+    flex: 1;
+    position: relative;
+    min-height: 100%;
+}
+
+.expanded-day-hour-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 60px;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.expanded-day-hour-line:hover {
+    background: rgba(102, 126, 234, 0.06);
+}
+
+.expanded-shift-block {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    z-index: 1;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.expanded-shift-block:hover {
+    transform: scale(1.01) translateX(2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+}
+
+.expanded-shift-block.has-change-request {
+    border: 2px solid #fbbf24;
+}
+
+.expanded-shift-content {
+    padding: 10px 14px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.expanded-shift-name {
+    font-size: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.expanded-shift-time {
+    font-size: 14px;
+    opacity: 0.95;
+}
+
+.expanded-shift-details {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    opacity: 0.85;
+    margin-top: auto;
+    flex-wrap: wrap;
+}
+
+.expanded-shift-details span {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.expanded-change-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #fbbf24;
+    color: #1f2937;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Mobile responsive expanded day view */
+@media (max-width: 768px) {
+    .expanded-day-header {
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+    }
+
+    .expanded-day-title h2 {
+        font-size: 18px;
+    }
+
+    .btn-nav {
+        padding: 10px 16px;
+    }
+
+    .btn-nav .nav-text {
+        display: none;
+    }
+
+    .expanded-day-time-labels {
+        width: 60px;
+        min-width: 60px;
+    }
+
+    .expanded-day-time-label {
+        font-size: 11px;
+        padding: 8px 6px;
+    }
+
+    .expanded-shift-name {
+        font-size: 14px;
+    }
+
+    .expanded-shift-time {
+        font-size: 12px;
+    }
+
+    .expanded-shift-details {
+        font-size: 10px;
+    }
+}
+
+/* ============================================================================
    MONTH VIEW EXPANSION & POPUP
    ============================================================================ */
 

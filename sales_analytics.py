@@ -20,6 +20,10 @@ def register_analytics_routes(app, get_db_connection=None, INVENTORY_DB=None):
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
 
+        print(f"\n=== SALES OVERVIEW API CALLED ===")
+        print(f"Start Date: {start_date}")
+        print(f"End Date: {end_date}")
+
         try:
             conn = get_org_db()
             cursor = conn.cursor()
@@ -36,6 +40,14 @@ def register_analytics_routes(app, get_db_connection=None, INVENTORY_DB=None):
                 where_clause += " AND sale_date <= ?"
                 params.append(end_date)
 
+            print(f"Where clause: {where_clause}")
+            print(f"Params: {params}")
+
+            # Test query to see what dates exist
+            cursor.execute("SELECT MIN(sale_date), MAX(sale_date), COUNT(*) FROM sales_history")
+            date_range = cursor.fetchone()
+            print(f"Date range in DB: {date_range}")
+
             # Get summary statistics
             cursor.execute(f"""
                 SELECT
@@ -51,6 +63,7 @@ def register_analytics_routes(app, get_db_connection=None, INVENTORY_DB=None):
             """, params)
 
             summary = dict(cursor.fetchone())
+            print(f"Summary results: {summary}")
 
             # Get top selling products
             cursor.execute(f"""

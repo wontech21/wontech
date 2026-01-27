@@ -422,10 +422,57 @@ function changeHistoryPage(direction) {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    loadHeaderStats();
-    loadInventory();
-    loadFilters();
-    loadCategoriesList();  // Load available categories for dropdowns
+    // Determine which tab is active and load appropriate data
+    const activeTab = document.querySelector('.tab-content.active');
+    const tabId = activeTab ? activeTab.id : null;
+
+    // Check if we're in the employee/attendance section
+    const isEmployeeSection = tabId === 'employees-tab' ||
+                              tabId === 'attendance-tab' ||
+                              tabId === 'schedules-tab' ||
+                              tabId === 'time-off-requests-tab' ||
+                              tabId === 'payroll-tab';
+
+    // Load header stats based on section
+    if (isEmployeeSection) {
+        loadEmployeeHeaderStats();
+    } else {
+        loadInventoryHeaderStats();
+    }
+
+    // Load tab-specific data
+    if (activeTab) {
+        if (tabId === 'inventory-tab') {
+            loadInventory();
+            loadFilters();
+            loadCategoriesList();
+        } else if (tabId === 'schedules-tab') {
+            if (typeof initAdminSchedules === 'function') {
+                initAdminSchedules();
+            }
+        } else if (tabId === 'employees-tab') {
+            if (typeof loadEmployees === 'function') {
+                loadEmployees();
+            }
+        } else if (tabId === 'attendance-tab') {
+            if (typeof loadAttendance === 'function') {
+                loadAttendance();
+            }
+        } else if (tabId === 'time-off-requests-tab') {
+            if (typeof initializeTimeOffTab === 'function') {
+                initializeTimeOffTab();
+            }
+        } else if (tabId === 'payroll-tab') {
+            if (typeof initializePayrollTab === 'function') {
+                initializePayrollTab();
+            }
+        }
+    } else {
+        // Default to inventory if no active tab found
+        loadInventory();
+        loadFilters();
+        loadCategoriesList();
+    }
 });
 
 // Tab switching
@@ -445,6 +492,9 @@ function showTab(tabName) {
 
     // Add active class to clicked button
     event.target.classList.add('active');
+
+    // Refresh header stats based on new active tab
+    loadHeaderStats();
 
     // Load data for the tab
     switch(tabName) {
@@ -495,6 +545,11 @@ function showTab(tabName) {
                 initializeTimeOffTab();
             }
             break;
+        case 'payroll':
+            if (typeof initializePayrollTab === 'function') {
+                initializePayrollTab();
+            }
+            break;
     }
 
     // Update header stats to reflect current section - pass tab name directly
@@ -513,24 +568,17 @@ function updateHeaderStatsForTab(tabName) {
 
 // Load header statistics
 async function loadHeaderStats() {
-    // Check which section is active
-    const inventoryTab = document.getElementById('inventory-tab');
-    const productsTab = document.getElementById('products-tab');
-    const salesTab = document.getElementById('sales-tab');
-    const invoicesTab = document.getElementById('invoices-tab');
-    const countsTab = document.getElementById('counts-tab');
+    // Find the currently active tab
+    const activeTab = document.querySelector('.tab-content.active');
+    const tabId = activeTab ? activeTab.id : null;
 
-    const isInventorySection = (inventoryTab && inventoryTab.classList.contains('active')) ||
-                                (productsTab && productsTab.classList.contains('active')) ||
-                                (salesTab && salesTab.classList.contains('active')) ||
-                                (invoicesTab && invoicesTab.classList.contains('active')) ||
-                                (countsTab && countsTab.classList.contains('active'));
+    // Employee section tabs
+    const employeeTabs = ['employees-tab', 'attendance-tab', 'schedules-tab', 'time-off-requests-tab', 'payroll-tab'];
 
-    if (isInventorySection) {
-        await loadInventoryHeaderStats();
-    } else {
-        // Default to employee stats
+    if (employeeTabs.includes(tabId)) {
         await loadEmployeeHeaderStats();
+    } else {
+        await loadInventoryHeaderStats();
     }
 }
 

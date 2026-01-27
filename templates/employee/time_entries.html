@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Time Entries - Employee Portal</title>
+    <link rel="stylesheet" href="/static/css/employee-portal.css">
+</head>
+<body class="ep-body">
+    <div class="ep-container">
+        <a href="/employee/portal" class="ep-back-btn">← Back to Portal</a>
+
+        <div class="ep-header">
+            <h1 class="ep-header-title">My Time Entries</h1>
+            <p class="ep-header-subtitle">View your work hours and attendance</p>
+        </div>
+
+        <div class="ep-stats-row">
+            <div class="ep-stat-box">
+                <div class="ep-stat-label">Total Entries</div>
+                <div class="ep-stat-value" id="statTotalEntries">0</div>
+            </div>
+            <div class="ep-stat-box">
+                <div class="ep-stat-label">Total Hours</div>
+                <div class="ep-stat-value" id="statTotalHours">0.0</div>
+            </div>
+            <div class="ep-stat-box">
+                <div class="ep-stat-label">This Month</div>
+                <div class="ep-stat-value" id="statMonthHours">0.0</div>
+            </div>
+        </div>
+
+        <div class="ep-card">
+            <h2 class="ep-card-header">
+                <span class="ep-card-header-icon">⏰</span>
+                Time Entry History
+            </h2>
+
+            <div class="ep-table-container">
+                <table class="ep-table">
+                    <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <tr style="background: none;">
+                            <th style="color: white; background: none;">Date</th>
+                            <th style="color: white; background: none;">Clock In</th>
+                            <th style="color: white; background: none;">Clock Out</th>
+                            <th style="color: white; background: none;">Break</th>
+                            <th style="color: white; background: none;">Hours</th>
+                            <th style="color: white; background: none;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entriesTableBody">
+                        <tr>
+                            <td colspan="6" class="ep-empty-state">
+                                <div class="ep-empty-state-text">Loading...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="ep-pagination" id="paginationControls" style="display: none;">
+                <div class="ep-pagination-info" id="paginationInfo">
+                    Showing 0-0 of 0 entries
+                </div>
+                <div class="ep-pagination-buttons">
+                    <button class="ep-pagination-btn" onclick="changePage('first')" id="btnFirst">«</button>
+                    <button class="ep-pagination-btn" onclick="changePage('prev')" id="btnPrev">‹</button>
+                    <span id="pageNumbers" style="display: flex; gap: 4px;"></span>
+                    <button class="ep-pagination-btn" onclick="changePage('next')" id="btnNext">›</button>
+                    <button class="ep-pagination-btn" onclick="changePage('last')" id="btnLast">»</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allEntries = [];
+        let currentPage = 1;
+        const pageSize = 10;
+
+        async function loadTimeEntries() {
+            try {
+                const res = await fetch('/employee/time-entries/data?days=365');
+                const data = await res.json();
+
+                allEntries = data.entries || [];
+
+                updateStats(data);
+                displayEntries();
+
+            } catch (err) {
+                console.error('Error loading time entries:', err);
+                document.getElementById('entriesTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="6" class="ep-empty-state">
+                            <div class="ep-empty-state-text" style="color: var(--ep-danger);">
+                                Error loading time entries
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function updateStats(data) {
+            document.getElementById('statTotalEntries').textContent = allEntries.length;
+            document.getElementById('statTotalHours').textContent = (data.total_hours || 0).toFixed(1);
+
+            const now = new Date();
+            const thisMonthEntries = allEntries.filter(entry => {
+                const entryDate = new Date(entry.clock_in);
+                return entryDate.getMonth() === now.getMonth() &&
+                       entryDate.getFullYear() === now.getFullYear();
+            });
+            const monthHours = thisMonthEntries.reduce((sum, entry) => sum + (entry.hours_worked || 0), 0);
+            document.getElementById('statMonthHours').textContent = monthHours.toFixed(1);
+        }
+
+        function displayEntries() {
+            const tbody = document.getElementById('entriesTableBody');
+            const totalPages = Math.ceil(allEntries.length / pageSize);
+
+            if (allEntries.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="ep-empty-state">
+                            <div class="ep-empty-state-icon">📭</div>
+                            <div class="ep-empty-state-title">No time entries found</div>
+                            <div class="ep-empty-state-text">Your time entries will appear here</div>
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('paginationControls').style.display = 'none';
+                return;
+            }
+
+            currentPage = Math.min(currentPage, totalPages || 1);
+
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = startIdx + pageSize;
+            const pageEntries = allEntries.slice(startIdx, endIdx);
+
+            tbody.innerHTML = pageEntries.map(entry => {
+                const date = new Date(entry.clock_in);
+                const dateStr = date.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+                const clockInTime = date.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                let clockOutTime = '—';
+                if (entry.clock_out) {
+                    const clockOut = new Date(entry.clock_out);
+                    clockOutTime = clockOut.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+
+                const hours = (entry.hours_worked || 0).toFixed(2);
+                const breakMin = entry.break_duration || 0;
+
+                const badgeClass = entry.status === 'clocked_in' ? 'ep-badge-warning' : 'ep-badge-success';
+                const statusText = entry.status === 'clocked_in' ? 'In Progress' : 'Completed';
+
+                return `
+                    <tr>
+                        <td data-label="Date"><strong>${dateStr}</strong></td>
+                        <td data-label="Clock In">${clockInTime}</td>
+                        <td data-label="Clock Out">${clockOutTime}</td>
+                        <td data-label="Break">${breakMin} min</td>
+                        <td data-label="Hours"><strong style="color: var(--ep-primary);">${hours} hrs</strong></td>
+                        <td data-label="Status"><span class="ep-badge ${badgeClass}">${statusText}</span></td>
+                    </tr>
+                `;
+            }).join('');
+
+            updatePagination();
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(allEntries.length / pageSize);
+            const startIdx = (currentPage - 1) * pageSize + 1;
+            const endIdx = Math.min(currentPage * pageSize, allEntries.length);
+
+            document.getElementById('paginationInfo').textContent =
+                `Showing ${startIdx}-${endIdx} of ${allEntries.length} entries`;
+
+            document.getElementById('paginationControls').style.display =
+                allEntries.length > pageSize ? 'flex' : 'none';
+
+            document.getElementById('btnFirst').disabled = currentPage === 1;
+            document.getElementById('btnPrev').disabled = currentPage === 1;
+            document.getElementById('btnNext').disabled = currentPage === totalPages;
+            document.getElementById('btnLast').disabled = currentPage === totalPages;
+
+            const pageNumbersDiv = document.getElementById('pageNumbers');
+            let pageNumbersHTML = '';
+
+            if (totalPages <= 7) {
+                for (let i = 1; i <= totalPages; i++) {
+                    pageNumbersHTML += `<button class="ep-pagination-btn ${i === currentPage ? 'active' : ''}"
+                        onclick="goToPage(${i})">${i}</button>`;
+                }
+            } else {
+                if (currentPage <= 4) {
+                    for (let i = 1; i <= 5; i++) {
+                        pageNumbersHTML += `<button class="ep-pagination-btn ${i === currentPage ? 'active' : ''}"
+                            onclick="goToPage(${i})">${i}</button>`;
+                    }
+                    pageNumbersHTML += `<span style="padding: 6px;">...</span>`;
+                    pageNumbersHTML += `<button class="ep-pagination-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+                } else if (currentPage >= totalPages - 3) {
+                    pageNumbersHTML += `<button class="ep-pagination-btn" onclick="goToPage(1)">1</button>`;
+                    pageNumbersHTML += `<span style="padding: 6px;">...</span>`;
+                    for (let i = totalPages - 4; i <= totalPages; i++) {
+                        pageNumbersHTML += `<button class="ep-pagination-btn ${i === currentPage ? 'active' : ''}"
+                            onclick="goToPage(${i})">${i}</button>`;
+                    }
+                } else {
+                    pageNumbersHTML += `<button class="ep-pagination-btn" onclick="goToPage(1)">1</button>`;
+                    pageNumbersHTML += `<span style="padding: 6px;">...</span>`;
+                    for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                        pageNumbersHTML += `<button class="ep-pagination-btn ${i === currentPage ? 'active' : ''}"
+                            onclick="goToPage(${i})">${i}</button>`;
+                    }
+                    pageNumbersHTML += `<span style="padding: 6px;">...</span>`;
+                    pageNumbersHTML += `<button class="ep-pagination-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+                }
+            }
+
+            pageNumbersDiv.innerHTML = pageNumbersHTML;
+        }
+
+        function changePage(direction) {
+            const totalPages = Math.ceil(allEntries.length / pageSize);
+
+            switch (direction) {
+                case 'first': currentPage = 1; break;
+                case 'prev': currentPage = Math.max(1, currentPage - 1); break;
+                case 'next': currentPage = Math.min(totalPages, currentPage + 1); break;
+                case 'last': currentPage = totalPages; break;
+            }
+
+            displayEntries();
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            displayEntries();
+        }
+
+        loadTimeEntries();
+    </script>
+</body>
+</html>

@@ -69,10 +69,12 @@ function renderTimeOffHistory() {
         const endDate = new Date(request.end_date).toLocaleDateString();
         const dateRange = startDate === endDate ? startDate : `${startDate} - ${endDate}`;
 
-        const statusBadge = `<span class="status-badge ${request.status}">${capitalize(request.status)}</span>`;
+        const badgeClass = request.status === 'approved' ? 'ep-badge-success' :
+                          request.status === 'denied' ? 'ep-badge-danger' : 'ep-badge-warning';
+        const statusBadge = `<span class="ep-badge ${badgeClass}">${capitalize(request.status)}</span>`;
 
         const actions = request.status === 'pending'
-            ? `<button class="btn-cancel" onclick="cancelRequest(${request.id})">Cancel</button>`
+            ? `<button class="ep-btn ep-btn-danger ep-btn-sm" onclick="cancelRequest(${request.id})">Cancel</button>`
             : '—';
 
         const displayReason = request.status === 'denied' && request.reason
@@ -81,12 +83,12 @@ function renderTimeOffHistory() {
 
         return `
             <tr>
-                <td>${dateRange}</td>
-                <td>${capitalize(request.request_type)}</td>
-                <td>${request.total_hours} hrs</td>
-                <td>${statusBadge}</td>
-                <td>${displayReason}</td>
-                <td>${actions}</td>
+                <td data-label="Dates">${dateRange}</td>
+                <td data-label="Type">${capitalize(request.request_type)}</td>
+                <td data-label="Hours">${request.total_hours} hrs</td>
+                <td data-label="Status">${statusBadge}</td>
+                <td data-label="Reason">${displayReason}</td>
+                <td data-label="">${actions}</td>
             </tr>
         `;
     }).join('');
@@ -209,7 +211,7 @@ function calculateDefaultHours() {
 function showNotification(message, type = 'success') {
     const notification = document.getElementById('notification');
     notification.textContent = message;
-    notification.className = `notification ${type}`;
+    notification.className = `ep-notification ep-notification-${type}`;
     notification.style.display = 'block';
 
     setTimeout(() => {

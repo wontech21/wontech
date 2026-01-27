@@ -220,7 +220,7 @@ def migrate():
         role_templates = [
             ('super_admin', 'Super Administrator', 'Full access to all organizations', '["*"]'),
             ('organization_admin', 'Organization Administrator', 'Full access within organization',
-             '["inventory.*", "employees.*", "payroll.*", "timeclock.*", "sales.*", "products.*", "invoices.*", "reports.*", "settings.*", "users.*"]'),
+             '["inventory.*", "employees.*", "payroll.*", "timeclock.*", "sales.*", "products.*", "invoices.*", "reports.*", "settings.*", "users.*", "schedules.*"]'),
             ('employee', 'Employee', 'Limited access to own data',
              '["inventory.view", "inventory.count", "employees.view_own", "employees.edit_own", "payroll.view_own", "timeclock.clockin", "timeclock.view_own", "sales.view", "sales.create", "products.view", "invoices.view"]')
         ]

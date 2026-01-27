@@ -39,38 +39,38 @@ function changeSalesPeriod(period) {
 
     switch (period) {
         case 'today':
-            startDate = endDate = formatDate(today);
+            startDate = endDate = formatSalesDate(today);
             displayText = "Today's Sales";
             break;
 
         case '7days':
             const days7Ago = new Date(today);
             days7Ago.setDate(today.getDate() - 7);
-            startDate = formatDate(days7Ago);
-            endDate = formatDate(today);
+            startDate = formatSalesDate(days7Ago);
+            endDate = formatSalesDate(today);
             displayText = "Last 7 Days";
             break;
 
         case 'week':
             const weekStart = new Date(today);
             weekStart.setDate(today.getDate() - today.getDay());
-            startDate = formatDate(weekStart);
-            endDate = formatDate(today);
+            startDate = formatSalesDate(weekStart);
+            endDate = formatSalesDate(today);
             displayText = "This Week's Sales";
             break;
 
         case 'month':
             const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-            startDate = formatDate(monthStart);
-            endDate = formatDate(today);
+            startDate = formatSalesDate(monthStart);
+            endDate = formatSalesDate(today);
             displayText = "This Month's Sales";
             break;
 
         case '30days':
             const days30Ago = new Date(today);
             days30Ago.setDate(today.getDate() - 30);
-            startDate = formatDate(days30Ago);
-            endDate = formatDate(today);
+            startDate = formatSalesDate(days30Ago);
+            endDate = formatSalesDate(today);
             displayText = "Last 30 Days";
             break;
 
@@ -101,8 +101,8 @@ function showCustomDateRange() {
     const weekAgo = new Date(today);
     weekAgo.setDate(today.getDate() - 7);
 
-    document.getElementById('sales-start-date').value = formatDate(weekAgo);
-    document.getElementById('sales-end-date').value = formatDate(today);
+    document.getElementById('sales-start-date').value = formatSalesDate(weekAgo);
+    document.getElementById('sales-end-date').value = formatSalesDate(today);
 }
 
 /**
@@ -171,6 +171,11 @@ function applyCustomDateRange() {
  */
 async function loadSalesOverview() {
     try {
+        console.log('=== LOADING SALES OVERVIEW ===');
+        console.log('Period:', currentSalesPeriod);
+        console.log('Start Date:', currentStartDate);
+        console.log('End Date:', currentEndDate);
+
         // Build query params
         let url = '/api/analytics/sales-overview';
         const params = new URLSearchParams();
@@ -178,11 +183,26 @@ async function loadSalesOverview() {
         if (currentEndDate) params.append('end_date', currentEndDate);
         if (params.toString()) url += '?' + params.toString();
 
+        console.log('API URL:', url);
+
         const response = await fetch(url);
         const data = await response.json();
 
+        console.log('Response data:', data);
+
         if (!data.success) {
             showMessage('Failed to load sales data', 'error');
+            return;
+        }
+
+        // Check if there's any sales data
+        if (!data.summary || data.summary.total_transactions === 0) {
+            // Show empty state
+            updateSummaryStats({ total_revenue: 0, total_profit: 0, total_transactions: 0, avg_transaction_value: 0 });
+            updateTopProducts([]);
+            updateSalesTrendChart([]);
+            updateHourlySalesChart([]);
+            updateQuickStats({ summary: { total_revenue: 0 } });
             return;
         }
 
@@ -592,10 +612,10 @@ function closeProductDetail() {
 }
 
 /**
- * Format date to YYYY-MM-DD
+ * Format date to YYYY-MM-DD for sales analytics
  * Handles both Date objects and date strings
  */
-function formatDate(date) {
+function formatSalesDate(date) {
     if (!date) return '-';
 
     // If it's already a string in YYYY-MM-DD format, return as is
