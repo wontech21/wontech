@@ -1,328 +1,1428 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Schedule - Employee Portal</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            min-height: 100vh;
-            padding: 0;
-            margin: 0;
+{% extends "employee/layout.html" %}
+
+{% block title %}My Schedule{% endblock %}
+{% block page_title %}Schedule{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Schedule Page Specific Styles */
+    .ep-schedule-header {
+        padding: 0 0 16px;
+    }
+
+    .ep-date-range {
+        font-size: 14px;
+        color: var(--ep-text-muted);
+        text-align: center;
+        margin-bottom: 16px;
+    }
+
+    /* View Toggle Tabs */
+    .ep-view-tabs {
+        display: flex;
+        gap: 4px;
+        background: var(--ep-surface);
+        border-radius: var(--ep-radius-lg);
+        padding: 4px;
+        margin-bottom: 12px;
+    }
+
+    .ep-view-tab {
+        flex: 1;
+        padding: 10px 8px;
+        border: none;
+        background: transparent;
+        border-radius: var(--ep-radius-md);
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ep-text-muted);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .ep-view-tab.active {
+        background: var(--ep-gradient);
+        color: white;
+        box-shadow: var(--ep-shadow-sm);
+    }
+
+    .ep-view-tab:active {
+        transform: scale(0.96);
+    }
+
+    /* Team Toggle Button */
+    .ep-team-toggle {
+        width: 100%;
+        padding: 12px;
+        background: var(--ep-surface);
+        border: 1px solid var(--ep-border);
+        border-radius: var(--ep-radius-md);
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ep-text);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-bottom: 12px;
+    }
+
+    .ep-team-toggle.active {
+        background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+        border-color: var(--ep-primary);
+        color: var(--ep-primary);
+    }
+
+    .ep-team-toggle:active {
+        transform: scale(0.98);
+    }
+
+    /* Navigation Controls */
+    .ep-nav-controls {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .ep-nav-btn {
+        flex: 1;
+        padding: 12px 8px;
+        background: var(--ep-surface);
+        border: 1px solid var(--ep-border);
+        border-radius: var(--ep-radius-md);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ep-text);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .ep-nav-btn.today {
+        background: var(--ep-gradient);
+        color: white;
+        border: none;
+    }
+
+    .ep-nav-btn:active {
+        transform: scale(0.96);
+    }
+
+    /* Filters Section */
+    .ep-filters {
+        background: var(--ep-surface);
+        border-radius: var(--ep-radius-lg);
+        padding: 16px;
+        margin-bottom: 16px;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .ep-filter-group {
+        margin-bottom: 12px;
+    }
+
+    .ep-filter-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .ep-filter-label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ep-text-muted);
+        margin-bottom: 6px;
+    }
+
+    .ep-filter-select {
+        width: 100%;
+        padding: 10px 12px;
+        background: white;
+        border: 1px solid var(--ep-border);
+        border-radius: var(--ep-radius-md);
+        font-size: 14px;
+        color: var(--ep-text);
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+    }
+
+    .ep-filter-reset {
+        width: 100%;
+        padding: 10px;
+        background: transparent;
+        border: 1px solid var(--ep-border);
+        border-radius: var(--ep-radius-md);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ep-text-muted);
+        cursor: pointer;
+        margin-top: 12px;
+    }
+
+    /* Schedule Views Container */
+    .ep-schedule-view {
+        display: none;
+    }
+
+    .ep-schedule-view.active {
+        display: block;
+    }
+
+    /* Week View - Grid Layout */
+    .week-grid {
+        display: grid;
+        grid-template-columns: 50px repeat(7, 1fr);
+        gap: 1px;
+        background: var(--ep-card-bg);
+        border-radius: var(--ep-radius-lg);
+        overflow: hidden;
+        box-shadow: var(--ep-shadow-sm);
+    }
+
+    .week-header-row {
+        display: contents;
+    }
+
+    .week-time-label {
+        background: var(--ep-surface);
+        padding: 8px 4px;
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--ep-text-muted);
+        text-align: center;
+        border-bottom: 1px solid var(--ep-border);
+    }
+
+    .week-day-header {
+        background: var(--ep-surface);
+        padding: 12px 8px;
+        text-align: center;
+        border-bottom: 1px solid var(--ep-border);
+    }
+
+    .week-day-header.today {
+        background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%);
+    }
+
+    .week-day-header .day-number {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--ep-text);
+    }
+
+    .week-day-header.today .day-number {
+        color: var(--ep-primary);
+    }
+
+    .week-day-cell {
+        background: var(--ep-card-bg);
+        min-height: 50px;
+        padding: 4px;
+        border-bottom: 1px solid var(--ep-border);
+        position: relative;
+    }
+
+    .week-day-cell.today {
+        background: linear-gradient(135deg, #667eea05 0%, #764ba205 100%);
+    }
+
+    .week-shift-block {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4px 6px;
+        border-radius: var(--ep-radius-sm);
+        font-size: 10px;
+        margin-bottom: 2px;
+        cursor: pointer;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        transition: transform 0.2s ease;
+    }
+
+    .week-shift-block:active {
+        transform: scale(0.95);
+    }
+
+    .week-shift-block.own-shift {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    .week-shift-block.confirmed {
+        border-left: 3px solid #10b981;
+    }
+
+    .week-shift-block.change-requested {
+        border-left: 3px solid #f59e0b;
+    }
+
+    .ep-week-grid {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 8px;
+        scroll-snap-type: x mandatory;
+    }
+
+    .ep-week-day {
+        flex: 0 0 calc(33.333% - 6px);
+        min-width: 110px;
+        background: var(--ep-card-bg);
+        border-radius: var(--ep-radius-lg);
+        padding: 12px;
+        scroll-snap-align: start;
+        box-shadow: var(--ep-shadow-sm);
+    }
+
+    .ep-week-day.today {
+        border: 2px solid var(--ep-primary);
+    }
+
+    .ep-week-day-header {
+        text-align: center;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+        border-bottom: 1px solid var(--ep-border);
+    }
+
+    .ep-week-day-name {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--ep-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .ep-week-day-date {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--ep-text);
+        line-height: 1.2;
+    }
+
+    .ep-week-day.today .ep-week-day-date {
+        color: var(--ep-primary);
+    }
+
+    .ep-week-shifts {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .ep-shift-card {
+        background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%);
+        border-left: 3px solid var(--ep-primary);
+        border-radius: var(--ep-radius-sm);
+        padding: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .ep-shift-card:active {
+        transform: scale(0.98);
+        background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+    }
+
+    .ep-shift-card.confirmed {
+        border-left-color: var(--ep-success);
+        background: linear-gradient(135deg, #10b98110 0%, #05966910 100%);
+    }
+
+    .ep-shift-card.change-requested {
+        border-left-color: #f59e0b;
+        background: linear-gradient(135deg, #f59e0b10 0%, #d9760010 100%);
+    }
+
+    .ep-shift-time {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ep-text);
+    }
+
+    .ep-shift-position {
+        font-size: 11px;
+        color: var(--ep-text-muted);
+        margin-top: 2px;
+    }
+
+    .ep-shift-employee {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ep-text);
+        margin-top: 4px;
+    }
+
+    .ep-no-shifts {
+        text-align: center;
+        color: var(--ep-text-muted);
+        font-size: 12px;
+        padding: 16px 0;
+    }
+
+    /* Month View */
+    .ep-month-header {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--ep-text);
+        margin-bottom: 16px;
+    }
+
+    .month-grid,
+    .ep-month-grid {
+        background: var(--ep-card-bg);
+        border-radius: var(--ep-radius-lg);
+        padding: 12px;
+        box-shadow: var(--ep-shadow-sm);
+    }
+
+    .month-calendar-grid {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .month-day-names {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+        margin-bottom: 8px;
+    }
+
+    .month-day-name {
+        text-align: center;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--ep-text-muted);
+        text-transform: uppercase;
+        padding: 8px 0;
+    }
+
+    .month-days-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+    }
+
+    .month-day-cell {
+        aspect-ratio: 1;
+        background: var(--ep-surface);
+        border-radius: var(--ep-radius-sm);
+        padding: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        overflow: hidden;
+    }
+
+    .month-day-cell:active {
+        transform: scale(0.95);
+    }
+
+    .month-day-cell.other-month {
+        opacity: 0.4;
+    }
+
+    .month-day-cell.today {
+        background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%);
+        border: 2px solid var(--ep-primary);
+    }
+
+    .month-day-number {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ep-text);
+        text-align: center;
+    }
+
+    .month-day-cell.today .month-day-number {
+        color: var(--ep-primary);
+        font-weight: 700;
+    }
+
+    .month-day-shifts {
+        margin-top: 2px;
+    }
+
+    .month-shift-indicator {
+        width: 100%;
+        height: 4px;
+        background: var(--ep-primary);
+        border-radius: 2px;
+        margin-bottom: 2px;
+    }
+
+    .month-shift-indicator.own-shift {
+        background: #10b981;
+    }
+
+    .month-shift-more {
+        font-size: 8px;
+        color: var(--ep-text-muted);
+        text-align: center;
+    }
+
+    .ep-month-weekday {
+        text-align: center;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--ep-text-muted);
+        padding: 8px 0;
+        text-transform: uppercase;
+    }
+
+    .ep-month-day {
+        aspect-ratio: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--ep-radius-sm);
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--ep-text);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+
+    .ep-month-day.other-month {
+        color: var(--ep-text-muted);
+        opacity: 0.5;
+    }
+
+    .ep-month-day.today {
+        background: var(--ep-gradient);
+        color: white;
+        font-weight: 700;
+    }
+
+    .ep-month-day.has-shift::after {
+        content: '';
+        position: absolute;
+        bottom: 4px;
+        width: 6px;
+        height: 6px;
+        background: var(--ep-primary);
+        border-radius: 50%;
+    }
+
+    .ep-month-day.today.has-shift::after {
+        background: white;
+    }
+
+    .ep-month-day:active {
+        transform: scale(0.9);
+    }
+
+    /* Day View */
+    .ep-day-header {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--ep-text);
+        margin-bottom: 16px;
+    }
+
+    .day-grid,
+    .ep-day-timeline {
+        background: var(--ep-card-bg);
+        border-radius: var(--ep-radius-lg);
+        padding: 16px;
+        box-shadow: var(--ep-shadow-sm);
+    }
+
+    .day-empty {
+        text-align: center;
+        padding: 32px;
+        color: var(--ep-text-muted);
+        font-size: 14px;
+    }
+
+    .day-employee-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .day-employee-card {
+        background: var(--ep-surface);
+        border-radius: var(--ep-radius-md);
+        padding: 12px;
+    }
+
+    .day-employee-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .day-employee-header span:first-child {
+        font-weight: 700;
+        color: var(--ep-text);
+    }
+
+    .day-employee-position {
+        font-size: 12px;
+        color: var(--ep-text-muted);
+    }
+
+    .day-employee-shifts {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .day-shift-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%);
+        border-left: 3px solid var(--ep-primary);
+        padding: 10px 12px;
+        border-radius: var(--ep-radius-sm);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .day-shift-card:active {
+        transform: scale(0.98);
+    }
+
+    .day-shift-card.confirmed {
+        border-left-color: #10b981;
+    }
+
+    .day-shift-card.change-requested {
+        border-left-color: #f59e0b;
+    }
+
+    .day-shift-card span:first-child {
+        font-weight: 600;
+        color: var(--ep-text);
+    }
+
+    .day-shift-card span:last-child {
+        font-size: 12px;
+        color: var(--ep-text-muted);
+    }
+
+    .ep-timeline-hour {
+        display: flex;
+        align-items: flex-start;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--ep-border);
+    }
+
+    .ep-timeline-hour:last-child {
+        border-bottom: none;
+    }
+
+    .ep-hour-label {
+        width: 50px;
+        flex-shrink: 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ep-text-muted);
+    }
+
+    .ep-hour-shifts {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    /* List View */
+    .list-schedule {
+        background: var(--ep-card-bg);
+        border-radius: var(--ep-radius-lg);
+        box-shadow: var(--ep-shadow-sm);
+        overflow: hidden;
+    }
+
+    .schedule-list-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .schedule-list-table thead {
+        display: none;
+    }
+
+    .schedule-list-table tbody {
+        display: block;
+    }
+
+    .list-empty {
+        text-align: center;
+        padding: 32px;
+        color: var(--ep-text-muted);
+    }
+
+    .list-row {
+        display: block;
+        background: var(--ep-card-bg);
+        padding: 16px;
+        border-bottom: 1px solid var(--ep-border);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .list-row:last-child {
+        border-bottom: none;
+    }
+
+    .list-row:active {
+        background: var(--ep-surface);
+    }
+
+    .list-row td {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+        font-size: 13px;
+    }
+
+    .list-row td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--ep-text-muted);
+        font-size: 11px;
+        text-transform: uppercase;
+    }
+
+    .list-row td:empty {
+        display: none;
+    }
+
+    .ep-list-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .ep-list-item {
+        background: var(--ep-card-bg);
+        border-radius: var(--ep-radius-lg);
+        padding: 16px;
+        box-shadow: var(--ep-shadow-sm);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .ep-list-item:active {
+        transform: scale(0.98);
+    }
+
+    .ep-list-date {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ep-text);
+        margin-bottom: 8px;
+    }
+
+    .ep-list-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .ep-list-time {
+        font-size: 13px;
+        color: var(--ep-text);
+    }
+
+    .ep-list-hours {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ep-primary);
+    }
+
+    .ep-list-meta {
+        display: flex;
+        gap: 12px;
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--ep-text-muted);
+    }
+
+    .ep-list-status {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: var(--ep-radius-sm);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-top: 8px;
+    }
+
+    .ep-list-status.scheduled {
+        background: #667eea20;
+        color: #667eea;
+    }
+
+    .ep-list-status.confirmed {
+        background: #10b98120;
+        color: #10b981;
+    }
+
+    .ep-list-status.change-requested {
+        background: #f59e0b20;
+        color: #f59e0b;
+    }
+
+    /* Pagination */
+    .ep-list-pagination,
+    .list-pagination {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 16px;
+    }
+
+    .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .page-btn {
+        padding: 10px 16px;
+        background: var(--ep-surface);
+        border: 1px solid var(--ep-border);
+        border-radius: var(--ep-radius-md);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ep-text);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .page-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .page-btn:not(:disabled):active {
+        transform: scale(0.96);
+    }
+
+    .page-info {
+        font-size: 13px;
+        color: var(--ep-text-muted);
+    }
+
+    /* Empty State */
+    .ep-schedule-empty {
+        text-align: center;
+        padding: 48px 24px;
+    }
+
+    .ep-schedule-empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+
+    .ep-schedule-empty-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--ep-text);
+        margin-bottom: 8px;
+    }
+
+    .ep-schedule-empty-text {
+        font-size: 14px;
+        color: var(--ep-text-muted);
+    }
+
+    /* Loading State */
+    .ep-schedule-loading,
+    .schedule-loading {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 48px 24px;
+    }
+
+    .ep-loader,
+    .loader {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--ep-border);
+        border-top-color: var(--ep-primary);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Legend */
+    .ep-legend {
+        background: var(--ep-card-bg);
+        border-radius: var(--ep-radius-lg);
+        padding: 16px;
+        margin-top: 24px;
+        box-shadow: var(--ep-shadow-sm);
+    }
+
+    .ep-legend-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--ep-text-muted);
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .ep-legend-items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .ep-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--ep-text);
+    }
+
+    .ep-legend-badge {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+    }
+
+    .ep-legend-badge.scheduled {
+        background: var(--ep-primary);
+    }
+
+    .ep-legend-badge.confirmed {
+        background: var(--ep-success);
+    }
+
+    .ep-legend-badge.change-requested {
+        background: #f59e0b;
+    }
+
+    .ep-legend-badge.on-time {
+        background: #10b981;
+    }
+
+    .ep-legend-badge.late {
+        background: #ef4444;
+    }
+
+    /* Modal Styles */
+    .ep-modal,
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        align-items: flex-end;
+        justify-content: center;
+        z-index: 1000;
+        padding: 0;
+    }
+
+    .ep-modal-content,
+    .modal-content {
+        background: var(--ep-card-bg);
+        border-radius: var(--ep-radius-xl) var(--ep-radius-xl) 0 0;
+        width: 100%;
+        max-width: 480px;
+        max-height: 85vh;
+        overflow-y: auto;
+        animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
         }
-
-        .back-btn {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 1000;
-            text-decoration: none;
-            display: inline-block;
+        to {
+            transform: translateY(0);
+            opacity: 1;
         }
+    }
 
-        .back-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
+    .ep-modal-header,
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid var(--ep-border);
+        position: sticky;
+        top: 0;
+        background: var(--ep-card-bg);
+    }
 
-        .schedule-container {
-            padding-top: 80px;
-            padding-left: 20px;
-            padding-right: 20px;
-        }
-    </style>
-</head>
-<body>
-    <a href="/employee/portal" class="back-btn">← Back to Portal</a>
+    .ep-modal-title,
+    .modal-header h2 {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--ep-text);
+        margin: 0;
+    }
 
-    <div class="schedule-container">
-        <!-- Header with View Toggle and Filters -->
-        <div class="schedule-header">
-            <div class="schedule-title-section">
-                <h1>📅 My Schedule</h1>
-                <div class="schedule-subtitle">
-                    <span id="currentDateRange"></span>
-                </div>
-            </div>
+    .ep-modal-close,
+    .modal-close {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: var(--ep-surface);
+        border-radius: 50%;
+        font-size: 20px;
+        color: var(--ep-text-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-            <div class="schedule-controls">
-                <!-- View Toggle -->
-                <div class="view-toggle">
-                    <button class="view-btn active" data-view="week" onclick="switchView('week')">
-                        📅 Week
-                    </button>
-                    <button class="view-btn" data-view="month" onclick="switchView('month')">
-                        📆 Month
-                    </button>
-                    <button class="view-btn" data-view="day" onclick="switchView('day')">
-                        📋 Day
-                    </button>
-                    <button class="view-btn" data-view="list" onclick="switchView('list')">
-                        📄 List
-                    </button>
-                </div>
+    .ep-modal-body,
+    .modal-body {
+        padding: 20px;
+    }
 
-                <!-- Team View Toggle -->
-                <button class="team-toggle-btn" onclick="toggleTeamView()" id="teamToggleBtn">
-                    👥 Show Team Schedule
-                </button>
-            </div>
-        </div>
+    .ep-modal-footer,
+    .modal-footer {
+        padding: 16px 20px;
+        border-top: 1px solid var(--ep-border);
+        display: flex;
+        gap: 12px;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0));
+    }
 
-        <!-- Filters (visible when team view is active) -->
-        <div class="schedule-filters" id="scheduleFilters" style="display: none;">
-            <div class="filter-group">
-                <label for="positionFilter">Position:</label>
-                <select id="positionFilter" onchange="applyFilters()">
-                    <option value="">All Positions</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="departmentFilter">Department:</label>
-                <select id="departmentFilter" onchange="applyFilters()">
-                    <option value="">All Departments</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="nameFilter">Employee:</label>
-                <select id="nameFilter" onchange="applyFilters()">
-                    <option value="">All Employees</option>
-                </select>
-            </div>
-            <button class="filter-reset-btn" onclick="resetFilters()">Clear Filters</button>
-        </div>
+    .ep-modal-footer .ep-btn,
+    .modal-footer button {
+        flex: 1;
+        padding: 14px 20px;
+        border-radius: var(--ep-radius-md);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
 
-        <!-- Navigation Controls -->
-        <div class="schedule-navigation">
-            <button class="nav-btn" onclick="navigatePrevious()">
-                ← Previous
-            </button>
-            <button class="nav-btn today-btn" onclick="navigateToday()">
-                Today
-            </button>
-            <button class="nav-btn" onclick="navigateNext()">
-                Next →
-            </button>
-        </div>
+    .modal-footer .btn-primary {
+        background: var(--ep-gradient);
+        color: white;
+        border: none;
+    }
 
-        <!-- Loading Indicator -->
-        <div class="schedule-loading" id="scheduleLoading" style="display: none;">
-            <div class="loader"></div>
-            <p>Loading schedule...</p>
-        </div>
+    .modal-footer .btn-secondary {
+        background: var(--ep-surface);
+        color: var(--ep-text);
+        border: 1px solid var(--ep-border);
+    }
 
-        <!-- Week View -->
-        <div id="weekView" class="schedule-view active">
-            <div class="week-calendar">
-                <div class="week-grid" id="weekGrid">
-                    <!-- Week grid will be dynamically populated by JavaScript -->
-                </div>
-            </div>
-        </div>
+    .modal-footer button:active {
+        transform: scale(0.96);
+    }
 
-        <!-- Month View -->
-        <div id="monthView" class="schedule-view" style="display: none;">
-            <div class="month-calendar">
-                <div class="month-header">
-                    <h2 id="monthViewTitle"></h2>
-                </div>
-                <div class="month-grid" id="monthGrid">
-                    <!-- Month grid will be dynamically populated by JavaScript -->
-                </div>
-            </div>
-        </div>
+    /* Shift Detail Content */
+    .shift-detail-content {
+        padding: 0;
+    }
 
-        <!-- Day View -->
-        <div id="dayView" class="schedule-view" style="display: none;">
-            <div class="day-schedule">
-                <div class="day-header">
-                    <h2 id="dayViewTitle"></h2>
-                </div>
-                <div class="day-grid" id="dayGrid">
-                    <!-- Day grid will be dynamically populated by JavaScript -->
-                </div>
-            </div>
-        </div>
+    .shift-detail-content .detail-row,
+    .ep-detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--ep-border);
+        font-size: 14px;
+    }
 
-        <!-- List View -->
-        <div id="listView" class="schedule-view" style="display: none;">
-            <div class="list-schedule">
-                <table class="schedule-list-table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Employee</th>
-                            <th>Start Time</th>
-                            <th>End Time</th>
-                            <th>Hours</th>
-                            <th>Position</th>
-                            <th>Status</th>
-                            <th>Attendance</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="listViewBody">
-                        <!-- List rows will be dynamically populated by JavaScript -->
-                    </tbody>
-                </table>
-                <div class="list-pagination" id="listPagination">
-                    <!-- Pagination controls -->
-                </div>
-            </div>
-        </div>
+    .shift-detail-content .detail-row:last-child,
+    .ep-detail-row:last-child {
+        border-bottom: none;
+    }
 
-        <!-- Empty State -->
-        <div class="schedule-empty" id="scheduleEmpty" style="display: none;">
-            <div class="empty-icon">📭</div>
-            <h3>No Schedules Found</h3>
-            <p>There are no schedules for the selected period.</p>
-        </div>
+    .shift-detail-content .detail-row strong {
+        color: var(--ep-text-muted);
+        font-weight: 500;
+    }
+
+    .ep-detail-label {
+        font-size: 13px;
+        color: var(--ep-text-muted);
+    }
+
+    .ep-detail-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ep-text);
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: var(--ep-radius-full);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .status-badge.status-scheduled {
+        background: #667eea20;
+        color: #667eea;
+    }
+
+    .status-badge.status-confirmed {
+        background: #10b98120;
+        color: #10b981;
+    }
+
+    .status-badge.status-change_requested {
+        background: #f59e0b20;
+        color: #f59e0b;
+    }
+
+    .attendance-section {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid var(--ep-border);
+    }
+
+    .attendance-section h4 {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ep-text);
+        margin-bottom: 12px;
+    }
+
+    /* Form Styles in Modal */
+    .ep-modal .ep-form-group,
+    .modal .form-group {
+        margin-bottom: 16px;
+    }
+
+    .ep-modal .ep-form-label,
+    .modal .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ep-text);
+        margin-bottom: 6px;
+    }
+
+    .ep-modal .ep-form-input,
+    .ep-modal .ep-form-textarea,
+    .modal input[type="text"],
+    .modal input[type="date"],
+    .modal input[type="time"],
+    .modal textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--ep-border);
+        border-radius: var(--ep-radius-md);
+        font-size: 14px;
+        color: var(--ep-text);
+        background: white;
+        box-sizing: border-box;
+    }
+
+    .ep-modal .ep-form-textarea,
+    .modal textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .ep-form-row,
+    .form-row {
+        display: flex;
+        gap: 12px;
+    }
+
+    .ep-form-row .ep-form-group,
+    .form-row .form-group {
+        flex: 1;
+    }
+
+    .ep-form-checkbox,
+    .modal label:has(input[type="checkbox"]) {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--ep-text);
+        cursor: pointer;
+    }
+
+    .ep-form-checkbox input,
+    .modal input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .ep-form-note,
+    .form-note {
+        font-size: 12px;
+        color: var(--ep-text-muted);
+        margin-top: 16px;
+        padding: 12px;
+        background: var(--ep-surface);
+        border-radius: var(--ep-radius-md);
+    }
+
+    .ep-current-schedule-info,
+    .current-schedule-info {
+        background: var(--ep-surface);
+        padding: 12px;
+        border-radius: var(--ep-radius-md);
+        font-size: 14px;
+        color: var(--ep-text);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Controls Section -->
+<div class="ep-schedule-header">
+    <div class="ep-date-range" id="currentDateRange"></div>
+
+    <!-- View Toggle Tabs -->
+    <div class="ep-view-tabs">
+        <button class="ep-view-tab view-btn active" data-view="week" onclick="switchView('week')">Week</button>
+        <button class="ep-view-tab view-btn" data-view="month" onclick="switchView('month')">Month</button>
+        <button class="ep-view-tab view-btn" data-view="day" onclick="switchView('day')">Day</button>
+        <button class="ep-view-tab view-btn" data-view="list" onclick="switchView('list')">List</button>
     </div>
 
-    <!-- Shift Detail Modal -->
-    <div class="modal" id="shiftDetailModal" style="display: none;">
-        <div class="modal-content schedule-modal">
-            <div class="modal-header">
-                <h2>Shift Details</h2>
-                <button class="modal-close" onclick="closeShiftDetailModal()">&times;</button>
-            </div>
-            <div class="modal-body" id="shiftDetailBody">
-                <!-- Shift details will be populated by JavaScript -->
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeShiftDetailModal()">Close</button>
-                <button class="btn-primary" onclick="openChangeRequestModal()" id="requestChangeBtn">
-                    Request Change
-                </button>
-            </div>
+    <!-- Team Toggle -->
+    <button class="ep-team-toggle" onclick="toggleTeamView()" id="teamToggleBtn">
+        Show Team Schedule
+    </button>
+
+    <!-- Navigation -->
+    <div class="ep-nav-controls">
+        <button class="ep-nav-btn" onclick="navigatePrevious()">Previous</button>
+        <button class="ep-nav-btn today" onclick="navigateToday()">Today</button>
+        <button class="ep-nav-btn" onclick="navigateNext()">Next</button>
+    </div>
+</div>
+
+<!-- Filters (visible when team view is active) -->
+<div class="ep-filters schedule-filters" id="scheduleFilters" style="display: none;">
+    <div class="ep-filter-group">
+        <label class="ep-filter-label">Position</label>
+        <select class="ep-filter-select" id="positionFilter" onchange="applyFilters()">
+            <option value="">All Positions</option>
+        </select>
+    </div>
+    <div class="ep-filter-group">
+        <label class="ep-filter-label">Department</label>
+        <select class="ep-filter-select" id="departmentFilter" onchange="applyFilters()">
+            <option value="">All Departments</option>
+        </select>
+    </div>
+    <div class="ep-filter-group">
+        <label class="ep-filter-label">Employee</label>
+        <select class="ep-filter-select" id="nameFilter" onchange="applyFilters()">
+            <option value="">All Employees</option>
+        </select>
+    </div>
+    <button class="ep-filter-reset" onclick="resetFilters()">Clear Filters</button>
+</div>
+
+<!-- Loading State -->
+<div class="ep-schedule-loading schedule-loading" id="scheduleLoading" style="display: none;">
+    <div class="ep-loader loader"></div>
+    <p>Loading schedule...</p>
+</div>
+
+<!-- Week View -->
+<div id="weekView" class="ep-schedule-view schedule-view active">
+    <div class="ep-week-grid week-grid" id="weekGrid">
+        <!-- Week grid will be dynamically populated by JavaScript -->
+    </div>
+</div>
+
+<!-- Month View -->
+<div id="monthView" class="ep-schedule-view schedule-view" style="display: none;">
+    <h2 class="ep-month-header" id="monthViewTitle"></h2>
+    <div class="ep-month-grid month-grid" id="monthGrid">
+        <!-- Month grid will be dynamically populated by JavaScript -->
+    </div>
+</div>
+
+<!-- Day View -->
+<div id="dayView" class="ep-schedule-view schedule-view" style="display: none;">
+    <h2 class="ep-day-header" id="dayViewTitle"></h2>
+    <div class="ep-day-timeline day-grid" id="dayGrid">
+        <!-- Day grid will be dynamically populated by JavaScript -->
+    </div>
+</div>
+
+<!-- List View -->
+<div id="listView" class="ep-schedule-view schedule-view" style="display: none;">
+    <div class="list-schedule">
+        <table class="schedule-list-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Employee</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                    <th>Hours</th>
+                    <th>Position</th>
+                    <th>Status</th>
+                    <th>Attendance</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="listViewBody">
+                <!-- List rows will be dynamically populated by JavaScript -->
+            </tbody>
+        </table>
+        <div class="ep-list-pagination" id="listPagination">
+            <!-- Pagination controls -->
         </div>
     </div>
+</div>
 
-    <!-- Change Request Modal -->
-    <div class="modal" id="changeRequestModal" style="display: none;">
-        <div class="modal-content schedule-modal">
-            <div class="modal-header">
-                <h2>Request Schedule Change</h2>
-                <button class="modal-close" onclick="closeChangeRequestModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="changeRequestForm" onsubmit="submitChangeRequest(event)">
-                    <input type="hidden" id="changeScheduleId">
+<!-- Empty State -->
+<div class="ep-schedule-empty schedule-empty" id="scheduleEmpty" style="display: none;">
+    <div class="ep-schedule-empty-icon empty-icon">📭</div>
+    <h3 class="ep-schedule-empty-title">No Schedules Found</h3>
+    <p class="ep-schedule-empty-text">There are no schedules for the selected period.</p>
+</div>
 
-                    <div class="form-group">
-                        <label>Current Schedule:</label>
-                        <div class="current-schedule-info" id="currentScheduleInfo">
-                            <!-- Current schedule info -->
+<!-- Legend -->
+<div class="ep-legend">
+    <div class="ep-legend-title">Legend</div>
+    <div class="ep-legend-items">
+        <div class="ep-legend-item">
+            <span class="ep-legend-badge scheduled"></span>
+            <span>Scheduled</span>
+        </div>
+        <div class="ep-legend-item">
+            <span class="ep-legend-badge confirmed"></span>
+            <span>Confirmed</span>
+        </div>
+        <div class="ep-legend-item">
+            <span class="ep-legend-badge change-requested"></span>
+            <span>Pending</span>
+        </div>
+        <div class="ep-legend-item">
+            <span class="ep-legend-badge on-time"></span>
+            <span>On Time</span>
+        </div>
+        <div class="ep-legend-item">
+            <span class="ep-legend-badge late"></span>
+            <span>Late</span>
+        </div>
+    </div>
+</div>
+
+<!-- Shift Detail Modal -->
+<div class="ep-modal" id="shiftDetailModal">
+    <div class="ep-modal-content">
+        <div class="ep-modal-header">
+            <h2 class="ep-modal-title">Shift Details</h2>
+            <button class="ep-modal-close" onclick="closeShiftDetailModal()">&times;</button>
+        </div>
+        <div class="ep-modal-body" id="shiftDetailBody">
+            <!-- Shift details will be populated by JavaScript -->
+        </div>
+        <div class="ep-modal-footer">
+            <button class="ep-btn ep-btn-secondary" onclick="closeShiftDetailModal()">Close</button>
+            <button class="ep-btn ep-btn-primary" onclick="openChangeRequestModal()" id="requestChangeBtn">
+                Request Change
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Change Request Modal -->
+<div class="ep-modal" id="changeRequestModal">
+    <div class="ep-modal-content">
+        <div class="ep-modal-header">
+            <h2 class="ep-modal-title">Request Change</h2>
+            <button class="ep-modal-close" onclick="closeChangeRequestModal()">&times;</button>
+        </div>
+        <div class="ep-modal-body">
+            <form id="changeRequestForm" onsubmit="submitChangeRequest(event)">
+                <input type="hidden" id="changeScheduleId">
+
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Current Schedule</label>
+                    <div class="ep-current-schedule-info" id="currentScheduleInfo">
+                        <!-- Current schedule info -->
+                    </div>
+                </div>
+
+                <div class="ep-form-group">
+                    <label class="ep-form-label" for="changeReason">Reason for Change *</label>
+                    <textarea
+                        class="ep-form-textarea"
+                        id="changeReason"
+                        name="reason"
+                        required
+                        placeholder="Please explain why you need to change this shift..."></textarea>
+                </div>
+
+                <div class="ep-form-group">
+                    <label class="ep-form-checkbox">
+                        <input type="checkbox" id="suggestChanges" onchange="toggleSuggestedChanges()">
+                        Suggest specific changes
+                    </label>
+                </div>
+
+                <div id="suggestedChangesSection" style="display: none;">
+                    <div class="ep-form-group">
+                        <label class="ep-form-label" for="newDate">New Date</label>
+                        <input type="date" class="ep-form-input" id="newDate" name="new_date">
+                    </div>
+
+                    <div class="ep-form-row">
+                        <div class="ep-form-group">
+                            <label class="ep-form-label" for="newStartTime">Start Time</label>
+                            <input type="time" class="ep-form-input" id="newStartTime" name="new_start_time">
+                        </div>
+                        <div class="ep-form-group">
+                            <label class="ep-form-label" for="newEndTime">End Time</label>
+                            <input type="time" class="ep-form-input" id="newEndTime" name="new_end_time">
                         </div>
                     </div>
+                </div>
 
-                    <div class="form-group">
-                        <label for="changeReason">Reason for Change Request: *</label>
-                        <textarea
-                            id="changeReason"
-                            name="reason"
-                            rows="4"
-                            required
-                            placeholder="Please explain why you need to change this shift..."></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="suggestChanges" onchange="toggleSuggestedChanges()">
-                            Suggest specific changes (optional)
-                        </label>
-                    </div>
-
-                    <div id="suggestedChangesSection" style="display: none;">
-                        <div class="form-group">
-                            <label for="newDate">New Date:</label>
-                            <input type="date" id="newDate" name="new_date">
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="newStartTime">New Start Time:</label>
-                                <input type="time" id="newStartTime" name="new_start_time">
-                            </div>
-                            <div class="form-group">
-                                <label for="newEndTime">New End Time:</label>
-                                <input type="time" id="newEndTime" name="new_end_time">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-note">
-                        * Change requests require admin approval. You will be notified once your request is reviewed.
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn-secondary" onclick="closeChangeRequestModal()">Cancel</button>
-                        <button type="submit" class="btn-primary">Submit Request</button>
-                    </div>
-                </form>
-            </div>
+                <div class="ep-form-note">
+                    Change requests require admin approval. You will be notified once reviewed.
+                </div>
+            </form>
+        </div>
+        <div class="ep-modal-footer">
+            <button type="button" class="ep-btn ep-btn-secondary" onclick="closeChangeRequestModal()">Cancel</button>
+            <button type="submit" class="ep-btn ep-btn-primary" onclick="document.getElementById('changeRequestForm').requestSubmit()">Submit</button>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <!-- Legend -->
-    <div class="schedule-legend">
-        <h4>Legend:</h4>
-        <div class="legend-items">
-            <div class="legend-item">
-                <span class="legend-badge status-scheduled"></span>
-                <span>Scheduled</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-badge status-confirmed"></span>
-                <span>Confirmed</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-badge on-time"></span>
-                <span>On Time (Attendance)</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-badge late"></span>
-                <span>Late/Early</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-badge missed"></span>
-                <span>Missed Shift</span>
-            </div>
-            <div class="legend-item">
-                <span class="legend-badge change-requested"></span>
-                <span>Change Requested</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Include Schedule JavaScript -->
-    <script>
-        // Pass employee data to JavaScript
-        window.employeeData = {
-            id: {{ employee.id }},
-            name: "{{ employee.first_name }} {{ employee.last_name }}",
-            position: "{{ employee.position or '' }}",
-            department: "{{ employee.department or '' }}"
-        };
-    </script>
-    <script src="{{ url_for('static', filename='js/schedule.js') }}"></script>
-</body>
-</html>
+{% block extra_js %}
+<script>
+    // Pass employee data to JavaScript
+    window.employeeData = {
+        id: {{ employee.id }},
+        name: "{{ employee.first_name }} {{ employee.last_name }}",
+        position: "{{ employee.position or '' }}",
+        department: "{{ employee.department or '' }}"
+    };
+</script>
+<script src="{{ url_for('static', filename='js/schedule.js') }}"></script>
+{% endblock %}

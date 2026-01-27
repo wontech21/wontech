@@ -2,368 +2,116 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Portal - WONTECH</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/admin.css">
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .employee-portal {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            position: relative;
-        }
-
-        .portal-header {
-            color: white;
-            padding: 40px 40px 20px 40px;
-            margin-bottom: 30px;
-        }
-
-        .portal-welcome {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .portal-subtitle {
-            font-size: 16px;
-            opacity: 0.95;
-        }
-
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-
-        .action-card {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 2px solid transparent;
-        }
-
-        .action-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
-            border-color: #667eea;
-        }
-
-        .action-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
-        }
-
-        .action-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 4px;
-        }
-
-        .action-desc {
-            font-size: 13px;
-            color: #6b7280;
-        }
-
-        .section {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .section-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #e5e7eb;
-        }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 16px;
-        }
-
-        .info-item {
-            padding: 12px;
-            background: #f9fafb;
-            border-radius: 8px;
-        }
-
-        .info-label {
-            font-size: 12px;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
-        }
-
-        .info-value {
-            font-size: 16px;
-            font-weight: 600;
-            color: #1f2937;
-        }
-
-        .recent-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .recent-item {
-            padding: 16px;
-            border-bottom: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .recent-item:last-child {
-            border-bottom: none;
-        }
-
-        .recent-date {
-            font-size: 14px;
-            color: #6b7280;
-        }
-
-        .recent-hours {
-            font-size: 16px;
-            font-weight: 600;
-            color: #1f2937;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .badge-success {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .badge-warning {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .pagination-controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 20px;
-            padding-top: 16px;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        .pagination-info {
-            font-size: 14px;
-            color: #6b7280;
-        }
-
-        .pagination-buttons {
-            display: flex;
-            gap: 8px;
-        }
-
-        .pagination-buttons button {
-            padding: 6px 12px;
-            background: white;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            color: #374151;
-            transition: all 0.2s;
-        }
-
-        .pagination-buttons button:hover:not(:disabled) {
-            background: #f3f4f6;
-            border-color: #667eea;
-        }
-
-        .pagination-buttons button:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
-        .pagination-buttons button.active {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-
-        .logout-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            white-space: nowrap;
-            z-index: 100;
-        }
-
-        .logout-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            border-color: rgba(255, 255, 255, 0.5);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-        }
-
-        .logout-btn:active {
-            transform: translateY(0);
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#667eea">
+    <title>{{ g.organization.organization_name }}</title>
+    <link rel="stylesheet" href="/static/css/employee-portal.css">
 </head>
-<body>
-    <div class="employee-portal">
-        <!-- Logout Button (Top Right) -->
-        <button class="logout-btn" onclick="window.location.href='/logout'">🚪 Logout</button>
-
-        <!-- Header -->
-        <div class="portal-header">
-            <div class="portal-welcome">Welcome back, {{ employee.first_name }}! 👋</div>
-            <div class="portal-subtitle">{{ g.organization.organization_name }} Employee Portal</div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-            <div class="action-card" onclick="window.location.href='/employee/paystubs'">
-                <div class="action-icon">💰</div>
-                <div class="action-title">Paystubs</div>
-                <div class="action-desc">View your pay history</div>
-            </div>
-
-            <div class="action-card" onclick="window.location.href='/employee/time-entries'">
-                <div class="action-icon">⏰</div>
-                <div class="action-title">Time Entries</div>
-                <div class="action-desc">Review your work hours</div>
-            </div>
-
-            <div class="action-card" onclick="window.location.href='/employee/profile'">
-                <div class="action-icon">👤</div>
-                <div class="action-title">My Profile</div>
-                <div class="action-desc">Update your information</div>
-            </div>
-
-            <div class="action-card" onclick="window.location.href='/employee/schedule'">
-                <div class="action-icon">📅</div>
-                <div class="action-title">Schedule</div>
-                <div class="action-desc">View your work schedule</div>
-            </div>
-
-            <div class="action-card" onclick="window.location.href='/employee/time-off'">
-                <div class="action-icon">🏖️</div>
-                <div class="action-title">Request Time Off</div>
-                <div class="action-desc">Submit PTO requests</div>
-            </div>
-
-            <div class="action-card" onclick="window.location.href='/employee/availability-page'">
-                <div class="action-icon">📆</div>
-                <div class="action-title">My Availability</div>
-                <div class="action-desc">Set your schedule preferences</div>
-            </div>
-        </div>
-
-        <!-- Profile Summary -->
-        <div class="section">
-            <div class="section-title">Profile Summary</div>
-            <div class="info-grid">
-                <div class="info-item">
-                    <div class="info-label">Employee ID</div>
-                    <div class="info-value">{{ employee.employee_code or 'N/A' }}</div>
+<body class="ep-body">
+    <div class="ep-app">
+        <!-- Status Bar Header -->
+        <header class="ep-status-bar">
+            <div class="ep-status-content">
+                <div class="ep-user-greeting">
+                    <div class="ep-greeting-text">Welcome back</div>
+                    <div class="ep-user-name">{{ employee.first_name }}</div>
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Email</div>
-                    <div class="info-value">{{ g.user.email }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Department</div>
-                    <div class="info-value">{{ employee.department or 'N/A' }}</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Position</div>
-                    <div class="info-value">{{ employee.position or 'N/A' }}</div>
+                <div class="ep-header-actions">
+                    <a href="/employee/profile" class="ep-icon-btn" title="Profile">
+                        <span>👤</span>
+                    </a>
+                    <a href="/logout" class="ep-icon-btn" title="Logout">
+                        <span>↪</span>
+                    </a>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <!-- PTO Balance -->
-        <div class="section">
-            <div class="section-title">PTO Balance</div>
-            <div class="info-grid">
-                <div class="info-item">
-                    <div class="info-label">Available</div>
-                    <div class="info-value" id="ptoAvailable" style="color: #667eea; font-weight: 700;">--</div>
+        <!-- Main Content -->
+        <main class="ep-main">
+            <!-- Quick Actions -->
+            <h2 class="ep-section-title">Quick Actions</h2>
+            <div class="ep-actions-grid">
+                <a href="/employee/schedule" class="ep-action-card">
+                    <div class="ep-action-icon">📅</div>
+                    <div class="ep-action-title">Schedule</div>
+                </a>
+                <a href="/employee/time-entries" class="ep-action-card">
+                    <div class="ep-action-icon">⏱</div>
+                    <div class="ep-action-title">Time</div>
+                </a>
+                <a href="/employee/paystubs" class="ep-action-card">
+                    <div class="ep-action-icon">💵</div>
+                    <div class="ep-action-title">Pay</div>
+                </a>
+                <a href="/employee/time-off" class="ep-action-card">
+                    <div class="ep-action-icon">🏖</div>
+                    <div class="ep-action-title">Time Off</div>
+                </a>
+                <a href="/employee/availability-page" class="ep-action-card">
+                    <div class="ep-action-icon">📆</div>
+                    <div class="ep-action-title">Availability</div>
+                </a>
+                <a href="/employee/profile" class="ep-action-card">
+                    <div class="ep-action-icon">⚙</div>
+                    <div class="ep-action-title">Settings</div>
+                </a>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="ep-activity-card">
+                <div class="ep-activity-header">
+                    <div class="ep-activity-title">
+                        <span class="ep-activity-icon">⏰</span>
+                        Recent Hours
+                    </div>
+                    <a href="/employee/time-entries" class="ep-stats-link">View All</a>
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Used This Year</div>
-                    <div class="info-value" id="ptoUsed">--</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Total Annual</div>
-                    <div class="info-value" id="ptoTotal">--</div>
+                <ul class="ep-activity-list" id="recentTimeEntries">
+                    <li class="ep-empty-state ep-loading">
+                        <div class="ep-empty-text">Loading...</div>
+                    </li>
+                </ul>
+                <div class="ep-pagination" id="paginationControls" style="display: none;">
+                    <button class="ep-pagination-btn" onclick="changePage('prev')" id="btnPrev">‹</button>
+                    <span id="pageNumbers"></span>
+                    <button class="ep-pagination-btn" onclick="changePage('next')" id="btnNext">›</button>
                 </div>
             </div>
-        </div>
 
-        <!-- Recent Time Entries -->
-        <div class="section">
-            <div class="section-title">Recent Time Entries</div>
-            <ul class="recent-list" id="recentTimeEntries">
-                <li style="text-align: center; padding: 20px; color: #9ca3af;">
-                    Loading...
-                </li>
-            </ul>
-
-            <div class="pagination-controls" id="paginationControls" style="display: none;">
-                <div class="pagination-info" id="paginationInfo">
-                    Showing 1-5 of 0 entries
+            <!-- Profile Summary -->
+            <div class="ep-card ep-mt-2">
+                <div class="ep-card-header">
+                    <div class="ep-card-header-icon">📋</div>
+                    <h3 class="ep-card-title">My Info</h3>
                 </div>
-                <div class="pagination-buttons">
-                    <button onclick="changePage('first')" id="btnFirst">«</button>
-                    <button onclick="changePage('prev')" id="btnPrev">‹</button>
-                    <span id="pageNumbers" style="display: flex; gap: 4px;"></span>
-                    <button onclick="changePage('next')" id="btnNext">›</button>
-                    <button onclick="changePage('last')" id="btnLast">»</button>
+                <div class="ep-info-grid">
+                    <div class="ep-info-item">
+                        <div class="ep-info-label">ID</div>
+                        <div class="ep-info-value">{{ employee.employee_code or 'N/A' }}</div>
+                    </div>
+                    <div class="ep-info-item">
+                        <div class="ep-info-label">Position</div>
+                        <div class="ep-info-value">{{ employee.position or 'N/A' }}</div>
+                    </div>
+                    <div class="ep-info-item">
+                        <div class="ep-info-label">Department</div>
+                        <div class="ep-info-value">{{ employee.department or 'N/A' }}</div>
+                    </div>
+                    <div class="ep-info-item">
+                        <div class="ep-info-label">Email</div>
+                        <div class="ep-info-value">{{ g.user.email }}</div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </main>
+
     </div>
+
+    <!-- Notification Toast -->
+    <div id="notification" class="ep-notification"></div>
 
     <script>
         let allTimeEntries = [];
@@ -380,8 +128,10 @@
 
                 if (allTimeEntries.length === 0) {
                     document.getElementById('recentTimeEntries').innerHTML = `
-                        <li style="text-align: center; padding: 20px; color: #9ca3af;">
-                            No time entries found
+                        <li class="ep-empty-state">
+                            <div class="ep-empty-icon">📭</div>
+                            <div class="ep-empty-title">No time entries yet</div>
+                            <div class="ep-empty-text">Your hours will appear here</div>
                         </li>
                     `;
                     document.getElementById('paginationControls').style.display = 'none';
@@ -393,8 +143,8 @@
             } catch (err) {
                 console.error('Error loading time entries:', err);
                 document.getElementById('recentTimeEntries').innerHTML = `
-                    <li style="text-align: center; padding: 20px; color: #ef4444;">
-                        Error loading time entries
+                    <li class="ep-empty-state">
+                        <div class="ep-empty-text" style="color: var(--ep-danger);">Error loading data</div>
                     </li>
                 `;
             }
@@ -404,7 +154,6 @@
             const listEl = document.getElementById('recentTimeEntries');
             const totalPages = Math.ceil(allTimeEntries.length / pageSize);
 
-            // Ensure current page is valid
             currentPage = Math.min(currentPage, totalPages || 1);
 
             const startIdx = (currentPage - 1) * pageSize;
@@ -413,19 +162,21 @@
 
             listEl.innerHTML = pageEntries.map(entry => {
                 const date = new Date(entry.clock_in);
-                const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                const hours = (entry.hours_worked || 0).toFixed(2);
+                const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                const hours = (entry.hours_worked || 0).toFixed(1);
+                const timeIn = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                const timeOut = entry.clock_out
+                    ? new Date(entry.clock_out).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                    : 'Active';
 
                 return `
-                    <li class="recent-item">
-                        <div>
-                            <div style="font-weight: 600; color: #1f2937;">${dateStr}</div>
-                            <div class="recent-date">
-                                ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                ${entry.clock_out ? '- ' + new Date(entry.clock_out).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '(No clock out)'}
-                            </div>
+                    <li class="ep-activity-item">
+                        <div class="ep-activity-dot"></div>
+                        <div class="ep-activity-content">
+                            <div class="ep-activity-primary">${dateStr}</div>
+                            <div class="ep-activity-secondary">${timeIn} - ${timeOut}</div>
                         </div>
-                        <div class="recent-hours">${hours} hrs</div>
+                        <div class="ep-activity-value">${hours}h</div>
                     </li>
                 `;
             }).join('');
@@ -435,57 +186,27 @@
 
         function updatePagination() {
             const totalPages = Math.ceil(allTimeEntries.length / pageSize);
-            const startIdx = (currentPage - 1) * pageSize + 1;
-            const endIdx = Math.min(currentPage * pageSize, allTimeEntries.length);
 
-            // Update info
-            document.getElementById('paginationInfo').textContent =
-                `Showing ${startIdx}-${endIdx} of ${allTimeEntries.length} entries`;
-
-            // Show/hide pagination controls
             document.getElementById('paginationControls').style.display =
                 allTimeEntries.length > pageSize ? 'flex' : 'none';
 
-            // Update buttons
-            document.getElementById('btnFirst').disabled = currentPage === 1;
             document.getElementById('btnPrev').disabled = currentPage === 1;
             document.getElementById('btnNext').disabled = currentPage === totalPages;
-            document.getElementById('btnLast').disabled = currentPage === totalPages;
 
-            // Update page numbers
             const pageNumbersDiv = document.getElementById('pageNumbers');
             let pageNumbersHTML = '';
 
-            if (totalPages <= 7) {
-                for (let i = 1; i <= totalPages; i++) {
-                    pageNumbersHTML += `<button class="${i === currentPage ? 'active' : ''}"
-                        onclick="goToPage(${i})">${i}</button>`;
-                }
-            } else {
-                if (currentPage <= 4) {
-                    for (let i = 1; i <= 5; i++) {
-                        pageNumbersHTML += `<button class="${i === currentPage ? 'active' : ''}"
-                            onclick="goToPage(${i})">${i}</button>`;
-                    }
-                    pageNumbersHTML += `<span style="padding: 6px;">...</span>`;
-                    pageNumbersHTML += `<button onclick="goToPage(${totalPages})">${totalPages}</button>`;
-                } else if (currentPage >= totalPages - 3) {
-                    pageNumbersHTML += `<button onclick="goToPage(1)">1</button>`;
-                    pageNumbersHTML += `<span style="padding: 6px;">...</span>`;
-                    for (let i = totalPages - 4; i <= totalPages; i++) {
-                        pageNumbersHTML += `<button class="${i === currentPage ? 'active' : ''}"
-                            onclick="goToPage(${i})">${i}</button>`;
-                    }
-                } else {
-                    pageNumbersHTML += `<button onclick="goToPage(1)">1</button>`;
-                    pageNumbersHTML += `<span style="padding: 6px;">...</span>`;
-                    for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-                        pageNumbersHTML += `<button class="${i === currentPage ? 'active' : ''}"
-                            onclick="goToPage(${i})">${i}</button>`;
-                    }
-                    pageNumbersHTML += `<span style="padding: 6px;">...</span>`;
-                    pageNumbersHTML += `<button onclick="goToPage(${totalPages})">${totalPages}</button>`;
-                }
+            const maxButtons = 3;
+            let startPage = Math.max(1, currentPage - 1);
+            let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+
+            if (endPage - startPage + 1 < maxButtons) {
+                startPage = Math.max(1, endPage - maxButtons + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                pageNumbersHTML += `<button class="ep-pagination-btn ${i === currentPage ? 'active' : ''}"
+                    onclick="goToPage(${i})">${i}</button>`;
             }
 
             pageNumbersDiv.innerHTML = pageNumbersHTML;
@@ -494,19 +215,10 @@
         function changePage(direction) {
             const totalPages = Math.ceil(allTimeEntries.length / pageSize);
 
-            switch (direction) {
-                case 'first':
-                    currentPage = 1;
-                    break;
-                case 'prev':
-                    currentPage = Math.max(1, currentPage - 1);
-                    break;
-                case 'next':
-                    currentPage = Math.min(totalPages, currentPage + 1);
-                    break;
-                case 'last':
-                    currentPage = totalPages;
-                    break;
+            if (direction === 'prev') {
+                currentPage = Math.max(1, currentPage - 1);
+            } else {
+                currentPage = Math.min(totalPages, currentPage + 1);
             }
 
             displayTimeEntries();
@@ -517,28 +229,22 @@
             displayTimeEntries();
         }
 
-        // Load PTO Balance
-        async function loadPTOBalance() {
-            try {
-                const response = await fetch('/employee/pto-balance');
-                const data = await response.json();
+        // Notification helper
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            if (notification) {
+                notification.textContent = message;
+                notification.className = `ep-notification ep-notification-${type}`;
+                notification.style.display = 'block';
 
-                if (data.success) {
-                    document.getElementById('ptoAvailable').textContent = data.available.toFixed(1) + ' hours';
-                    document.getElementById('ptoUsed').textContent = data.used.toFixed(1) + ' hours';
-                    document.getElementById('ptoTotal').textContent = data.total.toFixed(1) + ' hours';
-                }
-            } catch (error) {
-                console.error('Error loading PTO balance:', error);
-                document.getElementById('ptoAvailable').textContent = 'Error';
-                document.getElementById('ptoUsed').textContent = 'Error';
-                document.getElementById('ptoTotal').textContent = 'Error';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 4000);
             }
         }
 
         // Initialize
         loadRecentTimeEntries();
-        loadPTOBalance();
     </script>
 </body>
 </html>

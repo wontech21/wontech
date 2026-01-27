@@ -1,0 +1,225 @@
+{% extends "employee/layout.html" %}
+
+{% block title %}My Profile{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block nav_profile %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .ep-upload-btn {
+        background: var(--ep-gradient);
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: var(--ep-radius-md);
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        margin-top: 12px;
+    }
+    .ep-upload-btn:active {
+        transform: scale(0.98);
+    }
+    #profilePicInput {
+        display: none;
+    }
+    .ep-section-header {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ep-text);
+        margin: 24px 0 16px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--ep-border);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .ep-section-header:first-child {
+        margin-top: 0;
+    }
+    .ep-form-hint {
+        font-size: 11px;
+        color: var(--ep-text-muted);
+        margin-top: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ep-card">
+    <div class="ep-profile-header">
+        <div id="profilePicContainer">
+            {% if employee.profile_picture %}
+            <img src="{{ employee.profile_picture }}" alt="Profile Picture" class="ep-profile-avatar" id="profilePic" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">
+            {% else %}
+            <div class="ep-profile-avatar-placeholder" id="profilePicPlaceholder">
+                {{ employee.first_name[0] }}{{ employee.last_name[0] }}
+            </div>
+            {% endif %}
+        </div>
+        <div class="ep-profile-name">{{ employee.first_name }} {{ employee.last_name }}</div>
+        <div class="ep-profile-role">{{ employee.position or 'Employee' }}</div>
+        <input type="file" id="profilePicInput" accept="image/*" onchange="uploadProfilePicture()">
+        <button class="ep-upload-btn" onclick="document.getElementById('profilePicInput').click()">
+            Change Photo
+        </button>
+    </div>
+</div>
+
+<div id="alertSuccess" class="ep-alert ep-alert-success"></div>
+<div id="alertError" class="ep-alert ep-alert-error"></div>
+
+<form id="profileForm" onsubmit="saveProfile(event)">
+    <div class="ep-card">
+        <h3 class="ep-section-header">
+            <span>👤</span> Personal Information
+        </h3>
+
+        <div class="ep-form-group">
+            <label class="ep-form-label">First Name</label>
+            <input type="text" class="ep-form-input" id="firstName" value="{{ employee.first_name }}" disabled>
+            <div class="ep-form-hint">Contact admin to change</div>
+        </div>
+
+        <div class="ep-form-group">
+            <label class="ep-form-label">Last Name</label>
+            <input type="text" class="ep-form-input" id="lastName" value="{{ employee.last_name }}" disabled>
+            <div class="ep-form-hint">Contact admin to change</div>
+        </div>
+
+        <div class="ep-form-group">
+            <label class="ep-form-label">Email</label>
+            <input type="email" class="ep-form-input" id="email" value="{{ employee.email or '' }}" disabled>
+            <div class="ep-form-hint">Contact admin to change</div>
+        </div>
+
+        <div class="ep-form-group">
+            <label class="ep-form-label">Phone Number</label>
+            <input type="tel" class="ep-form-input" id="phone" name="phone" value="{{ employee.phone or '' }}" placeholder="(555) 123-4567">
+        </div>
+    </div>
+
+    <div class="ep-card">
+        <h3 class="ep-section-header">
+            <span>🏠</span> Address
+        </h3>
+
+        <div class="ep-form-group">
+            <label class="ep-form-label">Street Address</label>
+            <input type="text" class="ep-form-input" id="address" name="address" value="{{ employee.address or '' }}" placeholder="123 Main Street">
+        </div>
+
+        <div class="ep-form-row">
+            <div class="ep-form-group">
+                <label class="ep-form-label">City</label>
+                <input type="text" class="ep-form-input" id="city" name="city" value="{{ employee.city or '' }}" placeholder="San Francisco">
+            </div>
+            <div class="ep-form-group">
+                <label class="ep-form-label">State</label>
+                <input type="text" class="ep-form-input" id="state" name="state" value="{{ employee.state or '' }}" placeholder="CA" maxlength="2">
+            </div>
+        </div>
+
+        <div class="ep-form-group">
+            <label class="ep-form-label">ZIP Code</label>
+            <input type="text" class="ep-form-input" id="zip_code" name="zip_code" value="{{ employee.zip_code or '' }}" placeholder="94102" maxlength="10" style="max-width: 150px;">
+        </div>
+    </div>
+
+    <div class="ep-card">
+        <h3 class="ep-section-header">
+            <span>🚨</span> Emergency Contact
+        </h3>
+
+        <div class="ep-form-group">
+            <label class="ep-form-label">Contact Name</label>
+            <input type="text" class="ep-form-input" id="emergency_contact_name" name="emergency_contact_name" value="{{ employee.emergency_contact_name or '' }}" placeholder="Jane Doe">
+        </div>
+
+        <div class="ep-form-group">
+            <label class="ep-form-label">Contact Phone</label>
+            <input type="tel" class="ep-form-input" id="emergency_contact_phone" name="emergency_contact_phone" value="{{ employee.emergency_contact_phone or '' }}" placeholder="(555) 987-6543">
+        </div>
+    </div>
+
+    <button type="submit" class="ep-btn ep-btn-primary" id="saveBtn" style="margin-bottom: 80px;">
+        Save Changes
+    </button>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function saveProfile(event) {
+        event.preventDefault();
+
+        const formData = new FormData(event.target);
+        const data = Object.fromEntries(formData.entries());
+
+        const saveBtn = document.getElementById('saveBtn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+
+        fetch('/employee/profile/update', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Profile updated successfully!', 'success');
+            } else {
+                showNotification(data.error || 'Failed to update profile', 'error');
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            showNotification('Network error. Please try again.', 'error');
+        })
+        .finally(() => {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Changes';
+        });
+    }
+
+    function uploadProfilePicture() {
+        const fileInput = document.getElementById('profilePicInput');
+        const file = fileInput.files[0];
+
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            showNotification('File size must be less than 5MB', 'error');
+            return;
+        }
+
+        if (!file.type.startsWith('image/')) {
+            showNotification('Please upload an image file', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('profile_picture', file);
+
+        fetch('/employee/profile/upload-picture', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Profile picture updated!', 'success');
+                const container = document.getElementById('profilePicContainer');
+                container.innerHTML = `<img src="${data.profile_picture}?t=${Date.now()}" alt="Profile Picture" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; box-shadow: var(--ep-shadow-glow);">`;
+            } else {
+                showNotification(data.error || 'Failed to upload', 'error');
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            showNotification('Network error. Please try again.', 'error');
+        });
+    }
+</script>
+{% endblock %}
