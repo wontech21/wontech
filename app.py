@@ -1889,9 +1889,12 @@ def dashboard_home():
 @app.route('/dashboard/<section>')
 @login_required
 def dashboard_section(section):
-    """Dashboard filtered to specific section (inventory or attendance)"""
-    if section not in ['inventory', 'attendance']:
+    """Dashboard filtered to specific section (inventory, attendance, or pos)"""
+    if section not in ['inventory', 'attendance', 'pos']:
         return redirect('/dashboard')
+
+    if section == 'pos':
+        return render_template('pos.html')
 
     return render_template('dashboard.html', section=section)
 
@@ -4329,10 +4332,11 @@ def update_ingredient_prices(ingredient_code, cursor_invoices, cursor_inventory)
     try:
         # Get all prices for this ingredient from invoice line items, ordered by invoice date (most recent first)
         cursor_invoices.execute("""
-            SELECT ili.unit_price, i.invoice_date, ili.quantity_received
+            SELECT ili.unit_price, i.invoice_date, ili.quantity
             FROM invoice_line_items ili
             JOIN invoices i ON ili.invoice_id = i.id
-            WHERE ili.ingredient_code = ?
+            JOIN ingredients ing ON ili.ingredient_id = ing.id
+            WHERE ing.ingredient_code = ?
             ORDER BY i.invoice_date DESC
         """, (ingredient_code,))
 
@@ -4343,8 +4347,8 @@ def update_ingredient_prices(ingredient_code, cursor_invoices, cursor_inventory)
             last_price = price_records[0]['unit_price']
 
             # Calculate weighted average price (weighted by quantity received)
-            total_cost = sum(rec['unit_price'] * rec['quantity_received'] for rec in price_records)
-            total_quantity = sum(rec['quantity_received'] for rec in price_records)
+            total_cost = sum(rec['unit_price'] * rec['quantity'] for rec in price_records)
+            total_quantity = sum(rec['quantity'] for rec in price_records)
             average_price = total_cost / total_quantity if total_quantity > 0 else last_price
 
             # Update all inventory records for this ingredient code
@@ -4575,10 +4579,11 @@ def analytics_price_trends():
         SELECT
             i.invoice_date as date,
             ili.unit_price as price,
-            ili.ingredient_name
+            ing.ingredient_name
         FROM invoice_line_items ili
         JOIN invoices i ON ili.invoice_id = i.id
-        WHERE ili.ingredient_code = ?
+        JOIN ingredients ing ON ili.ingredient_id = ing.id
+        WHERE ing.ingredient_code = ?
     """
     params = [ingredient_code]
 
@@ -4613,14 +4618,15 @@ def analytics_purchase_frequency():
     # Get purchase dates for each ingredient
     cursor.execute("""
         SELECT
-            ili.ingredient_code,
-            ili.ingredient_name,
+            ing.ingredient_code,
+            ing.ingredient_name,
             i.invoice_date,
             COUNT(*) as purchase_count
         FROM invoice_line_items ili
         JOIN invoices i ON ili.invoice_id = i.id
-        GROUP BY ili.ingredient_code, ili.ingredient_name
-        ORDER BY ili.ingredient_code
+        JOIN ingredients ing ON ili.ingredient_id = ing.id
+        GROUP BY ing.ingredient_code, ing.ingredient_name
+        ORDER BY ing.ingredient_code
     """)
 
     purchases = {}
@@ -4636,11 +4642,12 @@ def analytics_purchase_frequency():
     # Get all purchase dates for each ingredient
     cursor.execute("""
         SELECT
-            ili.ingredient_code,
+            ing.ingredient_code,
             i.invoice_date
         FROM invoice_line_items ili
         JOIN invoices i ON ili.invoice_id = i.id
-        ORDER BY ili.ingredient_code, i.invoice_date
+        JOIN ingredients ing ON ili.ingredient_id = ing.id
+        ORDER BY ing.ingredient_code, i.invoice_date
     """)
 
     for row in cursor.fetchall():
@@ -4692,9 +4699,10 @@ def analytics_ingredients_with_price_history():
     cursor = conn_inv.cursor()
 
     cursor.execute("""
-        SELECT DISTINCT ingredient_code
-        FROM invoice_line_items
-        ORDER BY ingredient_code
+        SELECT DISTINCT ing.ingredient_code
+        FROM invoice_line_items ili
+        JOIN ingredients ing ON ili.ingredient_id = ing.id
+        ORDER BY ing.ingredient_code
     """)
 
     codes = [row['ingredient_code'] for row in cursor.fetchall()]
@@ -4797,10 +4805,11 @@ def analytics_category_spending():
     # Get total spending by ingredient code from invoices
     query = """
         SELECT
-            ili.ingredient_code,
+            ing.ingredient_code,
             SUM(ili.total_price) as amount
         FROM invoice_line_items ili
         JOIN invoices i ON ili.invoice_id = i.id
+        JOIN ingredients ing ON ili.ingredient_id = ing.id
         WHERE 1=1
     """
     params = []
@@ -4812,7 +4821,7 @@ def analytics_category_spending():
         query += " AND i.invoice_date <= ?"
         params.append(date_to)
 
-    query += " GROUP BY ili.ingredient_code"
+    query += " GROUP BY ing.ingredient_code"
 
     cursor_inv.execute(query, params)
     data = [dict(row) for row in cursor_inv.fetchall()]
@@ -4918,13 +4927,14 @@ def analytics_price_volatility():
     cursor = conn_inv.cursor()
 
     cursor.execute("""
-        SELECT ili.ingredient_name,
+        SELECT ing.ingredient_name,
                AVG(ili.unit_price) as avg_price,
                MAX(ili.unit_price) as max_price,
                MIN(ili.unit_price) as min_price,
                COUNT(*) as purchase_count
         FROM invoice_line_items ili
-        GROUP BY ili.ingredient_name
+        JOIN ingredients ing ON ili.ingredient_id = ing.id
+        GROUP BY ing.ingredient_name
         HAVING purchase_count >= 3
     """)
 
@@ -5048,9 +5058,10 @@ def analytics_usage_forecast():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT ingredient_name, SUM(quantity_received) as total_qty
-        FROM invoice_line_items
-        GROUP BY ingredient_name
+        SELECT ing.ingredient_name, SUM(ili.quantity) as total_qty
+        FROM invoice_line_items ili
+        JOIN ingredients ing ON ili.ingredient_id = ing.id
+        GROUP BY ing.ingredient_name
         ORDER BY total_qty DESC
         LIMIT 10
     """)
@@ -5060,10 +5071,11 @@ def analytics_usage_forecast():
     datasets = []
     for ing in top_ingredients:
         cursor.execute("""
-            SELECT DATE(i.invoice_date) as date, SUM(ili.quantity_received) as qty
+            SELECT DATE(i.invoice_date) as date, SUM(ili.quantity) as qty
             FROM invoice_line_items ili
             JOIN invoices i ON ili.invoice_id = i.id
-            WHERE ili.ingredient_name = ?
+            JOIN ingredients ing ON ili.ingredient_id = ing.id
+            WHERE ing.ingredient_name = ?
             GROUP BY DATE(i.invoice_date)
             ORDER BY date
         """, (ing['ingredient_name'],))
@@ -5129,7 +5141,8 @@ def analytics_recipe_cost_trajectory():
                    AVG(ili.unit_price) as avg_price
             FROM invoice_line_items ili
             JOIN invoices inv ON ili.invoice_id = inv.id
-            WHERE ili.ingredient_name = ?
+            JOIN ingredients ing ON ili.ingredient_id = ing.id
+            WHERE ing.ingredient_name = ?
         """
         params_base = []
         if date_from:
@@ -5253,7 +5266,8 @@ def analytics_dead_stock():
             SELECT MAX(i.invoice_date) as last_purchase
             FROM invoice_line_items ili
             JOIN invoices i ON ili.invoice_id = i.id
-            WHERE ili.ingredient_name = ?
+            JOIN ingredients ing ON ili.ingredient_id = ing.id
+            WHERE ing.ingredient_name = ?
         """, (ing['ingredient_name'],))
 
         result = cursor_invoices.fetchone()
@@ -5304,12 +5318,13 @@ def analytics_eoq_optimizer():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT ingredient_name,
+        SELECT ing.ingredient_name,
                COUNT(*) as order_count,
-               AVG(quantity_received) as avg_order_qty,
-               SUM(quantity_received) as total_qty
-        FROM invoice_line_items
-        GROUP BY ingredient_name
+               AVG(ili.quantity) as avg_order_qty,
+               SUM(ili.quantity) as total_qty
+        FROM invoice_line_items ili
+        JOIN ingredients ing ON ili.ingredient_id = ing.id
+        GROUP BY ing.ingredient_name
         HAVING order_count >= 3
         ORDER BY total_qty DESC
         LIMIT 15
@@ -5525,9 +5540,10 @@ def analytics_waste_shrinkage():
     shrinkage_data = []
     for ing in ingredients:
         cursor_invoices.execute("""
-            SELECT SUM(quantity_received) as total_purchased
-            FROM invoice_line_items
-            WHERE ingredient_name = ?
+            SELECT SUM(ili.quantity) as total_purchased
+            FROM invoice_line_items ili
+            JOIN ingredients i ON ili.ingredient_id = i.id
+            WHERE i.ingredient_name = ?
         """, (ing['ingredient_name'],))
 
         result = cursor_invoices.fetchone()
@@ -5579,9 +5595,10 @@ def analytics_price_correlation():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT ingredient_name, COUNT(*) as count
-        FROM invoice_line_items
-        GROUP BY ingredient_name
+        SELECT ing.ingredient_name, COUNT(*) as count
+        FROM invoice_line_items ili
+        JOIN ingredients ing ON ili.ingredient_id = ing.id
+        GROUP BY ing.ingredient_name
         ORDER BY count DESC
         LIMIT 8
     """)
@@ -5594,7 +5611,8 @@ def analytics_price_correlation():
             SELECT DATE(i.invoice_date) as date, AVG(ili.unit_price) as price
             FROM invoice_line_items ili
             JOIN invoices i ON ili.invoice_id = i.id
-            WHERE ili.ingredient_name = ?
+            JOIN ingredients ing ON ili.ingredient_id = ing.id
+            WHERE ing.ingredient_name = ?
             GROUP BY DATE(i.invoice_date)
             ORDER BY date
         """, (ing,))
@@ -5767,7 +5785,8 @@ def analytics_cost_drivers():
             SELECT DATE(i.invoice_date) as date, SUM(ili.total_price) as total
             FROM invoice_line_items ili
             JOIN invoices i ON ili.invoice_id = i.id
-            WHERE ili.ingredient_name IN ({placeholders})
+            JOIN ingredients ing ON ili.ingredient_id = ing.id
+            WHERE ing.ingredient_name IN ({placeholders})
             GROUP BY DATE(i.invoice_date)
             ORDER BY date
         """
@@ -5873,9 +5892,10 @@ def export_price_trends():
         conn_inv = get_org_db()
         cursor = conn_inv.cursor()
         cursor.execute("""
-            SELECT ingredient_code, SUM(quantity_received) as total_qty
-            FROM invoice_line_items
-            GROUP BY ingredient_code
+            SELECT ing.ingredient_code, SUM(ili.quantity) as total_qty
+            FROM invoice_line_items ili
+            JOIN ingredients ing ON ili.ingredient_id = ing.id
+            GROUP BY ing.ingredient_code
             ORDER BY total_qty DESC
             LIMIT 5
         """)
@@ -5897,11 +5917,12 @@ def export_price_trends():
 
         query = """
             SELECT DATE(i.invoice_date) as date,
-                   ili.ingredient_name,
+                   ing.ingredient_name,
                    AVG(ili.unit_price) as avg_price
             FROM invoice_line_items ili
             JOIN invoices i ON ili.invoice_id = i.id
-            WHERE ili.ingredient_code = ?
+            JOIN ingredients ing ON ili.ingredient_id = ing.id
+            WHERE ing.ingredient_code = ?
         """
         params = [code]
 
@@ -5912,7 +5933,7 @@ def export_price_trends():
             query += " AND i.invoice_date <= ?"
             params.append(date_to)
 
-        query += " GROUP BY DATE(i.invoice_date), ili.ingredient_name ORDER BY date"
+        query += " GROUP BY DATE(i.invoice_date), ing.ingredient_name ORDER BY date"
 
         cursor.execute(query, params)
         results = cursor.fetchall()
@@ -6060,7 +6081,8 @@ def export_category_spending():
             SELECT SUM(ili.total_price) as total
             FROM invoice_line_items ili
             JOIN invoices i ON ili.invoice_id = i.id
-            WHERE ili.ingredient_name IN ({placeholders})
+            JOIN ingredients ing ON ili.ingredient_id = ing.id
+            WHERE ing.ingredient_name IN ({placeholders})
         """
         params = ingredients_in_cat[:]
 
@@ -6181,11 +6203,12 @@ def export_price_volatility():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT ili.ingredient_name,
+        SELECT ing.ingredient_name,
                AVG(ili.unit_price) as avg_price,
                COUNT(*) as price_count
         FROM invoice_line_items ili
-        GROUP BY ili.ingredient_name
+        JOIN ingredients ing ON ili.ingredient_id = ing.id
+        GROUP BY ing.ingredient_name
         HAVING price_count >= 3
     """)
 
@@ -6194,9 +6217,10 @@ def export_price_volatility():
 
     for ing in ingredients:
         cursor.execute("""
-            SELECT unit_price
-            FROM invoice_line_items
-            WHERE ingredient_name = ?
+            SELECT ili.unit_price
+            FROM invoice_line_items ili
+            JOIN ingredients i ON ili.ingredient_id = i.id
+            WHERE i.ingredient_name = ?
         """, (ing['ingredient_name'],))
 
         prices = [float(row['unit_price']) for row in cursor.fetchall()]
@@ -6599,9 +6623,10 @@ def export_seasonal_patterns():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT ingredient_name, SUM(quantity_received) as total_qty
-        FROM invoice_line_items
-        GROUP BY ingredient_name
+        SELECT ing.ingredient_name, SUM(ili.quantity) as total_qty
+        FROM invoice_line_items ili
+        JOIN ingredients ing ON ili.ingredient_id = ing.id
+        GROUP BY ing.ingredient_name
         ORDER BY total_qty DESC
         LIMIT 5
     """)
@@ -6615,10 +6640,11 @@ def export_seasonal_patterns():
     for ingredient in top_ingredients:
         cursor.execute("""
             SELECT strftime('%Y-%m', i.invoice_date) as month,
-                   SUM(ili.quantity_received) as total_qty
+                   SUM(ili.quantity) as total_qty
             FROM invoice_line_items ili
             JOIN invoices i ON ili.invoice_id = i.id
-            WHERE ili.ingredient_name = ?
+            JOIN ingredients ing ON ili.ingredient_id = ing.id
+            WHERE ing.ingredient_name = ?
             GROUP BY month
             ORDER BY month
         """, (ingredient,))
@@ -6803,9 +6829,10 @@ def export_usage_forecast():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT ingredient_name, SUM(quantity_received) as total_qty
-        FROM invoice_line_items
-        GROUP BY ingredient_name
+        SELECT ing.ingredient_name, SUM(ili.quantity) as total_qty
+        FROM invoice_line_items ili
+        JOIN ingredients ing ON ili.ingredient_id = ing.id
+        GROUP BY ing.ingredient_name
         ORDER BY total_qty DESC
         LIMIT 5
     """)
@@ -6819,10 +6846,11 @@ def export_usage_forecast():
     for ingredient in top_ingredients:
         cursor.execute("""
             SELECT DATE(i.invoice_date) as date,
-                   SUM(ili.quantity_received) as qty
+                   SUM(ili.quantity) as qty
             FROM invoice_line_items ili
             JOIN invoices i ON ili.invoice_id = i.id
-            WHERE ili.ingredient_name = ?
+            JOIN ingredients ing ON ili.ingredient_id = ing.id
+            WHERE ing.ingredient_name = ?
             GROUP BY DATE(i.invoice_date)
             ORDER BY date
         """, (ingredient,))
@@ -6904,7 +6932,8 @@ def export_recipe_cost_trajectory():
                 SELECT AVG(ili.unit_price) as avg_price
                 FROM invoice_line_items ili
                 JOIN invoices i ON ili.invoice_id = i.id
-                WHERE ili.ingredient_name = ?
+                JOIN ingredients ing ON ili.ingredient_id = ing.id
+                WHERE ing.ingredient_name = ?
                 AND DATE(i.invoice_date) <= ?
             """, (item['ingredient_name'], date))
 
@@ -7016,7 +7045,8 @@ def export_cost_drivers():
             SELECT DATE(i.invoice_date) as date, SUM(ili.total_price) as total
             FROM invoice_line_items ili
             JOIN invoices i ON ili.invoice_id = i.id
-            WHERE ili.ingredient_name IN ({placeholders})
+            JOIN ingredients ing ON ili.ingredient_id = ing.id
+            WHERE ing.ingredient_name IN ({placeholders})
             GROUP BY DATE(i.invoice_date)
             ORDER BY date
         """
@@ -7063,14 +7093,15 @@ def export_purchase_frequency():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT ingredient_name,
+        SELECT ing.ingredient_name,
                COUNT(*) as purchase_count,
-               AVG(quantity_received) as avg_quantity,
-               MIN(DATE(invoice_date)) as first_purchase,
-               MAX(DATE(invoice_date)) as last_purchase
+               AVG(ili.quantity) as avg_quantity,
+               MIN(DATE(i.invoice_date)) as first_purchase,
+               MAX(DATE(i.invoice_date)) as last_purchase
         FROM invoice_line_items ili
         JOIN invoices i ON ili.invoice_id = i.id
-        GROUP BY ingredient_name
+        JOIN ingredients ing ON ili.ingredient_id = ing.id
+        GROUP BY ing.ingredient_name
         ORDER BY purchase_count DESC
         LIMIT 20
     """)

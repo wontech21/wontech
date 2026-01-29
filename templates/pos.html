@@ -1,0 +1,2626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ g.organization.organization_name }} - Point of Sale</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Google Maps API - Replace YOUR_API_KEY with actual key -->
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ config.get('GOOGLE_MAPS_API_KEY', '') }}&libraries=places&callback=initGoogleMaps" async defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+
+        .pos-container {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* Left Side - Product Grid */
+        .pos-main {
+            background: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .pos-header {
+            background: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e9ecef;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .pos-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .pos-logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .pos-logo:hover {
+            opacity: 0.8;
+            transform: scale(1.02);
+        }
+
+        .pos-header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .pos-settings-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pos-settings-btn:hover {
+            background: #f0f4ff;
+            transform: translateY(-2px);
+        }
+
+        .pos-categories {
+            background: white;
+            padding: 16px 24px;
+            display: flex;
+            gap: 14px;
+            overflow-x: auto;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .category-btn {
+            padding: 16px 32px;
+            background: #f1f3f4;
+            border: 2px solid transparent;
+            border-radius: 30px;
+            font-size: 17px;
+            font-weight: 600;
+            color: #5f6368;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .category-btn:hover {
+            background: #e8eaed;
+        }
+
+        .category-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .subcat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 16px;
+        }
+
+        .subcat-btn {
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            min-height: 140px;
+        }
+
+        .subcat-btn:hover {
+            background: #f0f4ff;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+        }
+
+        .subcat-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .subcat-btn .subcat-icon {
+            font-size: 48px;
+            line-height: 1;
+        }
+
+        .subcat-btn .subcat-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .subcat-btn.active .subcat-name {
+            color: white;
+        }
+
+        /* Expanded subcategory view */
+        .subcat-expanded {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .subcat-expanded .subcat-btn {
+            min-width: 140px;
+            flex-shrink: 0;
+        }
+
+        .subcat-expanded .products-grid {
+            flex: 1;
+        }
+
+        .pos-products {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 16px;
+        }
+
+        .product-btn {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            min-height: 140px;
+        }
+
+        .product-btn:hover {
+            border-color: #667eea;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+        }
+
+        .product-btn:active {
+            transform: translateY(-2px);
+        }
+
+        .product-icon {
+            font-size: 48px;
+            line-height: 1;
+        }
+
+        .product-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+            line-height: 1.3;
+        }
+
+        .product-price {
+            font-size: 16px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        /* Right Side - Order Panel */
+        .pos-order {
+            background: white;
+            display: flex;
+            flex-direction: column;
+            border-left: 2px solid #e9ecef;
+        }
+
+        .order-header {
+            padding: 20px 24px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .order-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .order-subtitle {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .order-items {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+
+        .order-item-info {
+            flex: 1;
+        }
+
+        .order-item-name {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 2px;
+        }
+
+        .order-item-price {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .order-item-qty {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .qty-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 8px;
+            background: #e9ecef;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .qty-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .order-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+
+        .order-empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .order-summary {
+            padding: 20px 24px;
+            border-top: 2px solid #e9ecef;
+            background: #f8f9fa;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 15px;
+        }
+
+        .summary-row.total {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2937;
+            padding-top: 12px;
+            margin-top: 8px;
+            border-top: 2px solid #e9ecef;
+        }
+
+        .order-actions {
+            padding: 16px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pay-btn {
+            padding: 18px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pay-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .pay-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .clear-btn {
+            padding: 14px;
+            background: white;
+            color: #ef4444;
+            border: 2px solid #ef4444;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clear-btn:hover {
+            background: #fef2f2;
+        }
+
+        /* Order Type Selector */
+        .order-type-selector {
+            display: flex;
+            gap: 8px;
+            padding: 16px 24px;
+            border-bottom: 2px solid #e9ecef;
+            background: #f8f9fa;
+        }
+
+        .order-type-btn {
+            flex: 1;
+            padding: 12px 8px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            background: white;
+            font-size: 13px;
+            font-weight: 600;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .order-type-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .order-type-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: white;
+        }
+
+        .order-type-btn .type-icon {
+            font-size: 20px;
+        }
+
+        /* Customer Info Section */
+        .customer-info {
+            padding: 16px 24px;
+            border-bottom: 2px solid #e9ecef;
+            background: #fefce8;
+            display: none;
+        }
+
+        .customer-info.visible {
+            display: block;
+        }
+
+        .customer-info-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .customer-field {
+            margin-bottom: 10px;
+        }
+
+        .customer-field:last-child {
+            margin-bottom: 0;
+        }
+
+        .customer-field label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .customer-field input,
+        .customer-field textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .customer-field input:focus,
+        .customer-field textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .customer-field textarea {
+            resize: none;
+            height: 60px;
+        }
+
+        .pickup-time-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .pickup-time-row .customer-field {
+            flex: 1;
+        }
+
+        /* Address row for city/state/zip */
+        .address-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .address-row .customer-field {
+            margin-bottom: 10px;
+        }
+
+        /* Map preview */
+        .map-preview {
+            margin: 10px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #e9ecef;
+        }
+
+        #mapContainer {
+            height: 150px;
+            background: #f1f3f4;
+        }
+
+        .map-status {
+            padding: 8px 12px;
+            font-size: 12px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .map-status.valid {
+            color: #059669;
+            background: #ecfdf5;
+        }
+
+        .map-status.invalid {
+            color: #dc2626;
+            background: #fef2f2;
+        }
+
+        .map-status.calculating {
+            color: #667eea;
+            background: #eef2ff;
+        }
+
+        /* Google Places Autocomplete styling */
+        .pac-container {
+            z-index: 10000 !important;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: none;
+            margin-top: 4px;
+        }
+
+        .pac-item {
+            padding: 10px 12px;
+            cursor: pointer;
+        }
+
+        .pac-item:hover {
+            background: #f3f4f6;
+        }
+
+        /* Delivery fee note */
+        .delivery-note {
+            font-size: 11px;
+            color: #92400e;
+            margin-top: 8px;
+            padding: 8px;
+            background: #fef3c7;
+            border-radius: 6px;
+        }
+
+        /* Settings Modal */
+        .pos-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .pos-modal-overlay.visible {
+            display: flex;
+        }
+
+        .pos-modal {
+            background: white;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+        }
+
+        .pos-modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pos-modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pos-modal-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pos-modal-close:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .pos-modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .pos-modal-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 12px;
+        }
+
+        .pos-modal-tab {
+            padding: 10px 20px;
+            background: #f1f3f4;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pos-modal-tab:hover {
+            background: #e8eaed;
+        }
+
+        .pos-modal-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .export-csv-btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            text-transform: none;
+            letter-spacing: 0;
+            transition: all 0.2s;
+        }
+
+        .export-csv-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .settings-row-label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .settings-row-desc {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        .settings-input {
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            width: 120px;
+            text-align: center;
+        }
+
+        .settings-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .settings-select {
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .settings-toggle {
+            position: relative;
+            width: 52px;
+            height: 28px;
+        }
+
+        .settings-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .settings-toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #cbd5e1;
+            border-radius: 28px;
+            transition: 0.3s;
+        }
+
+        .settings-toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .settings-toggle input:checked + .settings-toggle-slider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .settings-toggle input:checked + .settings-toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        /* Order History Table */
+        .order-history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .order-history-table th,
+        .order-history-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .order-history-table th {
+            background: #f8f9fa;
+            font-weight: 700;
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+
+        .order-history-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .order-type-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .order-type-badge.dine-in {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .order-type-badge.pickup {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .order-type-badge.delivery {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .order-history-empty {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+        }
+
+        .order-history-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .order-summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 16px;
+            border-radius: 12px;
+            color: white;
+            text-align: center;
+        }
+
+        .order-summary-card .value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .order-summary-card .label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .time-slots-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .time-slot-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .time-slot-row label {
+            min-width: 60px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        /* Coming Soon Overlay */
+        .coming-soon-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .coming-soon-card {
+            background: white;
+            border-radius: 24px;
+            padding: 60px 80px;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+        }
+
+        .coming-soon-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+        }
+
+        .coming-soon-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+
+        .coming-soon-text {
+            font-size: 16px;
+            color: #6b7280;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .coming-soon-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 24px;
+        }
+
+        .back-home-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .back-home-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        }
+
+        .loading-products {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+            font-size: 16px;
+        }
+
+        @media (max-width: 900px) {
+            .pos-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto;
+            }
+
+            .pos-order {
+                border-left: none;
+                border-top: 2px solid #e9ecef;
+                max-height: 50vh;
+            }
+
+            .pos-categories {
+                padding: 12px 16px;
+            }
+
+            .category-btn {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="pos-container">
+        <!-- Left Side - Product Selection -->
+        <div class="pos-main">
+            <div class="pos-header">
+                <div class="pos-header-left">
+                    <a href="{% if g.is_super_admin %}/admin/dashboard{% else %}/dashboard{% endif %}" class="pos-logo">⬅ POS Terminal</a>
+                </div>
+                <div class="pos-header-right">
+                    <button class="pos-settings-btn" onclick="openPosSettings()">
+                        <span>⚙️</span> Settings
+                    </button>
+                </div>
+            </div>
+
+            <div class="pos-categories" id="mainCategories">
+                <button class="category-btn active" data-category="All">All</button>
+                <button class="category-btn" data-category="Appetizers">Appetizers</button>
+                <button class="category-btn" data-category="Salads">Salads</button>
+                <button class="category-btn" data-category="Pizza">Pizza</button>
+                <button class="category-btn" data-category="Calzones">Calzones</button>
+                <button class="category-btn" data-category="Subs">Subs</button>
+                <button class="category-btn" data-category="Sandwiches">Sandwiches</button>
+                <button class="category-btn" data-category="Wraps">Wraps</button>
+                <button class="category-btn" data-category="Dinners">Dinners</button>
+                <button class="category-btn" data-category="Pasta">Pasta</button>
+                <button class="category-btn" data-category="Desserts">Desserts</button>
+                <button class="category-btn" data-category="Drinks">Drinks</button>
+                <button class="category-btn" data-category="Catering">Catering</button>
+                <button class="category-btn" data-category="Add-ons">Add-ons</button>
+            </div>
+
+            <div class="pos-products">
+                <div id="productsGrid">
+                    <div class="loading-products">Loading products...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side - Order Summary -->
+        <div class="pos-order">
+            <div class="order-header">
+                <div class="order-title">Current Order</div>
+                <div class="order-subtitle" id="orderSubtitle">Order #001 • Dine In</div>
+            </div>
+
+            <!-- Order Type Selector -->
+            <div class="order-type-selector">
+                <button class="order-type-btn active" data-type="dine-in" onclick="setOrderType('dine-in')">
+                    <span class="type-icon">🍽️</span>
+                    <span>Dine In</span>
+                </button>
+                <button class="order-type-btn" data-type="pickup" onclick="setOrderType('pickup')">
+                    <span class="type-icon">🥡</span>
+                    <span>Pickup</span>
+                </button>
+                <button class="order-type-btn" data-type="delivery" onclick="setOrderType('delivery')">
+                    <span class="type-icon">🚗</span>
+                    <span>Delivery</span>
+                </button>
+            </div>
+
+            <!-- Customer Info (for Pickup/Delivery) -->
+            <div class="customer-info" id="customerInfo">
+                <div class="customer-info-title">
+                    <span id="customerInfoIcon">📋</span>
+                    <span id="customerInfoTitle">Customer Information</span>
+                </div>
+                <div class="customer-field">
+                    <label>Customer Name</label>
+                    <input type="text" id="customerName" placeholder="Enter name">
+                </div>
+                <div class="customer-field">
+                    <label>Phone Number</label>
+                    <input type="tel" id="customerPhone" placeholder="(555) 555-5555">
+                </div>
+                <div class="pickup-time-row" id="pickupTimeRow">
+                    <div class="customer-field">
+                        <label>Ready Time</label>
+                        <input type="time" id="pickupTime">
+                    </div>
+                </div>
+                <div id="deliveryFields" style="display: none;">
+                    <div class="customer-field">
+                        <label>Street Address</label>
+                        <input type="text" id="streetAddress" placeholder="123 Main St" autocomplete="off">
+                    </div>
+                    <div class="customer-field">
+                        <label>Apt/Suite/Unit (optional)</label>
+                        <input type="text" id="aptUnit" placeholder="Apt 4B, Suite 100, etc.">
+                    </div>
+                    <div class="address-row">
+                        <div class="customer-field" style="flex: 2;">
+                            <label>City</label>
+                            <input type="text" id="city" placeholder="City">
+                        </div>
+                        <div class="customer-field" style="flex: 1;">
+                            <label>State</label>
+                            <input type="text" id="state" placeholder="CA" maxlength="2" style="text-transform: uppercase;">
+                        </div>
+                        <div class="customer-field" style="flex: 1;">
+                            <label>Zip</label>
+                            <input type="text" id="zipCode" placeholder="12345" maxlength="10">
+                        </div>
+                    </div>
+                    <div class="customer-field">
+                        <label>Delivery Instructions (optional)</label>
+                        <input type="text" id="deliveryInstructions" placeholder="Gate code, leave at door, etc.">
+                    </div>
+                    <div id="mapPreview" class="map-preview" style="display: none;">
+                        <div id="mapContainer"></div>
+                        <div class="map-status" id="mapStatus"></div>
+                    </div>
+                    <div class="delivery-note">
+                        💰 Delivery fee will be calculated based on distance
+                    </div>
+                </div>
+            </div>
+
+            <div class="order-items" id="orderItems">
+                <div class="order-empty">
+                    <div class="order-empty-icon">🛒</div>
+                    <div>No items yet</div>
+                    <div style="font-size: 13px; margin-top: 8px;">Tap products to add them</div>
+                </div>
+            </div>
+
+            <div class="order-summary">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span id="subtotalAmount">$0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>Tax (8%)</span>
+                    <span id="taxAmount">$0.00</span>
+                </div>
+                <div class="summary-row" id="deliveryFeeRow" style="display: none; color: #667eea;">
+                    <span>🚗 Delivery Fee</span>
+                    <span id="deliveryFeeAmount">$0.00</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total</span>
+                    <span id="totalAmount">$0.00</span>
+                </div>
+            </div>
+
+            <div class="order-actions">
+                <button class="pay-btn" id="payBtn" disabled onclick="processPayment()">Pay $0.00</button>
+                <button class="clear-btn" onclick="clearOrder()">Clear Order</button>
+            </div>
+        </div>
+    </div>
+
+    {% if not g.is_super_admin %}
+    <!-- Coming Soon Overlay (only for non-super admins) -->
+    <div class="coming-soon-overlay">
+        <div class="coming-soon-card">
+            <div class="coming-soon-icon">🛒</div>
+            <div class="coming-soon-badge">Coming Soon</div>
+            <h1 class="coming-soon-title">Point of Sale</h1>
+            <p class="coming-soon-text">
+                We're building a fast and intuitive POS system for quick ordering and checkout.
+                This feature will be available soon!
+            </p>
+            <a href="/dashboard" class="back-home-btn">
+                <span>&#8592;</span> Back to Data Center
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- POS Settings Modal -->
+    <div class="pos-modal-overlay" id="posSettingsModal">
+        <div class="pos-modal">
+            <div class="pos-modal-header">
+                <div class="pos-modal-title">
+                    <span>⚙️</span> POS Settings
+                </div>
+                <button class="pos-modal-close" onclick="closePosSettings()">&times;</button>
+            </div>
+            <div class="pos-modal-body">
+                <!-- Tabs -->
+                <div class="pos-modal-tabs">
+                    <button class="pos-modal-tab active" onclick="showSettingsTab('history')">📜 Order History</button>
+                    <button class="pos-modal-tab" onclick="showSettingsTab('delivery')">🚗 Delivery Settings</button>
+                    <button class="pos-modal-tab" onclick="showSettingsTab('hours')">🕐 Operating Hours</button>
+                </div>
+
+                <!-- Order History Tab -->
+                <div id="settingsTabHistory" class="settings-tab-content">
+                    <div class="order-history-summary">
+                        <div class="order-summary-card">
+                            <div class="value" id="todayOrderCount">0</div>
+                            <div class="label">Orders Today</div>
+                        </div>
+                        <div class="order-summary-card">
+                            <div class="value" id="todayRevenue">$0</div>
+                            <div class="label">Revenue</div>
+                        </div>
+                        <div class="order-summary-card">
+                            <div class="value" id="todayDineIn">0</div>
+                            <div class="label">Dine In</div>
+                        </div>
+                        <div class="order-summary-card">
+                            <div class="value" id="todayDelivery">0</div>
+                            <div class="label">Pickup/Delivery</div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Today's Orders</span>
+                            <button onclick="exportOrdersToCSV()" class="export-csv-btn">
+                                📥 Export CSV
+                            </button>
+                        </div>
+                        <div id="orderHistoryTable">
+                            <div class="order-history-empty">
+                                <div style="font-size: 48px; margin-bottom: 12px;">📋</div>
+                                <div>No orders yet today</div>
+                                <div style="font-size: 12px; margin-top: 4px;">Orders will appear here as they're completed</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section" style="background: #fef3c7; padding: 16px; border-radius: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px; color: #92400e;">
+                            <span style="font-size: 24px;">⏰</span>
+                            <div>
+                                <strong>Auto-Export at 3:00 AM</strong>
+                                <div style="font-size: 12px;">Order history is automatically exported to Sales CSV and cleared daily</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delivery Settings Tab -->
+                <div id="settingsTabDelivery" class="settings-tab-content" style="display: none;">
+                    <div class="settings-section">
+                        <div class="settings-section-title">Delivery Fee</div>
+                        <div class="settings-row">
+                            <div>
+                                <div class="settings-row-label">Fee Type</div>
+                                <div class="settings-row-desc">How delivery fee is calculated</div>
+                            </div>
+                            <select class="settings-select" id="deliveryFeeType" onchange="updateDeliveryFeeType()">
+                                <option value="fixed">Fixed Amount</option>
+                                <option value="variable">Variable (by distance)</option>
+                            </select>
+                        </div>
+                        <div class="settings-row" id="fixedFeeRow">
+                            <div>
+                                <div class="settings-row-label">Fixed Delivery Fee</div>
+                                <div class="settings-row-desc">Flat rate for all deliveries</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <span>$</span>
+                                <input type="number" class="settings-input" id="fixedDeliveryFee" value="5.00" step="0.50" min="0">
+                            </div>
+                        </div>
+                        <div id="variableFeeRows" style="display: none;">
+                            <div class="settings-row">
+                                <div>
+                                    <div class="settings-row-label">Base Fee</div>
+                                    <div class="settings-row-desc">Starting delivery fee</div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span>$</span>
+                                    <input type="number" class="settings-input" id="baseDeliveryFee" value="3.00" step="0.50" min="0">
+                                </div>
+                            </div>
+                            <div class="settings-row">
+                                <div>
+                                    <div class="settings-row-label">Per Mile Fee</div>
+                                    <div class="settings-row-desc">Additional charge per mile</div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span>$</span>
+                                    <input type="number" class="settings-input" id="perMileFee" value="1.50" step="0.25" min="0">
+                                </div>
+                            </div>
+                            <div class="settings-row">
+                                <div>
+                                    <div class="settings-row-label">Max Delivery Distance</div>
+                                    <div class="settings-row-desc">Maximum miles for delivery</div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <input type="number" class="settings-input" id="maxDeliveryDistance" value="10" step="1" min="1">
+                                    <span>miles</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-section-title">Minimum Order</div>
+                        <div class="settings-row">
+                            <div>
+                                <div class="settings-row-label">Minimum for Delivery</div>
+                                <div class="settings-row-desc">Order minimum before delivery fee</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <span>$</span>
+                                <input type="number" class="settings-input" id="minDeliveryOrder" value="15.00" step="1" min="0">
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div>
+                                <div class="settings-row-label">Free Delivery Threshold</div>
+                                <div class="settings-row-desc">Order amount for free delivery (0 = never)</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <span>$</span>
+                                <input type="number" class="settings-input" id="freeDeliveryThreshold" value="50.00" step="5" min="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Operating Hours Tab -->
+                <div id="settingsTabHours" class="settings-tab-content" style="display: none;">
+                    <div class="settings-section">
+                        <div class="settings-section-title">Dine-In / Pickup Hours</div>
+                        <div class="time-slots-grid">
+                            <div class="settings-row">
+                                <div>
+                                    <div class="settings-row-label">Opens</div>
+                                </div>
+                                <input type="time" class="settings-input" id="dineInOpens" value="11:00">
+                            </div>
+                            <div class="settings-row">
+                                <div>
+                                    <div class="settings-row-label">Closes</div>
+                                </div>
+                                <input type="time" class="settings-input" id="dineInCloses" value="22:00">
+                            </div>
+                        </div>
+                        <div class="settings-row" style="margin-top: 12px;">
+                            <div>
+                                <div class="settings-row-label">Pickup Lead Time</div>
+                                <div class="settings-row-desc">Minimum minutes for pickup orders</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <input type="number" class="settings-input" id="pickupLeadTime" value="15" step="5" min="5">
+                                <span>min</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-section-title">Delivery Hours</div>
+                        <div class="time-slots-grid">
+                            <div class="settings-row">
+                                <div>
+                                    <div class="settings-row-label">Starts</div>
+                                </div>
+                                <input type="time" class="settings-input" id="deliveryStarts" value="11:30">
+                            </div>
+                            <div class="settings-row">
+                                <div>
+                                    <div class="settings-row-label">Ends</div>
+                                </div>
+                                <input type="time" class="settings-input" id="deliveryEnds" value="21:30">
+                            </div>
+                        </div>
+                        <div class="settings-row" style="margin-top: 12px;">
+                            <div>
+                                <div class="settings-row-label">Delivery Lead Time</div>
+                                <div class="settings-row-desc">Minimum minutes for delivery orders</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <input type="number" class="settings-input" id="deliveryLeadTime" value="45" step="5" min="15">
+                                <span>min</span>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div>
+                                <div class="settings-row-label">Estimated Delivery Time</div>
+                                <div class="settings-row-desc">Time range shown to customers</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <input type="number" class="settings-input" id="deliveryTimeMin" value="30" step="5" min="15" style="width: 70px;">
+                                <span>-</span>
+                                <input type="number" class="settings-input" id="deliveryTimeMax" value="45" step="5" min="20" style="width: 70px;">
+                                <span>min</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-section-title">Order Cutoff</div>
+                        <div class="settings-row">
+                            <div>
+                                <div class="settings-row-label">Last Order Before Close</div>
+                                <div class="settings-row-desc">Stop accepting orders X minutes before closing</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <input type="number" class="settings-input" id="lastOrderBuffer" value="30" step="5" min="0">
+                                <span>min</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allProducts = [];
+        let currentCategory = 'All';
+        let currentSubcategory = null;
+        let subcatExpanded = false;
+        let orderItems = [];
+        let orderType = 'dine-in';
+        let deliveryFee = 0;
+        let deliveryDistanceInfo = null;
+        let googleMapsLoaded = false;
+        let autocomplete = null;
+        let map = null;
+        let marker = null;
+
+        // Store location (set this to your restaurant's address)
+        const storeLocation = {
+            address: '{{ g.organization.address if g.organization.address else "123 Main St, City, State" }}',
+            lat: null,
+            lng: null
+        };
+
+        // Order history cache (persisted to localStorage)
+        let orderHistory = [];
+        let orderNumber = 1;
+
+        // POS Settings (persisted to localStorage)
+        let posSettings = {
+            deliveryFeeType: 'fixed',
+            fixedDeliveryFee: 5.00,
+            baseDeliveryFee: 3.00,
+            perMileFee: 1.50,
+            maxDeliveryDistance: 10,
+            minDeliveryOrder: 15.00,
+            freeDeliveryThreshold: 50.00,
+            dineInOpens: '11:00',
+            dineInCloses: '22:00',
+            pickupLeadTime: 15,
+            deliveryStarts: '11:30',
+            deliveryEnds: '21:30',
+            deliveryLeadTime: 45,
+            deliveryTimeMin: 30,
+            deliveryTimeMax: 45,
+            lastOrderBuffer: 30
+        };
+
+        // Load settings and order history from localStorage
+        function loadPosData() {
+            const savedSettings = localStorage.getItem('posSettings');
+            if (savedSettings) {
+                posSettings = { ...posSettings, ...JSON.parse(savedSettings) };
+            }
+
+            const savedHistory = localStorage.getItem('posOrderHistory');
+            if (savedHistory) {
+                const data = JSON.parse(savedHistory);
+                // Check if it's from today
+                const today = new Date().toDateString();
+                if (data.date === today) {
+                    orderHistory = data.orders;
+                    orderNumber = data.nextOrderNumber;
+                } else {
+                    // Different day - clear history (would be exported at 3am)
+                    orderHistory = [];
+                    orderNumber = 1;
+                }
+            }
+
+            // Apply fixed delivery fee from settings
+            if (posSettings.deliveryFeeType === 'fixed') {
+                deliveryFee = 0; // Will be set when delivery is selected
+            }
+        }
+
+        // Save settings to localStorage
+        function savePosSettings() {
+            localStorage.setItem('posSettings', JSON.stringify(posSettings));
+        }
+
+        // Save order history to localStorage
+        function saveOrderHistory() {
+            localStorage.setItem('posOrderHistory', JSON.stringify({
+                date: new Date().toDateString(),
+                orders: orderHistory,
+                nextOrderNumber: orderNumber
+            }));
+        }
+
+        // Export order history to CSV
+        function exportOrdersToCSV() {
+            if (orderHistory.length === 0) {
+                alert('No orders to export');
+                return;
+            }
+
+            // CSV headers - all user input fields as separate columns
+            const headers = [
+                'Order #', 'Date', 'Time', 'Timestamp', 'Order Type',
+                'Customer Name', 'Customer Phone', 'Pickup Time',
+                'Street Address', 'Apt/Unit', 'City', 'State', 'Zip Code', 'Full Address',
+                'Delivery Instructions', 'Delivery Distance', 'Delivery Duration',
+                'Items', 'Item Count', 'Subtotal', 'Tax', 'Delivery Fee', 'Total'
+            ];
+
+            const rows = orderHistory.map(order => [
+                order.orderNumber,
+                order.date || '',
+                order.time,
+                order.timestamp,
+                order.type,
+                `"${(order.customerName || '').replace(/"/g, '""')}"`,
+                `"${(order.customerPhone || '').replace(/"/g, '""')}"`,
+                order.pickupTime || '',
+                `"${(order.streetAddress || '').replace(/"/g, '""')}"`,
+                `"${(order.aptUnit || '').replace(/"/g, '""')}"`,
+                `"${(order.city || '').replace(/"/g, '""')}"`,
+                order.state || '',
+                order.zipCode || '',
+                `"${(order.fullAddress || '').replace(/"/g, '""')}"`,
+                `"${(order.deliveryInstructions || '').replace(/"/g, '""')}"`,
+                order.deliveryDistance || '',
+                order.deliveryDuration || '',
+                `"${(order.itemsList || '').replace(/"/g, '""')}"`,
+                order.itemCount,
+                order.subtotal.toFixed(2),
+                order.tax.toFixed(2),
+                order.deliveryFee.toFixed(2),
+                order.total.toFixed(2)
+            ]);
+
+            const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `orders_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Google Maps initialization (called when API loads)
+        function initGoogleMaps() {
+            googleMapsLoaded = true;
+            console.log('Google Maps API loaded');
+
+            // Initialize autocomplete on street address field
+            const streetInput = document.getElementById('streetAddress');
+            if (streetInput && google.maps.places) {
+                autocomplete = new google.maps.places.Autocomplete(streetInput, {
+                    componentRestrictions: { country: 'us' },
+                    fields: ['address_components', 'geometry', 'formatted_address'],
+                    types: ['address']
+                });
+
+                autocomplete.addListener('place_changed', handlePlaceSelect);
+            }
+
+            // Geocode store location for distance calculations
+            geocodeStoreLocation();
+        }
+
+        // Geocode the store location
+        function geocodeStoreLocation() {
+            if (!googleMapsLoaded) return;
+
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ address: storeLocation.address }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    storeLocation.lat = results[0].geometry.location.lat();
+                    storeLocation.lng = results[0].geometry.location.lng();
+                }
+            });
+        }
+
+        // Handle place selection from autocomplete
+        function handlePlaceSelect() {
+            const place = autocomplete.getPlace();
+
+            if (!place.geometry) return;
+
+            // Extract address components
+            const components = {};
+            place.address_components.forEach(component => {
+                const type = component.types[0];
+                if (type === 'street_number') components.streetNumber = component.long_name;
+                if (type === 'route') components.street = component.long_name;
+                if (type === 'locality') components.city = component.long_name;
+                if (type === 'administrative_area_level_1') components.state = component.short_name;
+                if (type === 'postal_code') components.zip = component.long_name;
+            });
+
+            // Fill in the form fields
+            if (components.streetNumber && components.street) {
+                document.getElementById('streetAddress').value = `${components.streetNumber} ${components.street}`;
+            }
+            if (components.city) document.getElementById('city').value = components.city;
+            if (components.state) document.getElementById('state').value = components.state;
+            if (components.zip) document.getElementById('zipCode').value = components.zip;
+
+            // Calculate distance and show map
+            const destLat = place.geometry.location.lat();
+            const destLng = place.geometry.location.lng();
+            calculateDeliveryDistance(destLat, destLng);
+            showMapPreview(destLat, destLng);
+        }
+
+        // Calculate delivery distance using Distance Matrix API
+        function calculateDeliveryDistance(destLat, destLng) {
+            if (!googleMapsLoaded || !storeLocation.lat) {
+                return;
+            }
+
+            const service = new google.maps.DistanceMatrixService();
+            const origin = new google.maps.LatLng(storeLocation.lat, storeLocation.lng);
+            const destination = new google.maps.LatLng(destLat, destLng);
+
+            const mapStatus = document.getElementById('mapStatus');
+            mapStatus.className = 'map-status calculating';
+            mapStatus.textContent = '📍 Calculating distance...';
+
+            service.getDistanceMatrix({
+                origins: [origin],
+                destinations: [destination],
+                travelMode: google.maps.TravelMode.DRIVING,
+                unitSystem: google.maps.UnitSystem.IMPERIAL
+            }, (response, status) => {
+                if (status === 'OK' && response.rows[0].elements[0].status === 'OK') {
+                    const result = response.rows[0].elements[0];
+                    const distanceText = result.distance.text;
+                    const durationText = result.duration.text;
+                    const distanceMiles = result.distance.value / 1609.34;
+
+                    deliveryDistanceInfo = {
+                        distance: distanceText,
+                        duration: durationText,
+                        distanceMiles: distanceMiles
+                    };
+
+                    // Check if within delivery range
+                    if (distanceMiles <= posSettings.maxDeliveryDistance) {
+                        mapStatus.className = 'map-status valid';
+                        mapStatus.textContent = `✓ ${distanceText} away • Est. ${durationText} delivery time`;
+
+                        // Calculate variable delivery fee if enabled
+                        if (posSettings.deliveryFeeType === 'variable') {
+                            deliveryFee = posSettings.baseDeliveryFee + (distanceMiles * posSettings.perMileFee);
+                            renderOrder();
+                        }
+                    } else {
+                        mapStatus.className = 'map-status invalid';
+                        mapStatus.textContent = `✗ ${distanceText} away - Outside delivery range (max ${posSettings.maxDeliveryDistance} mi)`;
+                    }
+                } else {
+                    mapStatus.className = 'map-status invalid';
+                    mapStatus.textContent = '✗ Could not calculate distance';
+                }
+            });
+        }
+
+        // Show map preview with delivery location
+        function showMapPreview(lat, lng) {
+            const mapPreview = document.getElementById('mapPreview');
+            const mapContainer = document.getElementById('mapContainer');
+            mapPreview.style.display = 'block';
+
+            if (!map) {
+                map = new google.maps.Map(mapContainer, {
+                    center: { lat, lng },
+                    zoom: 14,
+                    disableDefaultUI: true,
+                    zoomControl: true,
+                    styles: [
+                        { featureType: 'poi', stylers: [{ visibility: 'off' }] }
+                    ]
+                });
+            } else {
+                map.setCenter({ lat, lng });
+            }
+
+            if (marker) {
+                marker.setMap(null);
+            }
+
+            marker = new google.maps.Marker({
+                position: { lat, lng },
+                map: map,
+                title: 'Delivery Location',
+                animation: google.maps.Animation.DROP
+            });
+        }
+
+        // Manual address verification when fields are filled manually
+        function verifyAddressManually() {
+            if (!googleMapsLoaded) return;
+
+            const street = document.getElementById('streetAddress').value.trim();
+            const city = document.getElementById('city').value.trim();
+            const state = document.getElementById('state').value.trim();
+            const zip = document.getElementById('zipCode').value.trim();
+
+            if (!street || !city || !state) return;
+
+            const fullAddress = `${street}, ${city}, ${state} ${zip}`;
+            const geocoder = new google.maps.Geocoder();
+
+            geocoder.geocode({ address: fullAddress }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    const lat = results[0].geometry.location.lat();
+                    const lng = results[0].geometry.location.lng();
+                    calculateDeliveryDistance(lat, lng);
+                    showMapPreview(lat, lng);
+                }
+            });
+        }
+
+        // Open POS Settings modal
+        function openPosSettings() {
+            document.getElementById('posSettingsModal').classList.add('visible');
+            loadSettingsIntoForm();
+            renderOrderHistory();
+        }
+
+        // Close POS Settings modal
+        function closePosSettings() {
+            document.getElementById('posSettingsModal').classList.remove('visible');
+            saveSettingsFromForm();
+        }
+
+        // Show settings tab
+        function showSettingsTab(tab) {
+            document.querySelectorAll('.pos-modal-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.settings-tab-content').forEach(c => c.style.display = 'none');
+
+            event.target.classList.add('active');
+            document.getElementById('settingsTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).style.display = 'block';
+        }
+
+        // Load settings into form
+        function loadSettingsIntoForm() {
+            document.getElementById('deliveryFeeType').value = posSettings.deliveryFeeType;
+            document.getElementById('fixedDeliveryFee').value = posSettings.fixedDeliveryFee;
+            document.getElementById('baseDeliveryFee').value = posSettings.baseDeliveryFee;
+            document.getElementById('perMileFee').value = posSettings.perMileFee;
+            document.getElementById('maxDeliveryDistance').value = posSettings.maxDeliveryDistance;
+            document.getElementById('minDeliveryOrder').value = posSettings.minDeliveryOrder;
+            document.getElementById('freeDeliveryThreshold').value = posSettings.freeDeliveryThreshold;
+            document.getElementById('dineInOpens').value = posSettings.dineInOpens;
+            document.getElementById('dineInCloses').value = posSettings.dineInCloses;
+            document.getElementById('pickupLeadTime').value = posSettings.pickupLeadTime;
+            document.getElementById('deliveryStarts').value = posSettings.deliveryStarts;
+            document.getElementById('deliveryEnds').value = posSettings.deliveryEnds;
+            document.getElementById('deliveryLeadTime').value = posSettings.deliveryLeadTime;
+            document.getElementById('deliveryTimeMin').value = posSettings.deliveryTimeMin;
+            document.getElementById('deliveryTimeMax').value = posSettings.deliveryTimeMax;
+            document.getElementById('lastOrderBuffer').value = posSettings.lastOrderBuffer;
+
+            updateDeliveryFeeType();
+        }
+
+        // Save settings from form
+        function saveSettingsFromForm() {
+            posSettings.deliveryFeeType = document.getElementById('deliveryFeeType').value;
+            posSettings.fixedDeliveryFee = parseFloat(document.getElementById('fixedDeliveryFee').value) || 5.00;
+            posSettings.baseDeliveryFee = parseFloat(document.getElementById('baseDeliveryFee').value) || 3.00;
+            posSettings.perMileFee = parseFloat(document.getElementById('perMileFee').value) || 1.50;
+            posSettings.maxDeliveryDistance = parseFloat(document.getElementById('maxDeliveryDistance').value) || 10;
+            posSettings.minDeliveryOrder = parseFloat(document.getElementById('minDeliveryOrder').value) || 15.00;
+            posSettings.freeDeliveryThreshold = parseFloat(document.getElementById('freeDeliveryThreshold').value) || 50.00;
+            posSettings.dineInOpens = document.getElementById('dineInOpens').value;
+            posSettings.dineInCloses = document.getElementById('dineInCloses').value;
+            posSettings.pickupLeadTime = parseInt(document.getElementById('pickupLeadTime').value) || 15;
+            posSettings.deliveryStarts = document.getElementById('deliveryStarts').value;
+            posSettings.deliveryEnds = document.getElementById('deliveryEnds').value;
+            posSettings.deliveryLeadTime = parseInt(document.getElementById('deliveryLeadTime').value) || 45;
+            posSettings.deliveryTimeMin = parseInt(document.getElementById('deliveryTimeMin').value) || 30;
+            posSettings.deliveryTimeMax = parseInt(document.getElementById('deliveryTimeMax').value) || 45;
+            posSettings.lastOrderBuffer = parseInt(document.getElementById('lastOrderBuffer').value) || 30;
+
+            savePosSettings();
+        }
+
+        // Toggle delivery fee type display
+        function updateDeliveryFeeType() {
+            const type = document.getElementById('deliveryFeeType').value;
+            document.getElementById('fixedFeeRow').style.display = type === 'fixed' ? 'flex' : 'none';
+            document.getElementById('variableFeeRows').style.display = type === 'variable' ? 'block' : 'none';
+        }
+
+        // Render order history table
+        function renderOrderHistory() {
+            const container = document.getElementById('orderHistoryTable');
+            const totalOrders = orderHistory.length;
+            const totalRevenue = orderHistory.reduce((sum, o) => sum + o.total, 0);
+            const dineInCount = orderHistory.filter(o => o.type === 'dine-in').length;
+            const deliveryCount = orderHistory.filter(o => o.type !== 'dine-in').length;
+
+            // Update summary cards
+            document.getElementById('todayOrderCount').textContent = totalOrders;
+            document.getElementById('todayRevenue').textContent = '$' + totalRevenue.toFixed(2);
+            document.getElementById('todayDineIn').textContent = dineInCount;
+            document.getElementById('todayDelivery').textContent = deliveryCount;
+
+            if (orderHistory.length === 0) {
+                container.innerHTML = `
+                    <div class="order-history-empty">
+                        <div style="font-size: 48px; margin-bottom: 12px;">📋</div>
+                        <div>No orders yet today</div>
+                        <div style="font-size: 12px; margin-top: 4px;">Orders will appear here as they're completed</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="order-history-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Time</th>
+                            <th>Type</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Customer</th>
+                            <th>Address</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${orderHistory.slice().reverse().map(order => `
+                            <tr>
+                                <td><strong>${order.orderNumber}</strong></td>
+                                <td>${order.time}</td>
+                                <td><span class="order-type-badge ${order.type}">${order.type.replace('-', ' ')}</span></td>
+                                <td>${order.itemCount} items</td>
+                                <td><strong>$${order.total.toFixed(2)}</strong></td>
+                                <td>${order.customerName || '-'}<br><span style="font-size: 11px; color: #6b7280;">${order.customerPhone || ''}</span></td>
+                                <td style="max-width: 200px; font-size: 11px;">${order.type === 'delivery' ? (order.fullAddress || order.streetAddress || '-') : '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Add completed order to history
+        function addToOrderHistory(orderData) {
+            const now = new Date();
+            orderHistory.push({
+                // Order info
+                orderNumber: orderNumber,
+                time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+                timestamp: now.toISOString(),
+                date: now.toISOString().split('T')[0],
+                type: orderData.type,
+                // Items
+                items: orderData.items,
+                itemCount: orderData.items.reduce((sum, i) => sum + i.qty, 0),
+                itemsList: orderData.items.map(i => `${i.qty}x ${i.name}`).join('; '),
+                // Financials
+                subtotal: orderData.subtotal,
+                tax: orderData.tax,
+                deliveryFee: orderData.deliveryFee,
+                total: orderData.total,
+                // Customer info - separate CSV components
+                customerName: orderData.customerName || '',
+                customerPhone: orderData.customerPhone || '',
+                pickupTime: orderData.pickupTime || '',
+                // Address components - separate CSV fields
+                streetAddress: orderData.streetAddress || '',
+                aptUnit: orderData.aptUnit || '',
+                city: orderData.city || '',
+                state: orderData.state || '',
+                zipCode: orderData.zipCode || '',
+                fullAddress: orderData.fullAddress || '',
+                deliveryInstructions: orderData.deliveryInstructions || '',
+                // Distance info
+                deliveryDistance: orderData.deliveryDistance || '',
+                deliveryDuration: orderData.deliveryDuration || ''
+            });
+            orderNumber++;
+            saveOrderHistory();
+        }
+
+        // Calculate delivery fee based on settings
+        function calculateDeliveryFee(subtotal) {
+            if (subtotal >= posSettings.freeDeliveryThreshold && posSettings.freeDeliveryThreshold > 0) {
+                return 0;
+            }
+            if (posSettings.deliveryFeeType === 'fixed') {
+                return posSettings.fixedDeliveryFee;
+            }
+            // For variable, would need distance calculation - default to base fee
+            return posSettings.baseDeliveryFee;
+        }
+
+        // Category to subcategory mapping (includes add-ons within each category)
+        const categoryStructure = {
+            'Salads': ['Salads', '➕ Salad Add-ons'],
+            'Pizza': ['Pizza', '➕ Pizza Add-ons'],
+            'Calzones': ['Calzones', '➕ Calzone Add-ons'],
+            'Subs': ['Hot Subs', 'Cold Subs', 'Omelette Subs', '➕ Sub Add-ons'],
+            'Sandwiches': ['Sandwiches', 'Clubs', '➕ Sandwich Add-ons'],
+            'Dinners': ['Dinner Plates', 'Rice Plates', 'Burrito Bowls', 'Fajita Bowls', '➕ Rice Plate Add-ons'],
+            'Desserts': ['Açai', 'Chocozone', 'Other']
+        };
+
+        // Subcategory icons
+        const subcatIcons = {
+            'Hot Subs': '🔥',
+            'Cold Subs': '❄️',
+            'Omelette Subs': '🍳',
+            'Sandwiches': '🥪',
+            'Clubs': '🥪',
+            'Dinner Plates': '🍽️',
+            'Rice Plates': '🍚',
+            'Burrito Bowls': '🌯',
+            'Fajita Bowls': '🌶️',
+            'Açai': '🫐',
+            'Chocozone': '🍫',
+            'Other': '🍪',
+            'Salads': '🥗',
+            'Pizza': '🍕',
+            'Calzones': '🥟',
+            '➕ Salad Add-ons': '🥗',
+            '➕ Pizza Add-ons': '🍕',
+            '➕ Calzone Add-ons': '🥟',
+            '➕ Sub Add-ons': '🥖',
+            '➕ Sandwich Add-ons': '🥪',
+            '➕ Rice Plate Add-ons': '🍚'
+        };
+
+        // Product name to icon mapping (checked first)
+        const productIcons = {
+            // Pizza
+            'pizza': '🍕',
+            // Wings & Chicken
+            'wing': '🍗',
+            'chicken': '🍗',
+            'finger': '🍗',
+            'fried chicken': '🍗',
+            // Fries
+            'fries': '🍟',
+            'fry': '🍟',
+            'onion ring': '🧅',
+            // Burgers
+            'burger': '🍔',
+            'cheeseburger': '🍔',
+            'hamburger': '🍔',
+            // Tacos & Mexican
+            'taco': '🌮',
+            'burrito': '🌯',
+            'fajita': '🌯',
+            'nacho': '🧀',
+            'quesadilla': '🌮',
+            // Salads
+            'salad': '🥗',
+            'caesar': '🥗',
+            'garden': '🥗',
+            'greek': '🥗',
+            // Sandwiches & Subs
+            'sub': '🥖',
+            'sandwich': '🥪',
+            'club': '🥪',
+            'blt': '🥓',
+            'gyro': '🥙',
+            'wrap': '🌯',
+            // Hot Dogs
+            'hot dog': '🌭',
+            // Pasta
+            'pasta': '🍝',
+            'spaghetti': '🍝',
+            'lasagna': '🍝',
+            'ziti': '🍝',
+            'alfredo': '🍝',
+            'marinara': '🍝',
+            // Seafood
+            'shrimp': '🦐',
+            'fish': '🐟',
+            'haddock': '🐟',
+            'seafood': '🦐',
+            // Steak & Beef
+            'steak': '🥩',
+            'beef': '🥩',
+            'roast beef': '🥩',
+            'pastrami': '🥩',
+            // Calzones
+            'calzone': '🥟',
+            // Desserts
+            'cookie': '🍪',
+            'brownie': '🍫',
+            'ice cream': '🍦',
+            'açai': '🫐',
+            'acai': '🫐',
+            'chocozone': '🍫',
+            'donut': '🍩',
+            'cake': '🍰',
+            // Drinks
+            'drink': '🥤',
+            'soda': '🥤',
+            'coffee': '☕',
+            'tea': '🍵',
+            'water': '💧',
+            'juice': '🧃',
+            // Breakfast
+            'egg': '🍳',
+            'omelette': '🍳',
+            'bacon': '🥓',
+            'sausage': '🌭',
+            // Sides
+            'rice': '🍚',
+            'coleslaw': '🥬',
+            'mozzarella': '🧀',
+            'cheese': '🧀',
+            'jalapeño': '🌶️',
+            'poppers': '🌶️',
+            'broccoli': '🥦',
+            // Sauces & Add-ons
+            'sauce': '🫙',
+            'dressing': '🫙',
+            'guac': '🥑',
+            'avocado': '🥑',
+            'salsa': '🫙',
+            'pita': '🫓'
+        };
+
+        // Category icon mapping (fallback)
+        const categoryIcons = {
+            'Appetizers': '🍟',
+            'Salads': '🥗',
+            'Pizza': '🍕',
+            'Calzones': '🥟',
+            'Subs': '🥖',
+            'Sandwiches': '🥪',
+            'Wraps': '🌯',
+            'Dinners': '🍽️',
+            'Pasta': '🍝',
+            'Desserts': '🍰',
+            'Drinks': '🥤',
+            'Catering': '🍱',
+            'Add-ons': '➕',
+            'default': '🍴'
+        };
+
+        // Load products from API
+        async function loadProducts() {
+            try {
+                const res = await fetch('/api/products/list');
+                const products = await res.json();
+                allProducts = Array.isArray(products) ? products : [];
+                renderProducts();
+            } catch (err) {
+                console.error('Error loading products:', err);
+                document.getElementById('productsGrid').innerHTML =
+                    '<div class="loading-products">Error loading products</div>';
+            }
+        }
+
+        // Render products based on selected category and subcategory
+        function renderProducts() {
+            const grid = document.getElementById('productsGrid');
+            const subcats = categoryStructure[currentCategory];
+
+            // If category has subcategories and none is selected, show subcategory buttons
+            if (subcats && !currentSubcategory && !subcatExpanded) {
+                grid.innerHTML = `<div class="subcat-grid">` + subcats.map(sub => `
+                    <div class="subcat-btn" onclick="selectSubcategory('${sub}')">
+                        <span class="subcat-icon">${subcatIcons[sub] || '📁'}</span>
+                        <span class="subcat-name">${sub}</span>
+                    </div>
+                `).join('') + `</div>`;
+                return;
+            }
+
+            let filtered = allProducts;
+
+            // Filter by main category
+            if (currentCategory !== 'All') {
+                filtered = allProducts.filter(p => {
+                    const cat = (p.category || '').toLowerCase();
+                    const name = (p.product_name || '').toLowerCase();
+                    const selected = currentCategory.toLowerCase();
+
+                    return cat.includes(selected) || selected.includes(cat) ||
+                           matchesCategoryKeywords(name, cat, selected);
+                });
+            }
+
+            // Filter by subcategory if selected
+            if (currentSubcategory) {
+                filtered = filtered.filter(p => {
+                    const cat = (p.category || '').toLowerCase();
+                    const name = (p.product_name || '').toLowerCase();
+                    const subcat = currentSubcategory.toLowerCase();
+
+                    return cat.includes(subcat) || subcat.includes(cat) ||
+                           name.includes(subcat) || matchesSubcategoryKeywords(name, cat, subcat);
+                });
+            }
+
+            // Build the product HTML
+            const productHTML = filtered.length === 0
+                ? '<div class="loading-products">No products found</div>'
+                : filtered.map(product => {
+                    const name = product.product_name || product.name || 'Unknown';
+                    const icon = getProductIcon(name, product.category);
+                    const price = parseFloat(product.selling_price || 0).toFixed(2);
+                    return `
+                        <div class="product-btn" onclick="addToOrder(${product.id}, '${escapeHtml(name)}', ${product.selling_price || 0})">
+                            <span class="product-icon">${icon}</span>
+                            <span class="product-name">${escapeHtml(name)}</span>
+                            <span class="product-price">$${price}</span>
+                        </div>
+                    `;
+                }).join('');
+
+            // If subcategory is expanded, show subcat button on left + products
+            if (currentSubcategory && subcatExpanded) {
+                grid.innerHTML = `
+                    <div class="subcat-expanded">
+                        <div class="subcat-btn active" onclick="collapseSubcategory()">
+                            <span class="subcat-icon">${subcatIcons[currentSubcategory] || '📁'}</span>
+                            <span class="subcat-name">${currentSubcategory}</span>
+                        </div>
+                        <div class="products-grid">${productHTML}</div>
+                    </div>
+                `;
+            } else {
+                grid.innerHTML = `<div class="products-grid">${productHTML}</div>`;
+            }
+        }
+
+        // Select a subcategory
+        function selectSubcategory(subcat) {
+            currentSubcategory = subcat;
+            subcatExpanded = true;
+            renderProducts();
+        }
+
+        // Collapse subcategory view back to showing all subcategories
+        function collapseSubcategory() {
+            currentSubcategory = null;
+            subcatExpanded = false;
+            renderProducts();
+        }
+
+        // Category keyword matching
+        function matchesCategoryKeywords(name, cat, selected) {
+            const categoryKeywords = {
+                'appetizers': ['wing', 'fries', 'fry', 'mozzarella', 'poppers', 'onion ring', 'chicken finger', 'broccoli bite', 'cheesy stix', 'coleslaw', 'potato salad', 'rice'],
+                'salads': ['salad', 'caesar', 'greek', 'garden', 'antipasto', 'chef'],
+                'pizza': ['pizza'],
+                'calzones': ['calzone'],
+                'subs': ['sub', 'hot sub', 'cold sub', 'omelette'],
+                'sandwiches': ['sandwich', 'club', 'burger', 'gyro', 'blt'],
+                'wraps': ['wrap', 'burrito', 'fajita'],
+                'dinners': ['dinner', 'plate', 'bowl', 'rice plate'],
+                'pasta': ['pasta', 'lasagna', 'ziti', 'spaghetti', 'alfredo', 'marinara', 'parm'],
+                'desserts': ['cookie', 'brownie', 'açai', 'acai', 'chocozone', 'dessert'],
+                'drinks': ['drink', 'can', 'bottle', 'soda', 'coffee', 'tea', '2 l', '20 oz'],
+                'catering': ['catering', 'giant', 'party'],
+                'add-ons': ['add-on']
+            };
+
+            const keywords = categoryKeywords[selected] || [];
+
+            // For add-ons tab, only show general add-ons (exclude category-specific ones)
+            if (selected === 'add-ons') {
+                const isAddOn = name.includes('add-on') || cat.includes('add-on');
+                const isSpecificAddOn = name.includes('(salad)') || name.includes('(pizza') ||
+                                        name.includes('(calzone)') || name.includes('(sub') ||
+                                        name.includes('(sandwich)') || name.includes('(rice');
+                return isAddOn && !isSpecificAddOn;
+            }
+
+            return keywords.some(kw => name.includes(kw) || cat.includes(kw));
+        }
+
+        // Subcategory keyword matching
+        function matchesSubcategoryKeywords(name, cat, subcat) {
+            const subcategoryKeywords = {
+                // Main items (non-addons)
+                'salads': ['salad'],
+                'pizza': ['pizza'],
+                'calzones': ['calzone'],
+                'hot subs': ['hot sub'],
+                'cold subs': ['cold sub'],
+                'omelette subs': ['omelette sub', 'omelette'],
+                'sandwiches': ['sandwich'],
+                'clubs': ['club'],
+                'dinner plates': ['dinner plate'],
+                'rice plates': ['rice plate'],
+                'burrito bowls': ['burrito bowl'],
+                'fajita bowls': ['fajita bowl'],
+                'açai': ['açai', 'acai'],
+                'chocozone': ['chocozone'],
+                'other': ['cookie', 'brownie', 'dessert'],
+                // Add-ons within categories
+                '➕ salad add-ons': ['add-on (salad)'],
+                '➕ pizza add-ons': ['add-on (pizza'],
+                '➕ calzone add-ons': ['add-on (calzone)'],
+                '➕ sub add-ons': ['add-on (sub'],
+                '➕ sandwich add-ons': ['add-on (sandwich)'],
+                '➕ rice plate add-ons': ['add-on (rice']
+            };
+
+            const keywords = subcategoryKeywords[subcat] || [subcat];
+            // For main item subcats, exclude add-ons
+            if (!subcat.includes('add-on')) {
+                return keywords.some(kw => name.includes(kw) || cat.includes(kw)) && !name.includes('add-on');
+            }
+            return keywords.some(kw => name.includes(kw) || cat.includes(kw));
+        }
+
+        // Get icon based on product name first, then category
+        function getProductIcon(productName, category) {
+            // First check product name
+            if (productName) {
+                const name = productName.toLowerCase();
+                for (const [key, icon] of Object.entries(productIcons)) {
+                    if (name.includes(key.toLowerCase())) {
+                        return icon;
+                    }
+                }
+            }
+
+            // Fall back to category
+            if (category) {
+                const cat = category.toLowerCase();
+                for (const [key, icon] of Object.entries(categoryIcons)) {
+                    if (cat.includes(key.toLowerCase()) || key.toLowerCase().includes(cat)) {
+                        return icon;
+                    }
+                }
+            }
+
+            return categoryIcons['default'];
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Add item to order
+        function addToOrder(productId, name, price) {
+            const existing = orderItems.find(item => item.id === productId);
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                orderItems.push({ id: productId, name: name, price: price, qty: 1 });
+            }
+            renderOrder();
+        }
+
+        // Update item quantity
+        function updateQty(productId, delta) {
+            const item = orderItems.find(i => i.id === productId);
+            if (item) {
+                item.qty += delta;
+                if (item.qty <= 0) {
+                    orderItems = orderItems.filter(i => i.id !== productId);
+                }
+            }
+            renderOrder();
+        }
+
+        // Render order panel
+        function renderOrder() {
+            const itemsContainer = document.getElementById('orderItems');
+            const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+            // Recalculate delivery fee if delivery is selected (for free delivery threshold)
+            if (orderType === 'delivery') {
+                deliveryFee = calculateDeliveryFee(subtotal);
+            }
+
+            const tax = subtotal * 0.08;
+            const total = subtotal + tax + deliveryFee;
+
+            if (orderItems.length === 0) {
+                itemsContainer.innerHTML = `
+                    <div class="order-empty">
+                        <div class="order-empty-icon">🛒</div>
+                        <div>No items yet</div>
+                        <div style="font-size: 13px; margin-top: 8px;">Tap products to add them</div>
+                    </div>
+                `;
+            } else {
+                itemsContainer.innerHTML = orderItems.map(item => `
+                    <div class="order-item">
+                        <div class="order-item-info">
+                            <div class="order-item-name">${item.name}</div>
+                            <div class="order-item-price">$${item.price.toFixed(2)} each</div>
+                        </div>
+                        <div class="order-item-qty">
+                            <button class="qty-btn" onclick="updateQty(${item.id}, -1)">−</button>
+                            <span style="min-width: 24px; text-align: center; font-weight: 600;">${item.qty}</span>
+                            <button class="qty-btn" onclick="updateQty(${item.id}, 1)">+</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Update summary
+            document.getElementById('subtotalAmount').textContent = `$${subtotal.toFixed(2)}`;
+            document.getElementById('taxAmount').textContent = `$${tax.toFixed(2)}`;
+            document.getElementById('totalAmount').textContent = `$${total.toFixed(2)}`;
+
+            // Update delivery fee row
+            const deliveryFeeRow = document.getElementById('deliveryFeeRow');
+            if (orderType === 'delivery') {
+                deliveryFeeRow.style.display = 'flex';
+                if (deliveryFee === 0 && subtotal >= posSettings.freeDeliveryThreshold) {
+                    document.getElementById('deliveryFeeAmount').textContent = 'FREE';
+                    document.getElementById('deliveryFeeAmount').style.color = '#10b981';
+                } else {
+                    document.getElementById('deliveryFeeAmount').textContent = `$${deliveryFee.toFixed(2)}`;
+                    document.getElementById('deliveryFeeAmount').style.color = '';
+                }
+            } else {
+                deliveryFeeRow.style.display = 'none';
+            }
+
+            // Update pay button
+            const payBtn = document.getElementById('payBtn');
+            payBtn.textContent = `Pay $${total.toFixed(2)}`;
+            payBtn.disabled = orderItems.length === 0;
+        }
+
+        // Clear order
+        function clearOrder() {
+            if (orderItems.length > 0 && !confirm('Clear all items from order?')) return;
+            orderItems = [];
+            // Reset customer info
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerPhone').value = '';
+            document.getElementById('pickupTime').value = '';
+            // Reset address fields
+            document.getElementById('streetAddress').value = '';
+            document.getElementById('aptUnit').value = '';
+            document.getElementById('city').value = '';
+            document.getElementById('state').value = '';
+            document.getElementById('zipCode').value = '';
+            document.getElementById('deliveryInstructions').value = '';
+            // Reset map preview
+            document.getElementById('mapPreview').style.display = 'none';
+            deliveryDistanceInfo = null;
+            renderOrder();
+        }
+
+        // Set order type (dine-in, pickup, delivery)
+        function setOrderType(type) {
+            orderType = type;
+
+            // Update button states
+            document.querySelectorAll('.order-type-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+            });
+
+            // Show/hide customer info section
+            const customerInfo = document.getElementById('customerInfo');
+            const deliveryFields = document.getElementById('deliveryFields');
+            const pickupTimeRow = document.getElementById('pickupTimeRow');
+            const orderSubtitle = document.getElementById('orderSubtitle');
+            const orderNum = String(orderNumber).padStart(3, '0');
+
+            if (type === 'dine-in') {
+                customerInfo.classList.remove('visible');
+                deliveryFee = 0;
+                orderSubtitle.textContent = `Order #${orderNum} • Dine In`;
+            } else if (type === 'pickup') {
+                customerInfo.classList.add('visible');
+                deliveryFields.style.display = 'none';
+                pickupTimeRow.style.display = 'flex';
+                deliveryFee = 0;
+                document.getElementById('customerInfoIcon').textContent = '🥡';
+                document.getElementById('customerInfoTitle').textContent = 'Pickup Information';
+                orderSubtitle.textContent = `Order #${orderNum} • Pickup`;
+            } else if (type === 'delivery') {
+                customerInfo.classList.add('visible');
+                deliveryFields.style.display = 'block';
+                pickupTimeRow.style.display = 'none';
+                // Calculate delivery fee from settings
+                const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                deliveryFee = calculateDeliveryFee(subtotal);
+                document.getElementById('customerInfoIcon').textContent = '🚗';
+                document.getElementById('customerInfoTitle').textContent = 'Delivery Information';
+                orderSubtitle.textContent = `Order #${orderNum} • Delivery`;
+            }
+
+            renderOrder();
+        }
+
+        // Get customer info for order
+        function getCustomerInfo() {
+            const streetAddress = document.getElementById('streetAddress')?.value || '';
+            const aptUnit = document.getElementById('aptUnit')?.value || '';
+            const city = document.getElementById('city')?.value || '';
+            const state = document.getElementById('state')?.value || '';
+            const zipCode = document.getElementById('zipCode')?.value || '';
+
+            // Build full address string for display
+            const fullAddress = streetAddress ?
+                `${streetAddress}${aptUnit ? ', ' + aptUnit : ''}, ${city}, ${state} ${zipCode}`.trim() : null;
+
+            return {
+                type: orderType,
+                name: document.getElementById('customerName').value,
+                phone: document.getElementById('customerPhone').value,
+                pickupTime: document.getElementById('pickupTime')?.value || null,
+                // Separate address components for CSV
+                streetAddress: streetAddress || null,
+                aptUnit: aptUnit || null,
+                city: city || null,
+                state: state.toUpperCase() || null,
+                zipCode: zipCode || null,
+                // Full address for display
+                fullAddress: fullAddress,
+                instructions: document.getElementById('deliveryInstructions')?.value || null,
+                // Delivery distance info from Google Maps
+                deliveryDistance: deliveryDistanceInfo?.distance || null,
+                deliveryDuration: deliveryDistanceInfo?.duration || null
+            };
+        }
+
+        // Validate customer info
+        function validateCustomerInfo() {
+            if (orderType === 'dine-in') return true;
+
+            const name = document.getElementById('customerName').value.trim();
+            const phone = document.getElementById('customerPhone').value.trim();
+
+            if (!name) {
+                alert('Please enter customer name');
+                document.getElementById('customerName').focus();
+                return false;
+            }
+
+            if (!phone) {
+                alert('Please enter phone number');
+                document.getElementById('customerPhone').focus();
+                return false;
+            }
+
+            if (orderType === 'delivery') {
+                const streetAddress = document.getElementById('streetAddress').value.trim();
+                const city = document.getElementById('city').value.trim();
+                const state = document.getElementById('state').value.trim();
+                const zipCode = document.getElementById('zipCode').value.trim();
+
+                if (!streetAddress) {
+                    alert('Please enter street address');
+                    document.getElementById('streetAddress').focus();
+                    return false;
+                }
+                if (!city) {
+                    alert('Please enter city');
+                    document.getElementById('city').focus();
+                    return false;
+                }
+                if (!state) {
+                    alert('Please enter state');
+                    document.getElementById('state').focus();
+                    return false;
+                }
+                if (!zipCode) {
+                    alert('Please enter zip code');
+                    document.getElementById('zipCode').focus();
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // Process payment
+        function processPayment() {
+            if (!validateCustomerInfo()) return;
+
+            const customerInfo = getCustomerInfo();
+            const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const tax = subtotal * 0.08;
+            const total = subtotal + tax + deliveryFee;
+
+            // Build order summary
+            let orderSummary = `Order Type: ${orderType.toUpperCase()}\n`;
+            if (orderType !== 'dine-in') {
+                orderSummary += `Customer: ${customerInfo.name}\n`;
+                orderSummary += `Phone: ${customerInfo.phone}\n`;
+                if (orderType === 'pickup' && customerInfo.pickupTime) {
+                    orderSummary += `Pickup Time: ${customerInfo.pickupTime}\n`;
+                }
+                if (orderType === 'delivery') {
+                    orderSummary += `Address: ${customerInfo.fullAddress}\n`;
+                    if (customerInfo.deliveryDistance) {
+                        orderSummary += `Distance: ${customerInfo.deliveryDistance} (${customerInfo.deliveryDuration})\n`;
+                    }
+                    if (customerInfo.instructions) {
+                        orderSummary += `Instructions: ${customerInfo.instructions}\n`;
+                    }
+                }
+            }
+            orderSummary += `\nItems:\n`;
+            orderItems.forEach(item => {
+                orderSummary += `  ${item.qty}x ${item.name} - $${(item.price * item.qty).toFixed(2)}\n`;
+            });
+            orderSummary += `\nSubtotal: $${subtotal.toFixed(2)}`;
+            orderSummary += `\nTax: $${tax.toFixed(2)}`;
+            if (deliveryFee > 0) {
+                orderSummary += `\nDelivery Fee: $${deliveryFee.toFixed(2)}`;
+            }
+            orderSummary += `\nTotal: $${total.toFixed(2)}`;
+
+            // Add to order history with all CSV-ready fields
+            addToOrderHistory({
+                type: orderType,
+                items: [...orderItems],
+                subtotal: subtotal,
+                tax: tax,
+                deliveryFee: deliveryFee,
+                total: total,
+                // Customer info - separate CSV components
+                customerName: customerInfo.name,
+                customerPhone: customerInfo.phone,
+                pickupTime: customerInfo.pickupTime,
+                // Address components - separate CSV fields
+                streetAddress: customerInfo.streetAddress,
+                aptUnit: customerInfo.aptUnit,
+                city: customerInfo.city,
+                state: customerInfo.state,
+                zipCode: customerInfo.zipCode,
+                fullAddress: customerInfo.fullAddress,
+                deliveryInstructions: customerInfo.instructions,
+                // Distance info from Google Maps
+                deliveryDistance: customerInfo.deliveryDistance,
+                deliveryDuration: customerInfo.deliveryDuration
+            });
+
+            // For now, just show confirmation (payment integration would go here)
+            alert(`Order #${String(orderNumber - 1).padStart(3, '0')} Confirmed!\n\n${orderSummary}`);
+
+            // Clear order after successful payment
+            orderItems = [];
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerPhone').value = '';
+            document.getElementById('pickupTime').value = '';
+            document.getElementById('streetAddress').value = '';
+            document.getElementById('aptUnit').value = '';
+            document.getElementById('city').value = '';
+            document.getElementById('state').value = '';
+            document.getElementById('zipCode').value = '';
+            document.getElementById('deliveryInstructions').value = '';
+            // Reset map preview
+            document.getElementById('mapPreview').style.display = 'none';
+            deliveryDistanceInfo = null;
+            setOrderType('dine-in');
+            renderOrder();
+            updateOrderNumber();
+        }
+
+        // Update order number display
+        function updateOrderNumber() {
+            const orderSubtitle = document.getElementById('orderSubtitle');
+            const orderNum = String(orderNumber).padStart(3, '0');
+            orderSubtitle.textContent = `Order #${orderNum} • ${orderType === 'dine-in' ? 'Dine In' : orderType === 'pickup' ? 'Pickup' : 'Delivery'}`;
+        }
+
+        // Handle main category selection
+        document.querySelectorAll('#mainCategories .category-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('#mainCategories .category-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentCategory = this.dataset.category;
+                currentSubcategory = null;
+                subcatExpanded = false;
+                renderProducts();
+            });
+        });
+
+        // Initialize
+        loadPosData();
+        loadProducts();
+        updateOrderNumber();
+
+        // Add debounced address verification for manual entry
+        let addressVerifyTimeout = null;
+        ['city', 'state', 'zipCode'].forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.addEventListener('blur', () => {
+                    clearTimeout(addressVerifyTimeout);
+                    addressVerifyTimeout = setTimeout(verifyAddressManually, 500);
+                });
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/datepicker.js') }}"></script>
+</body>
+</html>

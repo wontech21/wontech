@@ -139,6 +139,28 @@
     background: rgba(255,255,255,0.25);
 }
 
+/* Logout Button in Header */
+.ep-logout-btn {
+    padding: 12px 24px;
+    border-radius: var(--ep-radius-full);
+    background: rgba(255,255,255,0.95);
+    border: none;
+    color: var(--ep-danger);
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.ep-logout-btn:active {
+    transform: scale(0.95);
+    background: white;
+}
+
 /* ============================================
    MAIN CONTENT AREA
 ============================================ */
@@ -146,6 +168,106 @@
     flex: 1;
     padding: 0 16px 32px;
     margin-top: -20px;
+}
+
+/* Container for standalone pages (non-portal) */
+.ep-container {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 16px 32px;
+    min-height: 100vh;
+}
+
+@media (min-width: 768px) {
+    .ep-container {
+        box-shadow: var(--ep-shadow-lg);
+        background: var(--ep-background);
+    }
+}
+
+/* Page Header */
+.ep-page-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 0;
+    margin-bottom: 8px;
+}
+
+.ep-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: var(--ep-surface);
+    border: none;
+    border-radius: var(--ep-radius-lg);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ep-text);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: var(--ep-shadow-sm);
+    margin: 16px 0;
+}
+
+.ep-back-btn:hover {
+    background: var(--ep-background);
+    transform: translateX(-2px);
+}
+
+.ep-back-btn:active {
+    transform: scale(0.96);
+}
+
+/* Header styles for sub-pages */
+.ep-header {
+    text-align: center;
+    padding: 8px 0 20px;
+}
+
+.ep-header-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ep-text);
+    margin: 0 0 4px;
+}
+
+.ep-header-subtitle {
+    font-size: 14px;
+    color: var(--ep-text-secondary);
+    margin: 0;
+}
+
+/* Page header with back button (layout.html) */
+.ep-page-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: var(--ep-surface);
+    border-bottom: 1px solid var(--ep-border);
+}
+
+.ep-page-header .ep-back-btn {
+    margin: 0;
+    padding: 8px 12px;
+    min-width: 40px;
+    justify-content: center;
+}
+
+.ep-page-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ep-text);
+    margin: 0;
+    flex: 1;
+}
+
+.ep-page-content {
+    padding: 16px;
+    flex: 1;
 }
 
 /* Quick Stats Card */
@@ -451,6 +573,12 @@
     padding: 0 12px;
 }
 
+#pageNumbers {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+}
+
 /* ============================================
    BOTTOM NAVIGATION
 ============================================ */
@@ -645,6 +773,10 @@
     background: var(--ep-border);
 }
 
+.ep-btn-block {
+    width: 100%;
+}
+
 /* ============================================
    FORMS
 ============================================ */
@@ -734,37 +866,68 @@
 }
 
 .ep-modal {
+    display: none;
     position: fixed;
-    bottom: 0;
+    top: 0;
     left: 0;
     right: 0;
-    background: var(--ep-surface);
-    border-radius: var(--ep-radius-xl) var(--ep-radius-xl) 0 0;
-    max-height: 90vh;
-    overflow: hidden;
-    animation: slideUp 0.3s ease;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
 }
 
-@keyframes slideUp {
+.ep-modal-content {
+    background: var(--ep-surface);
+    border-radius: var(--ep-radius-xl);
+    max-height: 90vh;
+    max-width: 400px;
+    width: 100%;
+    overflow: hidden;
+    animation: modalFadeIn 0.2s ease;
+}
+
+@keyframes modalFadeIn {
     from {
-        transform: translateY(100%);
+        opacity: 0;
+        transform: scale(0.95);
     }
     to {
-        transform: translateY(0);
+        opacity: 1;
+        transform: scale(1);
     }
 }
 
-.ep-modal-handle {
-    width: 36px;
-    height: 4px;
-    background: var(--ep-border);
-    border-radius: var(--ep-radius-full);
-    margin: 12px auto;
-}
 
 .ep-modal-header {
-    padding: 8px 20px 16px;
-    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--ep-border);
+}
+
+.ep-modal-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: var(--ep-background);
+    border-radius: var(--ep-radius-md);
+    font-size: 20px;
+    color: var(--ep-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ep-modal-close:active {
+    transform: scale(0.95);
+    background: var(--ep-border);
 }
 
 .ep-modal-title {

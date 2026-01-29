@@ -20,8 +20,8 @@ function initSalesAnalytics() {
  * Change time period for sales analytics
  */
 function changeSalesPeriod(period) {
-    // Update active button
-    document.querySelectorAll('.btn-time-filter').forEach(btn => {
+    // Update active button - scoped to sales analytics content only
+    document.querySelectorAll('#sales-analytics-content .btn-time-filter').forEach(btn => {
         btn.classList.remove('active');
         if (btn.dataset.period === period) {
             btn.classList.add('active');
@@ -132,7 +132,7 @@ function applyCustomDateRange() {
     currentStartDate = startDate;
     currentEndDate = endDate;
 
-    document.querySelectorAll('.btn-time-filter').forEach(btn => {
+    document.querySelectorAll('#sales-analytics-content .btn-time-filter').forEach(btn => {
         btn.classList.remove('active');
         if (btn.dataset.period === 'custom') {
             btn.classList.add('active');

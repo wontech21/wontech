@@ -100,6 +100,7 @@
             <button class="tab-btn" onclick="showTab('time-off-requests')">🏖️ Time Off</button>
             <button class="tab-btn" onclick="showTab('payroll')">💰 Payroll</button>
             <button class="tab-btn" onclick="showTab('employees')">👥 Employees</button>
+            <button class="tab-btn" onclick="showTab('labor-analytics')">📊 Analytics</button>
             {% endif %}
             {% endif %}
         </nav>
@@ -1325,6 +1326,120 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Labor Analytics Tab -->
+        <div id="labor-analytics-tab" class="tab-content">
+            <div class="page-header">
+                <h2 class="page-title">📊 Labor Analytics</h2>
+                <button class="btn-export-primary" onclick="exportLaborAnalytics()">
+                    📥 Export CSV
+                </button>
+            </div>
+
+            <!-- Labor Analytics Dashboard -->
+            <div id="labor-analytics-content" style="background: #f3f4f6; padding: 20px; border-radius: 12px; margin: -10px; margin-top: 0;">
+                <!-- Time Period Selector -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn-time-filter labor-period-btn" data-period="4weeks" onclick="changeLaborPeriod('4weeks')">Last 4 Weeks</button>
+                            <button class="btn-time-filter labor-period-btn active" data-period="8weeks" onclick="changeLaborPeriod('8weeks')">Last 8 Weeks</button>
+                            <button class="btn-time-filter labor-period-btn" data-period="12weeks" onclick="changeLaborPeriod('12weeks')">Last 12 Weeks</button>
+                            <button class="btn-time-filter labor-period-btn" data-period="6months" onclick="changeLaborPeriod('6months')">Last 6 Months</button>
+                            <button class="btn-time-filter labor-period-btn" data-period="year" onclick="changeLaborPeriod('year')">Last Year</button>
+                            <button class="btn-time-filter labor-period-btn" data-period="all" onclick="changeLaborPeriod('all')">All Time</button>
+                            <button class="btn-time-filter labor-period-btn" data-period="custom" onclick="showLaborCustomDateRange()">Custom Range</button>
+                        </div>
+                        <div id="labor-custom-date-range" style="display: none; gap: 10px; align-items: center;">
+                            <input type="date" id="labor-start-date" style="padding: 8px; border: 2px solid #667eea; border-radius: 5px;">
+                            <span>to</span>
+                            <input type="date" id="labor-end-date" style="padding: 8px; border: 2px solid #667eea; border-radius: 5px;">
+                            <button class="btn-success" onclick="applyLaborCustomDateRange()" style="padding: 10px 20px; font-weight: 600; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);">
+                                Apply
+                            </button>
+                        </div>
+                        <div id="labor-period-display" style="color: #667eea; font-weight: 600;">
+                            Last 8 Weeks
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Stats Row -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 20px;">📊 Labor Summary</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        <div class="kpi-card">
+                            <div class="kpi-icon">💵</div>
+                            <div class="kpi-value" id="labor-total-cost">$0</div>
+                            <div class="kpi-label">Total Labor Cost</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-icon">⏱️</div>
+                            <div class="kpi-value" id="labor-total-hours">0</div>
+                            <div class="kpi-label">Total Hours</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-icon">📊</div>
+                            <div class="kpi-value" id="labor-avg-weekly">$0</div>
+                            <div class="kpi-label">Avg Weekly Cost</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-icon">👥</div>
+                            <div class="kpi-value" id="labor-active-employees">0</div>
+                            <div class="kpi-label">Active Employees</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Chart Area -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <h3>📈 Weekly Payroll Costs</h3>
+                    <div id="labor-cost-chart" style="min-height: 350px; padding: 20px;">
+                        <canvas id="laborCostCanvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- Additional Stats -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- Hours by Employee -->
+                    <div class="card">
+                        <h3>👥 Hours by Employee</h3>
+                        <div id="labor-hours-by-employee" style="max-height: 400px; overflow-y: auto; padding: 10px;">
+                            <div class="loading">Loading...</div>
+                        </div>
+                    </div>
+
+                    <!-- Cost Breakdown -->
+                    <div class="card">
+                        <h3>💰 Cost Breakdown</h3>
+                        <div id="labor-cost-breakdown" style="padding: 20px;">
+                            <div style="display: flex; flex-direction: column; gap: 15px;">
+                                <div style="display: flex; justify-content: space-between; padding: 12px; background: #f3f4f6; border-radius: 8px;">
+                                    <span>Regular Wages</span>
+                                    <span id="labor-breakdown-regular" style="font-weight: 700;">$0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 12px; background: #fef3c7; border-radius: 8px;">
+                                    <span>Overtime Wages</span>
+                                    <span id="labor-breakdown-overtime" style="font-weight: 700;">$0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 12px; background: #d1fae5; border-radius: 8px;">
+                                    <span>Tips</span>
+                                    <span id="labor-breakdown-tips" style="font-weight: 700;">$0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 12px; background: #e0e7ff; border-radius: 8px;">
+                                    <span>Salaries</span>
+                                    <span id="labor-breakdown-salaries" style="font-weight: 700;">$0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
+                                    <span style="font-weight: 600;">Total</span>
+                                    <span id="labor-breakdown-total" style="font-weight: 700;">$0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3334,6 +3449,8 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
     <script src="{{ url_for('static', filename='js/schedule_admin.js') }}"></script>
     <script src="{{ url_for('static', filename='js/time_off_admin.js') }}"></script>
     <script src="{{ url_for('static', filename='js/payroll_admin.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/labor_analytics.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/datepicker.js') }}"></script>
 
     <script>
         // Initialize correct tab based on section

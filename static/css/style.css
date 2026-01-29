@@ -73,6 +73,25 @@ body {
     animation: slideUpFadeIn 0.8s ease-out;
 }
 
+/* Card component - white background widget blocks */
+.card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.card h3 {
+    color: #1f2937;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 /* Larger screens get more constrained width */
 @media (min-width: 1600px) {
     .container {

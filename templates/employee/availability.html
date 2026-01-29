@@ -1,291 +1,280 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Availability - Employee Portal</title>
-    <link rel="stylesheet" href="/static/css/employee-portal.css">
-    <style>
+{% extends "employee/layout.html" %}
+
+{% block title %}My Availability{% endblock %}
+{% block page_title %}Availability{% endblock %}
+
+{% block extra_css %}
+<style>
+    .availability-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 12px;
+        margin-top: 20px;
+    }
+
+    .day-column {
+        background: var(--ep-background);
+        border-radius: var(--ep-radius-md);
+        padding: 12px;
+        min-height: 180px;
+    }
+
+    .day-header {
+        font-weight: 700;
+        color: white;
+        background: var(--ep-gradient);
+        padding: 10px 12px;
+        border-radius: var(--ep-radius-sm);
+        text-align: center;
+        margin-bottom: 12px;
+        font-size: 13px;
+    }
+
+    .day-slots {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .availability-slot {
+        background: var(--ep-surface);
+        border-left: 4px solid var(--ep-success);
+        padding: 10px;
+        border-radius: var(--ep-radius-sm);
+        box-shadow: var(--ep-shadow-sm);
+        transition: var(--ep-transition);
+    }
+
+    .availability-slot:hover {
+        box-shadow: var(--ep-shadow-md);
+    }
+
+    .availability-slot.unavailable {
+        border-left-color: var(--ep-danger);
+    }
+
+    .availability-slot.temporary {
+        border-left-color: var(--ep-warning);
+    }
+
+    .slot-time {
+        font-weight: 600;
+        color: var(--ep-text);
+        margin-bottom: 4px;
+        font-size: 13px;
+    }
+
+    .slot-type {
+        font-size: 11px;
+        color: var(--ep-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .slot-actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    .slot-actions button {
+        flex: 1;
+        padding: 6px;
+        border: none;
+        border-radius: var(--ep-radius-sm);
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--ep-transition);
+    }
+
+    .btn-edit {
+        background: var(--ep-primary);
+        color: white;
+    }
+
+    .btn-delete {
+        background: var(--ep-danger);
+        color: white;
+    }
+
+    .empty-day {
+        text-align: center;
+        padding: 24px 10px;
+        color: var(--ep-text-muted);
+        font-size: 12px;
+    }
+
+    .ep-form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
         .availability-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 12px;
-            margin-top: 20px;
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .availability-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
         }
 
         .day-column {
-            background: var(--ep-bg-secondary);
-            border-radius: var(--ep-radius-md);
-            padding: 12px;
-            min-height: 180px;
-            border: 1px solid var(--ep-border-light);
-        }
-
-        .day-header {
-            font-weight: 700;
-            color: white;
-            background: var(--ep-gradient);
-            padding: 10px 12px;
-            border-radius: var(--ep-radius-sm);
-            text-align: center;
-            margin-bottom: 12px;
-            font-size: 13px;
-        }
-
-        .day-slots {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .availability-slot {
-            background: white;
-            border-left: 4px solid var(--ep-success);
-            padding: 10px;
-            border-radius: var(--ep-radius-sm);
-            box-shadow: var(--ep-shadow-sm);
-            transition: var(--ep-transition);
-        }
-
-        .availability-slot:hover {
-            box-shadow: var(--ep-shadow-md);
-        }
-
-        .availability-slot.unavailable {
-            border-left-color: var(--ep-danger);
-            background: var(--ep-danger-light);
-        }
-
-        .availability-slot.temporary {
-            border-left-color: var(--ep-warning);
-            background: var(--ep-warning-light);
-        }
-
-        .slot-time {
-            font-weight: 600;
-            color: var(--ep-text-primary);
-            margin-bottom: 4px;
-            font-size: 13px;
-        }
-
-        .slot-type {
-            font-size: 11px;
-            color: var(--ep-text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
+            min-height: 150px;
         }
 
         .slot-actions {
-            display: flex;
-            gap: 6px;
-            margin-top: 8px;
+            flex-direction: column;
         }
 
-        .slot-actions button {
-            flex: 1;
-            padding: 6px;
-            border: none;
-            border-radius: var(--ep-radius-sm);
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--ep-transition);
+        .ep-form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .availability-grid {
+            grid-template-columns: 1fr;
         }
 
-        .btn-edit {
-            background: var(--ep-primary);
-            color: white;
+        .day-column {
+            min-height: auto;
         }
+    }
+</style>
+{% endblock %}
 
-        .btn-edit:hover {
-            background: var(--ep-primary-dark);
-        }
+{% block content %}
+<div style="text-align: center; margin-bottom: 16px;">
+    <button class="ep-btn ep-btn-primary" onclick="openAddAvailabilityModal()">
+        + Add Availability
+    </button>
+</div>
 
-        .btn-delete {
-            background: var(--ep-danger);
-            color: white;
-        }
-
-        .btn-delete:hover {
-            background: #dc2626;
-        }
-
-        .empty-day {
-            text-align: center;
-            padding: 24px 10px;
-            color: var(--ep-text-muted);
-            font-size: 12px;
-        }
-
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .availability-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .availability-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-            }
-
-            .day-column {
-                min-height: 150px;
-            }
-
-            .slot-actions {
-                flex-direction: column;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .availability-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .day-column {
-                min-height: auto;
-            }
-        }
-    </style>
-</head>
-<body class="ep-body">
-    <div class="ep-container ep-container-wide">
-        <a href="/employee/portal" class="ep-back-btn">← Back to Portal</a>
-
-        <div class="ep-header" style="text-align: center;">
-            <h1 class="ep-header-title">My Availability</h1>
-            <p class="ep-header-subtitle">Set your preferred working hours</p>
+<!-- Weekly Availability Grid -->
+<div class="ep-card">
+    <div class="ep-card-header">
+        <div class="ep-card-header-icon">📅</div>
+        <h3 class="ep-card-title">Weekly Schedule</h3>
+    </div>
+    <div class="availability-grid">
+        <div class="day-column">
+            <div class="day-header">Sun</div>
+            <div class="day-slots" id="slots-0">
+                <div class="empty-day">Not set</div>
+            </div>
         </div>
-
-        <div style="text-align: center; margin-bottom: 24px;">
-            <button class="ep-btn ep-btn-primary" onclick="openAddAvailabilityModal()">
-                + Add Availability
-            </button>
+        <div class="day-column">
+            <div class="day-header">Mon</div>
+            <div class="day-slots" id="slots-1">
+                <div class="empty-day">Not set</div>
+            </div>
         </div>
-
-        <!-- Weekly Availability Grid -->
-        <div class="ep-card">
-            <h2 class="ep-card-header">
-                <span class="ep-card-header-icon">📅</span>
-                Weekly Availability
-            </h2>
-            <div class="availability-grid">
-                <div class="day-column">
-                    <div class="day-header">Sunday</div>
-                    <div class="day-slots" id="slots-0">
-                        <div class="empty-day">No availability set</div>
-                    </div>
-                </div>
-                <div class="day-column">
-                    <div class="day-header">Monday</div>
-                    <div class="day-slots" id="slots-1">
-                        <div class="empty-day">No availability set</div>
-                    </div>
-                </div>
-                <div class="day-column">
-                    <div class="day-header">Tuesday</div>
-                    <div class="day-slots" id="slots-2">
-                        <div class="empty-day">No availability set</div>
-                    </div>
-                </div>
-                <div class="day-column">
-                    <div class="day-header">Wednesday</div>
-                    <div class="day-slots" id="slots-3">
-                        <div class="empty-day">No availability set</div>
-                    </div>
-                </div>
-                <div class="day-column">
-                    <div class="day-header">Thursday</div>
-                    <div class="day-slots" id="slots-4">
-                        <div class="empty-day">No availability set</div>
-                    </div>
-                </div>
-                <div class="day-column">
-                    <div class="day-header">Friday</div>
-                    <div class="day-slots" id="slots-5">
-                        <div class="empty-day">No availability set</div>
-                    </div>
-                </div>
-                <div class="day-column">
-                    <div class="day-header">Saturday</div>
-                    <div class="day-slots" id="slots-6">
-                        <div class="empty-day">No availability set</div>
-                    </div>
-                </div>
+        <div class="day-column">
+            <div class="day-header">Tue</div>
+            <div class="day-slots" id="slots-2">
+                <div class="empty-day">Not set</div>
+            </div>
+        </div>
+        <div class="day-column">
+            <div class="day-header">Wed</div>
+            <div class="day-slots" id="slots-3">
+                <div class="empty-day">Not set</div>
+            </div>
+        </div>
+        <div class="day-column">
+            <div class="day-header">Thu</div>
+            <div class="day-slots" id="slots-4">
+                <div class="empty-day">Not set</div>
+            </div>
+        </div>
+        <div class="day-column">
+            <div class="day-header">Fri</div>
+            <div class="day-slots" id="slots-5">
+                <div class="empty-day">Not set</div>
+            </div>
+        </div>
+        <div class="day-column">
+            <div class="day-header">Sat</div>
+            <div class="day-slots" id="slots-6">
+                <div class="empty-day">Not set</div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Add/Edit Availability Modal -->
-    <div id="availabilityModal" class="ep-modal-overlay">
-        <div class="ep-modal">
-            <div class="ep-modal-header">
-                <h2 class="ep-modal-title" id="modalTitle">Add Availability</h2>
-                <button class="ep-modal-close" onclick="closeAvailabilityModal()">&times;</button>
-            </div>
-            <div class="ep-modal-body">
-                <form id="availabilityForm">
+<!-- Add/Edit Availability Modal -->
+<div id="availabilityModal" class="ep-modal">
+    <div class="ep-modal-content">
+        <div class="ep-modal-header">
+            <h2 class="ep-modal-title" id="modalTitle">Add Availability</h2>
+            <button class="ep-modal-close" onclick="closeAvailabilityModal()">&times;</button>
+        </div>
+        <div class="ep-modal-body">
+            <form id="availabilityForm">
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Day of Week</label>
+                    <select id="dayOfWeek" class="ep-form-select" required>
+                        <option value="0">Sunday</option>
+                        <option value="1">Monday</option>
+                        <option value="2">Tuesday</option>
+                        <option value="3">Wednesday</option>
+                        <option value="4">Thursday</option>
+                        <option value="5">Friday</option>
+                        <option value="6">Saturday</option>
+                    </select>
+                </div>
+
+                <div class="ep-form-row">
                     <div class="ep-form-group">
-                        <label class="ep-form-label ep-form-label-required">Day of Week</label>
-                        <select id="dayOfWeek" class="ep-form-select" required>
-                            <option value="0">Sunday</option>
-                            <option value="1">Monday</option>
-                            <option value="2">Tuesday</option>
-                            <option value="3">Wednesday</option>
-                            <option value="4">Thursday</option>
-                            <option value="5">Friday</option>
-                            <option value="6">Saturday</option>
-                        </select>
+                        <label class="ep-form-label">Start Time</label>
+                        <input type="time" id="startTime" class="ep-form-input" required>
                     </div>
-
-                    <div class="ep-form-row">
-                        <div class="ep-form-group">
-                            <label class="ep-form-label ep-form-label-required">Start Time</label>
-                            <input type="time" id="startTime" class="ep-form-input" required>
-                        </div>
-                        <div class="ep-form-group">
-                            <label class="ep-form-label ep-form-label-required">End Time</label>
-                            <input type="time" id="endTime" class="ep-form-input" required>
-                        </div>
-                    </div>
-
                     <div class="ep-form-group">
-                        <label class="ep-form-label ep-form-label-required">Type</label>
-                        <select id="availabilityType" class="ep-form-select">
-                            <option value="recurring">Recurring (every week)</option>
-                            <option value="temporary">Temporary</option>
-                            <option value="unavailable">Unavailable</option>
-                        </select>
+                        <label class="ep-form-label">End Time</label>
+                        <input type="time" id="endTime" class="ep-form-input" required>
                     </div>
+                </div>
 
-                    <div class="ep-form-row" id="temporaryDatesGroup" style="display: none;">
-                        <div class="ep-form-group">
-                            <label class="ep-form-label">Effective From</label>
-                            <input type="date" id="effectiveFrom" class="ep-form-input">
-                        </div>
-                        <div class="ep-form-group">
-                            <label class="ep-form-label">Effective Until</label>
-                            <input type="date" id="effectiveUntil" class="ep-form-input">
-                        </div>
-                    </div>
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Type</label>
+                    <select id="availabilityType" class="ep-form-select">
+                        <option value="recurring">Recurring (every week)</option>
+                        <option value="temporary">Temporary</option>
+                        <option value="unavailable">Unavailable</option>
+                    </select>
+                </div>
 
+                <div class="ep-form-row" id="temporaryDatesGroup" style="display: none;">
                     <div class="ep-form-group">
-                        <label class="ep-form-label">Notes (Optional)</label>
-                        <textarea id="notes" class="ep-form-textarea" rows="2" placeholder="Add any additional notes"></textarea>
+                        <label class="ep-form-label">From</label>
+                        <input type="date" id="effectiveFrom" class="ep-form-input">
                     </div>
-                </form>
-            </div>
-            <div class="ep-modal-footer">
-                <button type="button" class="ep-btn ep-btn-secondary" onclick="closeAvailabilityModal()">Cancel</button>
-                <button type="submit" class="ep-btn ep-btn-primary" onclick="saveAvailability()">Save</button>
-            </div>
+                    <div class="ep-form-group">
+                        <label class="ep-form-label">Until</label>
+                        <input type="date" id="effectiveUntil" class="ep-form-input">
+                    </div>
+                </div>
+
+                <div class="ep-form-group">
+                    <label class="ep-form-label">Notes (Optional)</label>
+                    <textarea id="notes" class="ep-form-textarea" rows="2" placeholder="Add any notes"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="ep-modal-footer">
+            <button type="button" class="ep-btn ep-btn-secondary" onclick="closeAvailabilityModal()">Cancel</button>
+            <button type="submit" class="ep-btn ep-btn-primary" onclick="saveAvailability()">Save</button>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <div id="notification" class="ep-notification"></div>
-
-    <script src="{{ url_for('static', filename='js/availability.js') }}"></script>
-</body>
-</html>
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/availability.js') }}"></script>
+{% endblock %}

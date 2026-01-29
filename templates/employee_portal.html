@@ -192,20 +192,29 @@
 
         .logout-button {
             background: white;
-            color: #667eea;
-            border: 2px solid white;
-            padding: 12px 30px;
-            border-radius: 50px;
-            font-size: 1em;
-            font-weight: 600;
+            color: #dc3545;
+            border: none;
+            padding: 30px 60px;
+            border-radius: 20px;
+            font-size: 1.5em;
+            font-weight: 700;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: 30px;
             transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
         }
 
         .logout-button:hover {
-            background: transparent;
+            background: #dc3545;
             color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .logout-button:active {
+            transform: translateY(-1px);
         }
 
         .notification {
@@ -310,8 +319,8 @@
             </div>
         </div>
 
-        <div style="text-align: center;">
-            <button class="logout-button" onclick="logout()">Logout</button>
+        <div style="text-align: center; padding: 0 20px;">
+            <button class="logout-button" onclick="logout()">🚪 Logout</button>
         </div>
     </div>
 

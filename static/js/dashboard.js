@@ -550,6 +550,11 @@ function showTab(tabName) {
                 initializePayrollTab();
             }
             break;
+        case 'labor-analytics':
+            if (typeof initLaborAnalytics === 'function') {
+                initLaborAnalytics();
+            }
+            break;
     }
 
     // Update header stats to reflect current section - pass tab name directly
@@ -558,7 +563,7 @@ function showTab(tabName) {
 
 // Update stats based on tab name
 function updateHeaderStatsForTab(tabName) {
-    const employeeTabs = ['employees', 'attendance', 'schedules'];
+    const employeeTabs = ['employees', 'attendance', 'schedules', 'time-off-requests', 'payroll', 'labor-analytics'];
     if (employeeTabs.includes(tabName)) {
         loadEmployeeHeaderStats();
     } else {
@@ -573,7 +578,7 @@ async function loadHeaderStats() {
     const tabId = activeTab ? activeTab.id : null;
 
     // Employee section tabs
-    const employeeTabs = ['employees-tab', 'attendance-tab', 'schedules-tab', 'time-off-requests-tab', 'payroll-tab'];
+    const employeeTabs = ['employees-tab', 'attendance-tab', 'schedules-tab', 'time-off-requests-tab', 'payroll-tab', 'labor-analytics-tab'];
 
     if (employeeTabs.includes(tabId)) {
         await loadEmployeeHeaderStats();
@@ -4269,60 +4274,63 @@ function changeAnalyticsPeriod(period) {
 
     currentAnalyticsPeriod = period;
 
+    // Helper to convert Date to YYYY-MM-DD string
+    const toDateString = (date) => date.toISOString().split('T')[0];
+
     // Calculate date range
     const today = new Date();
     let startDate, endDate, displayText;
 
     switch (period) {
         case 'today':
-            startDate = endDate = formatDate(today);
+            startDate = endDate = toDateString(today);
             displayText = "Today's Analytics";
             break;
 
         case '7days':
             const days7Ago = new Date(today);
             days7Ago.setDate(today.getDate() - 7);
-            startDate = formatDate(days7Ago);
-            endDate = formatDate(today);
+            startDate = toDateString(days7Ago);
+            endDate = toDateString(today);
             displayText = "Last 7 Days";
             break;
 
         case 'week':
             const weekStart = new Date(today);
             weekStart.setDate(today.getDate() - today.getDay());
-            startDate = formatDate(weekStart);
-            endDate = formatDate(today);
+            startDate = toDateString(weekStart);
+            endDate = toDateString(today);
             displayText = "This Week";
             break;
 
         case 'month':
             const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-            startDate = formatDate(monthStart);
-            endDate = formatDate(today);
+            startDate = toDateString(monthStart);
+            endDate = toDateString(today);
             displayText = "This Month";
             break;
 
         case '30days':
             const days30Ago = new Date(today);
             days30Ago.setDate(today.getDate() - 30);
-            startDate = formatDate(days30Ago);
-            endDate = formatDate(today);
+            startDate = toDateString(days30Ago);
+            endDate = toDateString(today);
             displayText = "Last 30 Days";
             break;
 
         case '90days':
             const days90Ago = new Date(today);
             days90Ago.setDate(today.getDate() - 90);
-            startDate = formatDate(days90Ago);
-            endDate = formatDate(today);
+            startDate = toDateString(days90Ago);
+            endDate = toDateString(today);
             displayText = "Last Quarter";
             break;
 
         case '365days':
             const days365Ago = new Date(today);
             days365Ago.setDate(today.getDate() - 365);
-            startDate = formatDate(days365Ago);
-            endDate = formatDate(today);
+            startDate = toDateString(days365Ago);
+            endDate = toDateString(today);
             displayText = "Last Year";
             break;
 

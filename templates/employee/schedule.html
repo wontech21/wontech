@@ -165,6 +165,12 @@
 
     .ep-schedule-view.active {
         display: block;
+        min-height: calc(100vh - 300px);
+    }
+
+    #weekView.active {
+        display: flex;
+        flex-direction: column;
     }
 
     /* Week View - Grid Layout */
@@ -257,44 +263,45 @@
 
     .ep-week-grid {
         display: flex;
-        gap: 8px;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding-bottom: 8px;
-        scroll-snap-type: x mandatory;
+        flex-direction: column;
+        gap: 12px;
+        min-height: calc(100vh - 320px);
     }
 
     .ep-week-day {
-        flex: 0 0 calc(33.333% - 6px);
-        min-width: 110px;
         background: var(--ep-card-bg);
         border-radius: var(--ep-radius-lg);
-        padding: 12px;
-        scroll-snap-align: start;
+        padding: 16px;
         box-shadow: var(--ep-shadow-sm);
+        flex: 1;
+        min-height: 80px;
     }
 
     .ep-week-day.today {
         border: 2px solid var(--ep-primary);
+        background: linear-gradient(135deg, #667eea08 0%, #764ba208 100%);
     }
 
     .ep-week-day-header {
-        text-align: center;
-        padding-bottom: 10px;
-        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-bottom: 12px;
+        margin-bottom: 12px;
         border-bottom: 1px solid var(--ep-border);
     }
 
     .ep-week-day-name {
-        font-size: 11px;
+        font-size: 13px;
         font-weight: 600;
         color: var(--ep-text-muted);
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        min-width: 40px;
     }
 
     .ep-week-day-date {
-        font-size: 24px;
+        font-size: 20px;
         font-weight: 700;
         color: var(--ep-text);
         line-height: 1.2;
@@ -304,10 +311,41 @@
         color: var(--ep-primary);
     }
 
+    .ep-week-day-month {
+        font-size: 13px;
+        color: var(--ep-text-muted);
+        margin-left: auto;
+    }
+
     .ep-week-shifts {
         display: flex;
         flex-direction: column;
         gap: 8px;
+    }
+
+    .ep-shift-duration {
+        font-size: 12px;
+        color: var(--ep-text-muted);
+        font-weight: 600;
+    }
+
+    .ep-shift-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 600;
+        margin-top: 4px;
+    }
+
+    .ep-shift-badge.pending {
+        background: #f59e0b20;
+        color: #f59e0b;
+    }
+
+    .ep-shift-card.own-shift {
+        border-left-color: var(--ep-success);
+        background: linear-gradient(135deg, #10b98110 0%, #05966910 100%);
     }
 
     .ep-shift-card {
@@ -369,6 +407,14 @@
         margin-bottom: 16px;
     }
 
+    .ep-month-header {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--ep-text);
+        text-align: center;
+        margin-bottom: 16px;
+    }
+
     .month-grid,
     .ep-month-grid {
         background: var(--ep-card-bg);
@@ -385,13 +431,13 @@
     .month-day-names {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
-        gap: 4px;
-        margin-bottom: 8px;
+        gap: 2px;
+        margin-bottom: 4px;
     }
 
     .month-day-name {
         text-align: center;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 700;
         color: var(--ep-text-muted);
         text-transform: uppercase;
@@ -401,64 +447,373 @@
     .month-days-grid {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
-        gap: 4px;
+        gap: 3px;
     }
 
     .month-day-cell {
-        aspect-ratio: 1;
+        min-height: 44px;
         background: var(--ep-surface);
-        border-radius: var(--ep-radius-sm);
-        padding: 4px;
+        border-radius: var(--ep-radius-md);
+        padding: 8px 4px;
         cursor: pointer;
         transition: all 0.2s ease;
-        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .month-day-cell:active {
-        transform: scale(0.95);
+        transform: scale(0.92);
     }
 
     .month-day-cell.other-month {
-        opacity: 0.4;
+        opacity: 0.3;
+        background: transparent;
     }
 
     .month-day-cell.today {
-        background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%);
-        border: 2px solid var(--ep-primary);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+    }
+
+    .month-day-cell.today .month-day-number {
+        color: white;
+        font-weight: 700;
     }
 
     .month-day-number {
-        font-size: 12px;
-        font-weight: 600;
+        font-size: 14px;
+        font-weight: 500;
         color: var(--ep-text);
         text-align: center;
     }
 
-    .month-day-cell.today .month-day-number {
-        color: var(--ep-primary);
-        font-weight: 700;
-    }
-
-    .month-day-shifts {
+    .month-shift-more {
+        font-size: 9px;
+        color: var(--ep-text-muted);
+        text-align: center;
+        font-weight: 600;
         margin-top: 2px;
     }
 
-    .month-shift-indicator {
-        width: 100%;
-        height: 4px;
-        background: var(--ep-primary);
-        border-radius: 2px;
+    /* Colored day cells for shifts */
+    .month-day-cell.has-shift {
+        font-weight: 700;
+    }
+
+    .month-day-cell.has-shift .month-day-number {
+        color: white;
+    }
+
+    .month-day-cell.has-shift.today {
+        border: 2px solid white;
+        box-shadow: 0 0 0 2px var(--ep-primary);
+    }
+
+    /* Shifts list below calendar */
+    .month-shifts-list {
+        margin-top: 20px;
+        background: #ffffff;
+        border-radius: var(--ep-radius-lg);
+        padding: 16px;
+        box-shadow: var(--ep-shadow-sm);
+    }
+
+    .shifts-list-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ep-text);
+        margin: 0 0 12px 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .no-shifts-message {
+        text-align: center;
+        padding: 24px;
+        color: var(--ep-text-muted);
+        font-size: 14px;
+    }
+
+    .month-shift-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: var(--ep-surface);
+        border-radius: var(--ep-radius-md);
+        margin-bottom: 8px;
+        border-left: 4px solid var(--ep-primary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .month-shift-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .month-shift-row:active {
+        transform: scale(0.98);
+        background: var(--ep-background);
+    }
+
+    .month-shift-row.own-shift {
+        background: linear-gradient(135deg, #10b98108 0%, #05966908 100%);
+        border-left-color: var(--ep-success);
+    }
+
+    .shift-row-date {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 44px;
+        padding-right: 12px;
+        border-right: 1px solid var(--ep-border);
+    }
+
+    .shift-row-day {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--ep-text-muted);
+        text-transform: uppercase;
+    }
+
+    .shift-row-date-num {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--ep-text);
+        line-height: 1.2;
+    }
+
+    .shift-row-details {
+        flex: 1;
+    }
+
+    .shift-row-employee {
+        font-size: 14px;
+        font-weight: 700;
         margin-bottom: 2px;
     }
 
-    .month-shift-indicator.own-shift {
-        background: #10b981;
+    .shift-row-time {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--ep-text);
     }
 
-    .month-shift-more {
-        font-size: 8px;
+    .shift-row-meta {
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+        font-size: 12px;
         color: var(--ep-text-muted);
+    }
+
+    .shift-row-duration {
+        background: var(--ep-background);
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    .shift-row-position {
+        color: var(--ep-text-secondary);
+    }
+
+    .shift-row-arrow {
+        font-size: 20px;
+        color: var(--ep-text-muted);
+        font-weight: 300;
+    }
+
+    /* Expanded Day Popup for Month View */
+    .month-day-expanded {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.9);
+        background: #ffffff;
+        border-radius: var(--ep-radius-xl);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        width: calc(100% - 32px);
+        max-width: 380px;
+        max-height: 80vh;
+        overflow-y: auto;
+        z-index: 1000;
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+
+    .month-day-expanded.show {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+
+    .expanded-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid var(--ep-border);
+        position: sticky;
+        top: 0;
+        background: #ffffff;
+    }
+
+    .expanded-header strong {
+        font-size: 16px;
+        color: var(--ep-text);
+    }
+
+    .btn-close-expanded {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: var(--ep-surface);
+        border-radius: 50%;
+        font-size: 20px;
+        color: var(--ep-text-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .expanded-shifts {
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background: #ffffff;
+    }
+
+    .expanded-shift-item {
+        background: var(--ep-surface);
+        padding: 12px;
+        border-radius: var(--ep-radius-md);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .expanded-shift-item:active {
+        transform: scale(0.98);
+    }
+
+    .expanded-shift-item.own-shift {
+        background: linear-gradient(135deg, #10b98110 0%, #05966910 100%);
+    }
+
+    .shift-item-employee {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ep-text);
+        margin-bottom: 4px;
+    }
+
+    .shift-item-time {
+        font-size: 13px;
+        color: var(--ep-primary);
+        font-weight: 600;
+    }
+
+    .shift-item-type {
+        font-size: 11px;
+        color: var(--ep-text-muted);
+        text-transform: capitalize;
+        margin-top: 2px;
+    }
+
+    .expanded-footer {
+        display: flex;
+        gap: 10px;
+        padding: 12px 16px 16px;
+        border-top: 1px solid var(--ep-border);
+        background: #ffffff;
+    }
+
+    .expanded-footer button {
+        flex: 1;
+        padding: 12px;
+        border-radius: var(--ep-radius-md);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s ease;
+    }
+
+    .expanded-footer .btn-secondary {
+        background: var(--ep-surface);
+        color: var(--ep-text);
+    }
+
+    .expanded-footer .btn-primary {
+        background: var(--ep-gradient);
+        color: white;
+    }
+
+    .expanded-footer button:active {
+        transform: scale(0.96);
+    }
+
+    /* Overlay for expanded popup */
+    .month-day-expanded::before {
+        content: '';
+        position: fixed;
+        top: -100vh;
+        left: -100vw;
+        right: -100vw;
+        bottom: -100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: -1;
+    }
+
+    /* No shifts popup */
+    .create-event-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.9);
+        background: #ffffff;
+        border-radius: var(--ep-radius-xl);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+        padding: 24px 32px;
+        z-index: 1000;
+        opacity: 0;
+        transition: all 0.2s ease;
+        min-width: 200px;
+    }
+
+    .create-event-popup.show {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    .popup-content {
         text-align: center;
+    }
+
+    .popup-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--ep-text);
+    }
+
+    .popup-subtitle {
+        font-size: 13px;
+        color: var(--ep-text-muted);
+        margin-top: 6px;
+    }
+
+    /* Overlay behind no-shifts popup */
+    .create-event-popup::before {
+        content: '';
+        position: fixed;
+        top: -100vh;
+        left: -100vw;
+        right: -100vw;
+        bottom: -100vh;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: -1;
     }
 
     .ep-month-weekday {
@@ -922,27 +1277,39 @@
     /* Modal Styles */
     .ep-modal,
     .modal {
+        display: none;
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
         background: rgba(0, 0, 0, 0.5);
-        align-items: flex-end;
+        align-items: center;
         justify-content: center;
         z-index: 1000;
-        padding: 0;
+        padding: 16px;
     }
 
     .ep-modal-content,
     .modal-content {
-        background: var(--ep-card-bg);
-        border-radius: var(--ep-radius-xl) var(--ep-radius-xl) 0 0;
+        background: #ffffff;
+        border-radius: var(--ep-radius-xl);
         width: 100%;
-        max-width: 480px;
+        max-width: 400px;
         max-height: 85vh;
         overflow-y: auto;
-        animation: slideUp 0.3s ease;
+        animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
     }
 
     @keyframes slideUp {
@@ -965,7 +1332,7 @@
         border-bottom: 1px solid var(--ep-border);
         position: sticky;
         top: 0;
-        background: var(--ep-card-bg);
+        background: #ffffff;
     }
 
     .ep-modal-title,
@@ -1199,8 +1566,6 @@
     <div class="ep-view-tabs">
         <button class="ep-view-tab view-btn active" data-view="week" onclick="switchView('week')">Week</button>
         <button class="ep-view-tab view-btn" data-view="month" onclick="switchView('month')">Month</button>
-        <button class="ep-view-tab view-btn" data-view="day" onclick="switchView('day')">Day</button>
-        <button class="ep-view-tab view-btn" data-view="list" onclick="switchView('list')">List</button>
     </div>
 
     <!-- Team Toggle -->
@@ -1260,41 +1625,6 @@
     </div>
 </div>
 
-<!-- Day View -->
-<div id="dayView" class="ep-schedule-view schedule-view" style="display: none;">
-    <h2 class="ep-day-header" id="dayViewTitle"></h2>
-    <div class="ep-day-timeline day-grid" id="dayGrid">
-        <!-- Day grid will be dynamically populated by JavaScript -->
-    </div>
-</div>
-
-<!-- List View -->
-<div id="listView" class="ep-schedule-view schedule-view" style="display: none;">
-    <div class="list-schedule">
-        <table class="schedule-list-table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Employee</th>
-                    <th>Start Time</th>
-                    <th>End Time</th>
-                    <th>Hours</th>
-                    <th>Position</th>
-                    <th>Status</th>
-                    <th>Attendance</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="listViewBody">
-                <!-- List rows will be dynamically populated by JavaScript -->
-            </tbody>
-        </table>
-        <div class="ep-list-pagination" id="listPagination">
-            <!-- Pagination controls -->
-        </div>
-    </div>
-</div>
-
 <!-- Empty State -->
 <div class="ep-schedule-empty schedule-empty" id="scheduleEmpty" style="display: none;">
     <div class="ep-schedule-empty-icon empty-icon">📭</div>
@@ -1338,77 +1668,6 @@
         </div>
         <div class="ep-modal-body" id="shiftDetailBody">
             <!-- Shift details will be populated by JavaScript -->
-        </div>
-        <div class="ep-modal-footer">
-            <button class="ep-btn ep-btn-secondary" onclick="closeShiftDetailModal()">Close</button>
-            <button class="ep-btn ep-btn-primary" onclick="openChangeRequestModal()" id="requestChangeBtn">
-                Request Change
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- Change Request Modal -->
-<div class="ep-modal" id="changeRequestModal">
-    <div class="ep-modal-content">
-        <div class="ep-modal-header">
-            <h2 class="ep-modal-title">Request Change</h2>
-            <button class="ep-modal-close" onclick="closeChangeRequestModal()">&times;</button>
-        </div>
-        <div class="ep-modal-body">
-            <form id="changeRequestForm" onsubmit="submitChangeRequest(event)">
-                <input type="hidden" id="changeScheduleId">
-
-                <div class="ep-form-group">
-                    <label class="ep-form-label">Current Schedule</label>
-                    <div class="ep-current-schedule-info" id="currentScheduleInfo">
-                        <!-- Current schedule info -->
-                    </div>
-                </div>
-
-                <div class="ep-form-group">
-                    <label class="ep-form-label" for="changeReason">Reason for Change *</label>
-                    <textarea
-                        class="ep-form-textarea"
-                        id="changeReason"
-                        name="reason"
-                        required
-                        placeholder="Please explain why you need to change this shift..."></textarea>
-                </div>
-
-                <div class="ep-form-group">
-                    <label class="ep-form-checkbox">
-                        <input type="checkbox" id="suggestChanges" onchange="toggleSuggestedChanges()">
-                        Suggest specific changes
-                    </label>
-                </div>
-
-                <div id="suggestedChangesSection" style="display: none;">
-                    <div class="ep-form-group">
-                        <label class="ep-form-label" for="newDate">New Date</label>
-                        <input type="date" class="ep-form-input" id="newDate" name="new_date">
-                    </div>
-
-                    <div class="ep-form-row">
-                        <div class="ep-form-group">
-                            <label class="ep-form-label" for="newStartTime">Start Time</label>
-                            <input type="time" class="ep-form-input" id="newStartTime" name="new_start_time">
-                        </div>
-                        <div class="ep-form-group">
-                            <label class="ep-form-label" for="newEndTime">End Time</label>
-                            <input type="time" class="ep-form-input" id="newEndTime" name="new_end_time">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="ep-form-note">
-                    Change requests require admin approval. You will be notified once reviewed.
-                </div>
-            </form>
-        </div>
-        <div class="ep-modal-footer">
-            <button type="button" class="ep-btn ep-btn-secondary" onclick="closeChangeRequestModal()">Cancel</button>
-            <button type="submit" class="ep-btn ep-btn-primary" onclick="document.getElementById('changeRequestForm').requestSubmit()">Submit</button>
         </div>
     </div>
 </div>

@@ -1,121 +1,259 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Time Off Requests - Employee Portal</title>
-    <link rel="stylesheet" href="/static/css/employee-portal.css">
-</head>
-<body class="ep-body">
-    <div class="ep-container">
-        <a href="/employee/portal" class="ep-back-btn">← Back to Portal</a>
+{% extends "employee/layout.html" %}
 
-        <div class="ep-header">
-            <h1 class="ep-header-title">Time Off Requests</h1>
-            <p class="ep-header-subtitle">Manage your PTO and time off</p>
+{% block title %}Time Off Requests{% endblock %}
+{% block page_title %}Time Off{% endblock %}
+
+{% block extra_css %}
+<style>
+    .ep-balance-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 12px;
+    }
+
+    .ep-balance-item {
+        text-align: center;
+        padding: 16px 8px;
+        background: var(--ep-background);
+        border-radius: var(--ep-radius-md);
+    }
+
+    .ep-balance-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--ep-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+
+    .ep-balance-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--ep-primary);
+        line-height: 1.2;
+    }
+
+    .ep-balance-unit {
+        font-size: 12px;
+        color: var(--ep-text-secondary);
+    }
+
+    .ep-form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    @media (max-width: 480px) {
+        .ep-form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .ep-balance-grid {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .ep-balance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+        }
+
+        .ep-balance-value {
+            font-size: 24px;
+        }
+    }
+
+    /* Request History Cards for Mobile */
+    .ep-request-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .ep-request-card {
+        background: var(--ep-surface);
+        border-radius: var(--ep-radius-lg);
+        padding: 16px;
+        box-shadow: var(--ep-shadow-sm);
+        border-left: 4px solid var(--ep-primary);
+    }
+
+    .ep-request-card.status-approved {
+        border-left-color: var(--ep-success);
+    }
+
+    .ep-request-card.status-denied {
+        border-left-color: var(--ep-danger);
+    }
+
+    .ep-request-card.status-pending {
+        border-left-color: var(--ep-warning);
+    }
+
+    .ep-request-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 8px;
+    }
+
+    .ep-request-dates {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--ep-text);
+    }
+
+    .ep-request-status {
+        padding: 4px 10px;
+        border-radius: var(--ep-radius-full);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .ep-request-status.pending {
+        background: rgba(245, 158, 11, 0.15);
+        color: #d97706;
+    }
+
+    .ep-request-status.approved {
+        background: rgba(16, 185, 129, 0.15);
+        color: #059669;
+    }
+
+    .ep-request-status.denied {
+        background: rgba(239, 68, 68, 0.15);
+        color: #dc2626;
+    }
+
+    .ep-request-details {
+        display: flex;
+        gap: 16px;
+        font-size: 13px;
+        color: var(--ep-text-secondary);
+        margin-bottom: 8px;
+    }
+
+    .ep-request-reason {
+        font-size: 13px;
+        color: var(--ep-text-secondary);
+        font-style: italic;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--ep-border);
+    }
+
+    .ep-request-actions {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--ep-border);
+    }
+
+    .ep-btn-cancel {
+        background: var(--ep-danger);
+        color: white;
+        padding: 8px 16px;
+        border: none;
+        border-radius: var(--ep-radius-md);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .ep-btn-cancel:active {
+        transform: scale(0.96);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- PTO Balance Summary -->
+<div class="ep-card">
+    <div class="ep-card-header">
+        <div class="ep-card-header-icon">🌴</div>
+        <h3 class="ep-card-title">PTO Balance</h3>
+    </div>
+    <div class="ep-balance-grid">
+        <div class="ep-balance-item">
+            <div class="ep-balance-label">Available</div>
+            <div class="ep-balance-value" id="ptoAvailable">--</div>
+            <div class="ep-balance-unit">hours</div>
         </div>
-
-        <!-- PTO Balance Summary -->
-        <div class="ep-card">
-            <h2 class="ep-card-header">
-                <span class="ep-card-header-icon">🌴</span>
-                PTO Balance
-            </h2>
-            <div class="ep-balance-grid">
-                <div class="ep-balance-item">
-                    <div class="ep-balance-label">Available</div>
-                    <div class="ep-balance-value" id="ptoAvailable">--</div>
-                    <div class="ep-balance-unit">hours</div>
-                </div>
-                <div class="ep-balance-item">
-                    <div class="ep-balance-label">Used This Year</div>
-                    <div class="ep-balance-value" id="ptoUsed" style="color: var(--ep-text-secondary);">--</div>
-                    <div class="ep-balance-unit">hours</div>
-                </div>
-                <div class="ep-balance-item">
-                    <div class="ep-balance-label">Total Annual</div>
-                    <div class="ep-balance-value" id="ptoTotal" style="color: var(--ep-text-secondary);">--</div>
-                    <div class="ep-balance-unit">hours</div>
-                </div>
-            </div>
+        <div class="ep-balance-item">
+            <div class="ep-balance-label">Used</div>
+            <div class="ep-balance-value" id="ptoUsed" style="color: var(--ep-text-secondary);">--</div>
+            <div class="ep-balance-unit">hours</div>
         </div>
-
-        <!-- Request Form -->
-        <div class="ep-card">
-            <h2 class="ep-card-header">
-                <span class="ep-card-header-icon">📝</span>
-                Request Time Off
-            </h2>
-            <form id="timeOffRequestForm">
-                <div class="ep-form-row">
-                    <div class="ep-form-group">
-                        <label class="ep-form-label ep-form-label-required">Start Date</label>
-                        <input type="date" id="startDate" class="ep-form-input" required>
-                    </div>
-                    <div class="ep-form-group">
-                        <label class="ep-form-label ep-form-label-required">End Date</label>
-                        <input type="date" id="endDate" class="ep-form-input" required>
-                    </div>
-                </div>
-
-                <div class="ep-form-row">
-                    <div class="ep-form-group">
-                        <label class="ep-form-label ep-form-label-required">Request Type</label>
-                        <select id="requestType" class="ep-form-select" required>
-                            <option value="pto">Paid Time Off (PTO)</option>
-                            <option value="sick">Sick Leave</option>
-                            <option value="unpaid">Unpaid Leave</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    <div class="ep-form-group">
-                        <label class="ep-form-label ep-form-label-required">Total Hours</label>
-                        <input type="number" id="totalHours" class="ep-form-input" step="0.5" min="0.5" required>
-                        <div class="ep-form-hint">Enter the total hours for this request</div>
-                    </div>
-                </div>
-
-                <div class="ep-form-group">
-                    <label class="ep-form-label">Reason (Optional)</label>
-                    <textarea id="reason" class="ep-form-textarea" rows="3" placeholder="Add notes about your request"></textarea>
-                </div>
-
-                <button type="submit" class="ep-btn ep-btn-primary ep-btn-full">Submit Request</button>
-            </form>
-        </div>
-
-        <!-- Request History -->
-        <div class="ep-card">
-            <h2 class="ep-card-header">
-                <span class="ep-card-header-icon">📋</span>
-                Request History
-            </h2>
-            <div class="ep-table-container">
-                <table class="ep-table">
-                    <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                        <tr style="background: none;">
-                            <th style="color: white; background: none;">Dates</th>
-                            <th style="color: white; background: none;">Type</th>
-                            <th style="color: white; background: none;">Hours</th>
-                            <th style="color: white; background: none;">Status</th>
-                            <th style="color: white; background: none;">Reason</th>
-                            <th style="color: white; background: none;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="timeOffHistoryBody">
-                        <tr>
-                            <td colspan="6" class="ep-empty-state">
-                                <div class="ep-empty-state-text">Loading...</div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <div class="ep-balance-item">
+            <div class="ep-balance-label">Total</div>
+            <div class="ep-balance-value" id="ptoTotal" style="color: var(--ep-text-secondary);">--</div>
+            <div class="ep-balance-unit">hours</div>
         </div>
     </div>
+</div>
 
-    <div id="notification" class="ep-notification"></div>
+<!-- Request Form -->
+<div class="ep-card">
+    <div class="ep-card-header">
+        <div class="ep-card-header-icon">📝</div>
+        <h3 class="ep-card-title">Request Time Off</h3>
+    </div>
+    <form id="timeOffRequestForm">
+        <div class="ep-form-row">
+            <div class="ep-form-group">
+                <label class="ep-form-label">Start Date</label>
+                <input type="date" id="startDate" class="ep-form-input" required>
+            </div>
+            <div class="ep-form-group">
+                <label class="ep-form-label">End Date</label>
+                <input type="date" id="endDate" class="ep-form-input" required>
+            </div>
+        </div>
 
-    <script src="{{ url_for('static', filename='js/time_off.js') }}"></script>
-</body>
-</html>
+        <div class="ep-form-row">
+            <div class="ep-form-group">
+                <label class="ep-form-label">Request Type</label>
+                <select id="requestType" class="ep-form-select" required>
+                    <option value="pto">Paid Time Off (PTO)</option>
+                    <option value="sick">Sick Leave</option>
+                    <option value="unpaid">Unpaid Leave</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="ep-form-group">
+                <label class="ep-form-label">Total Hours</label>
+                <input type="number" id="totalHours" class="ep-form-input" step="0.5" min="0.5" required>
+            </div>
+        </div>
+
+        <div class="ep-form-group">
+            <label class="ep-form-label">Reason (Optional)</label>
+            <textarea id="reason" class="ep-form-textarea" rows="3" placeholder="Add notes about your request"></textarea>
+        </div>
+
+        <button type="submit" class="ep-btn ep-btn-primary ep-btn-block">Submit Request</button>
+    </form>
+</div>
+
+<!-- Request History -->
+<div class="ep-card">
+    <div class="ep-card-header">
+        <div class="ep-card-header-icon">📋</div>
+        <h3 class="ep-card-title">Request History</h3>
+    </div>
+    <div class="ep-request-list" id="timeOffHistoryBody">
+        <div class="ep-empty-state">
+            <div class="ep-empty-text">Loading...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/time_off.js') }}"></script>
+{% endblock %}

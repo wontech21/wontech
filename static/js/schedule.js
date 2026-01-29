@@ -161,12 +161,8 @@ function renderCurrentView() {
             case 'month':
                 renderMonthView();
                 break;
-            case 'day':
-                renderDayView();
-                break;
-            case 'list':
-                renderListView();
-                break;
+            default:
+                renderWeekView();
         }
 
         checkEmptyState();
@@ -197,71 +193,54 @@ function renderWeekView() {
         return shiftDate >= startOfWeek && shiftDate <= endOfWeek;
     });
 
-    // Build proper calendar grid
+    // Build vertical day cards
     let html = '';
-
-    // Header row with day names
-    html += '<div class="week-header-row">';
-    html += '<div class="week-time-label"></div>'; // Empty corner cell
 
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
         const day = startOfWeek.plus({ days: dayOffset });
+        const dateStr = day.toISODate();
         const isToday = day.hasSame(luxon.DateTime.now(), 'day');
 
+        // Get shifts for this day
+        const daySchedules = weekSchedules.filter(s => s.date === dateStr);
+        daySchedules.sort((a, b) => a.start_time.localeCompare(b.start_time));
+
         html += `
-            <div class="week-day-header ${isToday ? 'today' : ''}">
-                <div>${day.toFormat('EEE')}</div>
-                <div class="day-number">${day.toFormat('d')}</div>
+            <div class="ep-week-day ${isToday ? 'today' : ''}">
+                <div class="ep-week-day-header">
+                    <span class="ep-week-day-name">${day.toFormat('EEE')}</span>
+                    <span class="ep-week-day-date">${day.toFormat('d')}</span>
+                    <span class="ep-week-day-month">${day.toFormat('MMM')}</span>
+                </div>
+                <div class="ep-week-shifts">
+        `;
+
+        if (daySchedules.length === 0) {
+            html += '<div class="ep-no-shifts">No shifts</div>';
+        } else {
+            daySchedules.forEach(shift => {
+                const isOwnShift = shift.employee_id === window.employeeData.id;
+                const attendance = getAttendanceForShift(shift);
+                const statusClass = getShiftStatusClass(shift, attendance);
+                const duration = calculateDuration(shift.start_time, shift.end_time);
+
+                html += `
+                    <div class="ep-shift-card ${isOwnShift ? 'own-shift' : ''} ${statusClass}"
+                         onclick="showShiftDetail(${JSON.stringify(shift).replace(/"/g, '&quot;')})">
+                        <div class="ep-shift-time">${formatTime(shift.start_time)} - ${formatTime(shift.end_time)}</div>
+                        <div class="ep-shift-duration">${duration}h</div>
+                        ${showTeamSchedule ? `<div class="ep-shift-employee">${shift.employee_name}</div>` : ''}
+                        <div class="ep-shift-position">${shift.position || ''}</div>
+                        ${shift.change_request_status === 'pending' ? '<div class="ep-shift-badge pending">Change Pending</div>' : ''}
+                    </div>
+                `;
+            });
+        }
+
+        html += `
+                </div>
             </div>
         `;
-    }
-    html += '</div>';
-
-    // Time slots (6am to 11pm in 1-hour increments)
-    for (let hour = 6; hour <= 23; hour++) {
-        html += `<div class="week-time-label">${formatHour(hour)}</div>`;
-
-        // For each day of the week
-        for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-            const day = startOfWeek.plus({ days: dayOffset });
-            const dateStr = day.toISODate();
-            const isToday = day.hasSame(luxon.DateTime.now(), 'day');
-
-            // Get shifts for this day that overlap with this hour
-            const daySchedules = weekSchedules.filter(s => {
-                if (s.date !== dateStr) return false;
-                const startHour = parseTime(s.start_time).hour;
-                const endHour = parseTime(s.end_time).hour;
-                return startHour <= hour && (endHour > hour || (endHour === hour && parseTime(s.end_time).minute > 0));
-            });
-
-            html += `<div class="week-day-cell ${isToday ? 'today' : ''}">`;
-
-            // Render shifts in this time slot
-            daySchedules.forEach(shift => {
-                const startHour = parseTime(shift.start_time).hour;
-                // Only render at the start hour to avoid duplicates
-                if (startHour === hour) {
-                    const color = getEmployeeColor(shift.employee_id);
-                    const isOwnShift = shift.employee_id === window.employeeData.id;
-                    const attendance = getAttendanceForShift(shift);
-                    const statusClass = getShiftStatusClass(shift, attendance);
-
-                    html += `
-                        <div class="week-shift-block ${isOwnShift ? 'own-shift' : ''} ${statusClass}"
-                             style="background: ${color};"
-                             onclick="showShiftDetail(${JSON.stringify(shift).replace(/"/g, '&quot;')})"
-                             title="${shift.employee_name}: ${formatTime(shift.start_time)} - ${formatTime(shift.end_time)}">
-                            <div class="shift-employee">${shift.employee_name}</div>
-                            <div class="shift-time">${formatTime(shift.start_time)} - ${formatTime(shift.end_time)}</div>
-                            <div class="shift-position">${shift.position || ''}</div>
-                        </div>
-                    `;
-                }
-            });
-
-            html += '</div>';
-        }
     }
 
     weekGrid.innerHTML = html;
@@ -285,7 +264,21 @@ function renderMonthView() {
     const endOfCalendar = endOfMonth.endOf('week');
 
     monthTitle.textContent = currentDate.toFormat('MMMM yyyy');
-    console.log('Date range:', startOfCalendar.toISODate(), 'to', endOfCalendar.toISODate());
+
+    // Get all schedules for this month
+    const monthSchedules = getFilteredSchedules().filter(s => {
+        const shiftDate = luxon.DateTime.fromISO(s.date);
+        return shiftDate >= startOfMonth && shiftDate <= endOfMonth;
+    });
+
+    // Build a map of dates to shifts for quick lookup
+    const shiftsByDate = {};
+    monthSchedules.forEach(shift => {
+        if (!shiftsByDate[shift.date]) {
+            shiftsByDate[shift.date] = [];
+        }
+        shiftsByDate[shift.date].push(shift);
+    });
 
     let html = '<div class="month-calendar-grid">';
 
@@ -305,41 +298,45 @@ function renderMonthView() {
         const isCurrentMonth = currentDay.month === currentDate.month;
         const isToday = currentDay.hasSame(luxon.DateTime.now(), 'day');
         const dateStr = currentDay.toISODate();
+        const dayShifts = shiftsByDate[dateStr] || [];
+        const hasShift = dayShifts.length > 0;
 
-        html += `
-            <div class="month-day-cell ${!isCurrentMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}"
-                 data-date="${dateStr}"
-                 onclick="handleEmployeeMonthDayClick('${dateStr}', event)">
-                <div class="month-day-number">${currentDay.day}</div>
-                <div class="month-day-shifts">
-        `;
+        // Get color for the day
+        let dayColor = '';
+        let isOwnShift = false;
+        let multipleEmployees = false;
+        if (hasShift) {
+            // Check if multiple employees have shifts
+            const uniqueEmployees = [...new Set(dayShifts.map(s => s.employee_id))];
+            multipleEmployees = uniqueEmployees.length > 1;
 
-        // Find shifts for this day
-        const daySchedules = getFilteredSchedules().filter(s => s.date === dateStr);
-
-        // Show shift indicators
-        daySchedules.slice(0, 3).forEach(shift => {
-            const color = getEmployeeColor(shift.employee_id);
-            const isOwnShift = shift.employee_id === window.employeeData.id;
-
-            html += `
-                <div class="month-shift-indicator ${isOwnShift ? 'own-shift' : ''}"
-                     style="background: ${color};"
-                     onclick="event.stopPropagation(); showShiftDetail(${JSON.stringify(shift).replace(/"/g, '&quot;')})"
-                     title="${shift.employee_name}: ${formatTime(shift.start_time)} - ${formatTime(shift.end_time)}">
-                    <span class="shift-employee-initials">${getInitials(shift.employee_name)}</span>
-                    <span class="shift-time-compact">${formatTime(shift.start_time)}</span>
-                </div>
-            `;
-        });
-
-        // Show "more" indicator if there are additional shifts
-        if (daySchedules.length > 3) {
-            html += `<div class="month-shift-more">+${daySchedules.length - 3} more</div>`;
+            // Prioritize own shifts for coloring
+            const ownShift = dayShifts.find(s => s.employee_id === window.employeeData.id);
+            if (ownShift) {
+                dayColor = getEmployeeColor(ownShift.employee_id);
+                isOwnShift = true;
+            } else if (multipleEmployees) {
+                // Use gradient for multiple employees
+                const color1 = getEmployeeColor(dayShifts[0].employee_id);
+                const color2 = getEmployeeColor(dayShifts[1].employee_id);
+                dayColor = `linear-gradient(135deg, ${color1} 0%, ${color2} 100%)`;
+            } else {
+                dayColor = getEmployeeColor(dayShifts[0].employee_id);
+            }
         }
 
+        const cellStyle = hasShift && isCurrentMonth
+            ? (multipleEmployees && !isOwnShift
+                ? `background: ${dayColor}; color: white;`
+                : `background: ${dayColor}; color: white;`)
+            : '';
+
         html += `
-                </div>
+            <div class="month-day-cell ${!isCurrentMonth ? 'other-month' : ''} ${isToday ? 'today' : ''} ${hasShift ? 'has-shift' : ''}"
+                 data-date="${dateStr}"
+                 style="${cellStyle}"
+                 onclick="handleEmployeeMonthDayClick('${dateStr}', event)">
+                <div class="month-day-number">${currentDay.day}</div>
             </div>
         `;
 
@@ -347,8 +344,52 @@ function renderMonthView() {
     }
 
     html += '</div></div>';
+
+    // Add shifts list below calendar
+    html += '<div class="month-shifts-list">';
+    html += '<h3 class="shifts-list-title">Scheduled Shifts</h3>';
+
+    if (monthSchedules.length === 0) {
+        html += '<div class="no-shifts-message">No shifts scheduled this month</div>';
+    } else {
+        // Sort shifts by date
+        const sortedShifts = [...monthSchedules].sort((a, b) => {
+            if (a.date !== b.date) return a.date.localeCompare(b.date);
+            return a.start_time.localeCompare(b.start_time);
+        });
+
+        sortedShifts.forEach(shift => {
+            const shiftDate = luxon.DateTime.fromISO(shift.date);
+            const color = getEmployeeColor(shift.employee_id);
+            const isOwn = shift.employee_id === window.employeeData.id;
+            const duration = calculateDuration(shift.start_time, shift.end_time);
+
+            html += `
+                <div class="month-shift-row ${isOwn ? 'own-shift' : ''}"
+                     style="border-left-color: ${color}; ${showTeamSchedule ? 'background: ' + color + '10;' : ''}"
+                     onclick="showShiftDetail(${JSON.stringify(shift).replace(/"/g, '&quot;')})">
+                    <div class="shift-row-date" style="${showTeamSchedule ? 'border-right-color: ' + color + '30;' : ''}">
+                        <span class="shift-row-day">${shiftDate.toFormat('EEE')}</span>
+                        <span class="shift-row-date-num">${shiftDate.toFormat('d')}</span>
+                    </div>
+                    <div class="shift-row-details">
+                        ${showTeamSchedule ? `<div class="shift-row-employee" style="color: ${color};">${shift.employee_name}</div>` : ''}
+                        <div class="shift-row-time">${formatTime(shift.start_time)} - ${formatTime(shift.end_time)}</div>
+                        <div class="shift-row-meta">
+                            <span class="shift-row-duration">${duration}h</span>
+                            ${shift.position ? `<span class="shift-row-position">${shift.position}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="shift-row-arrow">›</div>
+                </div>
+            `;
+        });
+    }
+
+    html += '</div>';
+
     monthGrid.innerHTML = html;
-    console.log('Month view rendered successfully with', getFilteredSchedules().length, 'total schedules');
+    console.log('Month view rendered successfully with', monthSchedules.length, 'shifts');
 }
 
 function handleEmployeeMonthDayClick(dateStr, event) {
@@ -360,13 +401,9 @@ function handleEmployeeMonthDayClick(dateStr, event) {
 
     const daySchedules = getFilteredSchedules().filter(s => s.date === dateStr);
     const clickedCell = event.currentTarget;
-    const rect = clickedCell.getBoundingClientRect();
 
-    if (daySchedules.length === 0) {
-        // Show message that no shifts are scheduled
-        showNoShiftsMessage(dateStr, rect);
-    } else {
-        // Expand to show all schedules for this day
+    // Only show expanded view if there are shifts
+    if (daySchedules.length > 0) {
         showEmployeeDaySchedulesExpanded(dateStr, daySchedules, clickedCell);
     }
 }
@@ -374,11 +411,6 @@ function handleEmployeeMonthDayClick(dateStr, event) {
 function showNoShiftsMessage(dateStr, rect) {
     const popup = document.createElement('div');
     popup.className = 'create-event-popup';
-    popup.style.position = 'fixed';
-    popup.style.left = rect.left + 'px';
-    popup.style.top = rect.top + 'px';
-    popup.style.width = rect.width + 'px';
-    popup.style.height = rect.height + 'px';
 
     const formattedDate = luxon.DateTime.fromISO(dateStr).toFormat('EEEE, MMM d');
 
@@ -391,13 +423,22 @@ function showNoShiftsMessage(dateStr, rect) {
 
     document.body.appendChild(popup);
 
+    // Close when clicking outside
+    popup.addEventListener('click', (e) => {
+        if (e.target === popup || e.target.closest('.popup-content')) {
+            popup.classList.remove('show');
+            setTimeout(() => popup.remove(), 200);
+        }
+    });
+
     setTimeout(() => {
         popup.classList.add('show');
     }, 10);
 
+    // Auto-close after 2 seconds
     setTimeout(() => {
         popup.classList.remove('show');
-        setTimeout(() => popup.remove(), 300);
+        setTimeout(() => popup.remove(), 200);
     }, 2000);
 }
 
@@ -639,6 +680,11 @@ function renderAttendanceBadge(attendance) {
 // ==========================================
 
 function switchView(view) {
+    // Only allow week and month views
+    if (view !== 'week' && view !== 'month') {
+        view = 'week';
+    }
+
     currentView = view;
 
     // Update active button
@@ -652,12 +698,10 @@ function switchView(view) {
     // Hide all views
     document.querySelectorAll('.schedule-view').forEach(v => v.style.display = 'none');
 
-    // Show selected view
-    document.getElementById(`${view}View`).style.display = 'block';
-
-    // Reset pagination for list view
-    if (view === 'list') {
-        listViewPage = 1;
+    // Show selected view with appropriate display type
+    const viewElement = document.getElementById(`${view}View`);
+    if (viewElement) {
+        viewElement.style.display = view === 'week' ? 'flex' : 'block';
     }
 
     renderCurrentView();
@@ -754,12 +798,11 @@ function getFilteredSchedules() {
 // ==========================================
 
 async function navigatePrevious() {
-    if (currentView === 'week') {
-        currentDate = currentDate.minus({ weeks: 1 });
-    } else if (currentView === 'month') {
+    if (currentView === 'month') {
         currentDate = currentDate.minus({ months: 1 });
-    } else if (currentView === 'day') {
-        currentDate = currentDate.minus({ days: 1 });
+    } else {
+        // Week view (default)
+        currentDate = currentDate.minus({ weeks: 1 });
     }
 
     showLoading(true);
@@ -769,12 +812,11 @@ async function navigatePrevious() {
 }
 
 async function navigateNext() {
-    if (currentView === 'week') {
-        currentDate = currentDate.plus({ weeks: 1 });
-    } else if (currentView === 'month') {
+    if (currentView === 'month') {
         currentDate = currentDate.plus({ months: 1 });
-    } else if (currentView === 'day') {
-        currentDate = currentDate.plus({ days: 1 });
+    } else {
+        // Week view (default)
+        currentDate = currentDate.plus({ weeks: 1 });
     }
 
     showLoading(true);
@@ -891,88 +933,12 @@ function showShiftDetail(shift) {
     html += '</div>';
     body.innerHTML = html;
 
-    // Show/hide request change button
-    const isOwnShift = shift.employee_id === window.employeeData.id;
-    const canRequest = isOwnShift && !shift.change_request_status;
-    document.getElementById('requestChangeBtn').style.display = canRequest ? 'block' : 'none';
-
     modal.style.display = 'flex';
 }
 
 function closeShiftDetailModal() {
     document.getElementById('shiftDetailModal').style.display = 'none';
     currentShiftDetail = null;
-}
-
-function openChangeRequestModal() {
-    if (!currentShiftDetail) return;
-
-    closeShiftDetailModal();
-
-    const modal = document.getElementById('changeRequestModal');
-    document.getElementById('changeScheduleId').value = currentShiftDetail.id;
-
-    const currentInfo = document.getElementById('currentScheduleInfo');
-    currentInfo.innerHTML = `
-        <strong>${formatDate(currentShiftDetail.date)}</strong> -
-        ${formatTime(currentShiftDetail.start_time)} to ${formatTime(currentShiftDetail.end_time)}
-    `;
-
-    modal.style.display = 'flex';
-}
-
-function closeChangeRequestModal() {
-    document.getElementById('changeRequestModal').style.display = 'none';
-    document.getElementById('changeRequestForm').reset();
-}
-
-function toggleSuggestedChanges() {
-    const checkbox = document.getElementById('suggestChanges');
-    const section = document.getElementById('suggestedChangesSection');
-    section.style.display = checkbox.checked ? 'block' : 'none';
-}
-
-async function submitChangeRequest(event) {
-    event.preventDefault();
-
-    const scheduleId = document.getElementById('changeScheduleId').value;
-    const reason = document.getElementById('changeReason').value;
-
-    const requestData = {
-        reason: reason,
-        requested_changes: {}
-    };
-
-    // Add suggested changes if provided
-    if (document.getElementById('suggestChanges').checked) {
-        const newDate = document.getElementById('newDate').value;
-        const newStartTime = document.getElementById('newStartTime').value;
-        const newEndTime = document.getElementById('newEndTime').value;
-
-        if (newDate) requestData.requested_changes.new_date = newDate;
-        if (newStartTime) requestData.requested_changes.new_start_time = newStartTime;
-        if (newEndTime) requestData.requested_changes.new_end_time = newEndTime;
-    }
-
-    try {
-        const response = await fetch(`/api/schedules/${scheduleId}/request-change`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestData)
-        });
-
-        if (!response.ok) throw new Error('Failed to submit change request');
-
-        showSuccess('Change request submitted successfully! You will be notified when it is reviewed.');
-        closeChangeRequestModal();
-
-        // Reload data
-        await loadInitialData();
-        renderCurrentView();
-    } catch (error) {
-        console.error('Error submitting change request:', error);
-        showError('Failed to submit change request. Please try again.');
-    }
 }
 
 // ==========================================
@@ -982,17 +948,11 @@ async function submitChangeRequest(event) {
 function getCurrentDateRange() {
     let startDate, endDate;
 
-    if (currentView === 'week') {
-        startDate = currentDate.startOf('week').toISODate();
-        endDate = currentDate.endOf('week').toISODate();
-    } else if (currentView === 'month') {
+    if (currentView === 'month') {
         startDate = currentDate.startOf('month').startOf('week').toISODate();
         endDate = currentDate.endOf('month').endOf('week').toISODate();
-    } else if (currentView === 'day') {
-        startDate = currentDate.toISODate();
-        endDate = currentDate.toISODate();
     } else {
-        // List view - get current week
+        // Week view (default)
         startDate = currentDate.startOf('week').toISODate();
         endDate = currentDate.endOf('week').toISODate();
     }
@@ -1003,15 +963,10 @@ function getCurrentDateRange() {
 function updateDateRangeDisplay() {
     const display = document.getElementById('currentDateRange');
 
-    if (currentView === 'week') {
-        const start = currentDate.startOf('week');
-        const end = currentDate.endOf('week');
-        display.textContent = `${start.toFormat('MMM d')} - ${end.toFormat('MMM d, yyyy')}`;
-    } else if (currentView === 'month') {
+    if (currentView === 'month') {
         display.textContent = currentDate.toFormat('MMMM yyyy');
-    } else if (currentView === 'day') {
-        display.textContent = currentDate.toFormat('EEEE, MMMM d, yyyy');
     } else {
+        // Week view (default)
         const start = currentDate.startOf('week');
         const end = currentDate.endOf('week');
         display.textContent = `${start.toFormat('MMM d')} - ${end.toFormat('MMM d, yyyy')}`;
@@ -1121,9 +1076,23 @@ function calculateDuration(startTime, endTime) {
 function checkEmptyState() {
     const isEmpty = getFilteredSchedules().length === 0;
     document.getElementById('scheduleEmpty').style.display = isEmpty ? 'block' : 'none';
-    document.querySelectorAll('.schedule-view').forEach(view => {
-        view.style.display = isEmpty ? 'none' : (view.classList.contains('active') ? 'block' : 'none');
-    });
+
+    // Handle view display based on empty state
+    const weekView = document.getElementById('weekView');
+    const monthView = document.getElementById('monthView');
+
+    if (isEmpty) {
+        if (weekView) weekView.style.display = 'none';
+        if (monthView) monthView.style.display = 'none';
+    } else {
+        // Show the active view with appropriate display type
+        if (weekView) {
+            weekView.style.display = currentView === 'week' ? 'flex' : 'none';
+        }
+        if (monthView) {
+            monthView.style.display = currentView === 'month' ? 'block' : 'none';
+        }
+    }
 }
 
 function showLoading(show) {
@@ -1140,20 +1109,24 @@ function getInitials(name) {
 }
 
 async function navigateToDate(dateStr) {
+    // Navigate to week view containing this date
     currentDate = luxon.DateTime.fromISO(dateStr);
-    currentView = 'day';
+    currentView = 'week';
 
     // Update active button
     document.querySelectorAll('.view-btn').forEach(btn => {
         btn.classList.remove('active');
-        if (btn.dataset.view === 'day') {
+        if (btn.dataset.view === 'week') {
             btn.classList.add('active');
         }
     });
 
     // Hide all views
     document.querySelectorAll('.schedule-view').forEach(v => v.style.display = 'none');
-    document.getElementById('dayView').style.display = 'block';
+    document.getElementById('weekView').style.display = 'flex';
+
+    // Close the expanded day popup
+    closeExpandedDay();
 
     showLoading(true);
     await loadInitialData();

@@ -1,6 +1,7 @@
 """
 Payroll Management Routes
-Handles payroll calculations, reports, and exports
+Handles payroll calculations, reports, and exports.
+Historical payroll records are preserved - wage changes don't affect processed periods.
 """
 
 from flask import Blueprint, jsonify, request, g, make_response
@@ -15,6 +16,166 @@ from middleware import (
 )
 
 payroll_bp = Blueprint('payroll', __name__, url_prefix='/api/payroll')
+
+
+def ensure_payroll_history_table(cursor):
+    """Ensure the payroll_history table exists"""
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS payroll_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            organization_id INTEGER NOT NULL,
+            employee_id INTEGER NOT NULL,
+            pay_period_start DATE NOT NULL,
+            pay_period_end DATE NOT NULL,
+            pay_period_type TEXT NOT NULL DEFAULT 'weekly',
+            hourly_rate_used REAL DEFAULT 0,
+            salary_used REAL DEFAULT 0,
+            total_hours REAL DEFAULT 0,
+            regular_hours REAL DEFAULT 0,
+            ot_hours REAL DEFAULT 0,
+            regular_wage REAL DEFAULT 0,
+            ot_wage REAL DEFAULT 0,
+            tips REAL DEFAULT 0,
+            gross_pay REAL DEFAULT 0,
+            job_classification TEXT,
+            position TEXT,
+            notes TEXT,
+            processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            processed_by INTEGER,
+            UNIQUE(organization_id, employee_id, pay_period_start, pay_period_end)
+        )
+    """)
+
+
+def get_processed_payroll(cursor, org_id, period_start, period_end):
+    """
+    Check if payroll has been processed for this period.
+    Returns dict of employee_id -> payroll record if processed, None otherwise.
+    """
+    ensure_payroll_history_table(cursor)
+
+    cursor.execute("""
+        SELECT
+            ph.*,
+            e.first_name || ' ' || e.last_name as employee_name,
+            e.email,
+            e.bank_account_number,
+            e.bank_routing_number,
+            e.employment_type
+        FROM payroll_history ph
+        JOIN employees e ON ph.employee_id = e.id
+        WHERE ph.organization_id = ?
+          AND ph.pay_period_start = ?
+          AND ph.pay_period_end = ?
+    """, (org_id, period_start, period_end))
+
+    records = cursor.fetchall()
+
+    if not records:
+        return None
+
+    # Return as dict keyed by employee_id
+    result = {}
+    for record in records:
+        result[record['employee_id']] = dict(record)
+
+    return result
+
+
+def auto_process_payroll(cursor, org_id, period_start, period_end, period_type='weekly'):
+    """
+    Automatically process and lock in payroll for a completed pay period.
+    Called when viewing past payroll that hasn't been processed yet.
+    """
+    # Get all active employees and calculate their payroll
+    cursor.execute("""
+        SELECT
+            id, first_name, last_name, position,
+            job_classification, hourly_rate, salary,
+            receives_tips
+        FROM employees
+        WHERE organization_id = ? AND status = 'active'
+    """, (org_id,))
+
+    employees = cursor.fetchall()
+
+    for emp in employees:
+        emp_dict = dict(emp)
+        hourly_rate = emp_dict['hourly_rate'] or 0
+        salary = emp_dict['salary'] or 0
+
+        # Calculate hours for period
+        if period_type == 'weekly':
+            hours_data = calculate_weekly_hours(cursor, emp_dict['id'], period_start, period_end)
+            total_hours = hours_data['total_hours']
+            regular_hours = hours_data['regular_hours']
+            ot_hours = hours_data['ot_hours']
+            tips = hours_data['tips'] if emp_dict['receives_tips'] else 0
+        else:
+            # Monthly calculation with proper weekly OT
+            cursor.execute("""
+                SELECT
+                    strftime('%W', clock_in) as week_num,
+                    COALESCE(SUM(total_hours), 0) as weekly_hours,
+                    COALESCE(SUM(cc_tips), 0) as weekly_tips
+                FROM attendance
+                WHERE employee_id = ?
+                  AND DATE(clock_in) >= ?
+                  AND DATE(clock_in) <= ?
+                  AND status = 'clocked_out'
+                GROUP BY week_num
+            """, (emp_dict['id'], period_start, period_end))
+
+            weekly_data = cursor.fetchall()
+            total_hours = 0
+            regular_hours = 0
+            ot_hours = 0
+            tips = 0
+
+            for week in weekly_data:
+                wh = week['weekly_hours'] or 0
+                total_hours += wh
+                regular_hours += min(wh, 40)
+                ot_hours += max(wh - 40, 0)
+                if emp_dict['receives_tips']:
+                    tips += week['weekly_tips'] or 0
+
+        # Calculate wages with CURRENT rates (these get locked in)
+        regular_wage = round(regular_hours * hourly_rate, 2)
+        ot_wage = round(ot_hours * hourly_rate * 1.5, 2)
+
+        if salary > 0:
+            gross_pay = salary
+        else:
+            gross_pay = regular_wage + ot_wage + tips
+
+        # Insert into payroll_history (ignore if already exists)
+        try:
+            cursor.execute("""
+                INSERT OR IGNORE INTO payroll_history (
+                    organization_id, employee_id, pay_period_start, pay_period_end,
+                    pay_period_type, hourly_rate_used, salary_used,
+                    total_hours, regular_hours, ot_hours,
+                    regular_wage, ot_wage, tips, gross_pay,
+                    job_classification, position, processed_by
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+            """, (
+                org_id, emp_dict['id'], period_start, period_end,
+                period_type, hourly_rate, salary,
+                round(total_hours, 2), round(regular_hours, 2), round(ot_hours, 2),
+                regular_wage, ot_wage, round(tips, 2), round(gross_pay, 2),
+                emp_dict['job_classification'], emp_dict['position']
+            ))
+        except Exception as e:
+            # Ignore duplicate key errors
+            pass
+
+
+def is_period_complete(period_end):
+    """Check if a pay period has ended (is in the past)"""
+    end_date = datetime.strptime(period_end, '%Y-%m-%d')
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    return end_date < today
 
 # ========================================
 # PAYROLL DATA & CALCULATIONS
@@ -64,6 +225,7 @@ def calculate_weekly_hours(cursor, employee_id, week_start, week_end):
 def get_weekly_payroll():
     """
     Get payroll data for a specific week (Monday-Sunday)
+    If payroll has been processed for this period, returns the locked-in historical data.
     Query params:
       - week_start: Date string (YYYY-MM-DD) - any date in the desired week
     """
@@ -76,20 +238,17 @@ def get_weekly_payroll():
     cursor = conn.cursor()
 
     try:
-        # Get all active employees
-        cursor.execute("""
-            SELECT
-                id, first_name, last_name, position,
-                job_classification, hourly_rate, salary,
-                employment_type, email,
-                bank_account_number, bank_routing_number,
-                receives_tips
-            FROM employees
-            WHERE organization_id = ? AND status = 'active'
-            ORDER BY job_classification, last_name
-        """, (g.organization['id'],))
+        # Check if this period has already been processed
+        processed_payroll = get_processed_payroll(cursor, g.organization['id'], week_start, week_end)
 
-        employees = cursor.fetchall()
+        # Auto-process if period is complete and not yet processed
+        if processed_payroll is None and is_period_complete(week_end):
+            auto_process_payroll(cursor, g.organization['id'], week_start, week_end, 'weekly')
+            conn.commit()
+            # Fetch the newly processed payroll
+            processed_payroll = get_processed_payroll(cursor, g.organization['id'], week_start, week_end)
+
+        is_processed = processed_payroll is not None
 
         payroll_data = []
         totals = {
@@ -103,57 +262,105 @@ def get_weekly_payroll():
             'gross_pay': 0
         }
 
-        for emp in employees:
-            emp_dict = dict(emp)
-            hourly_rate = emp_dict['hourly_rate'] or 0
-            salary = emp_dict['salary'] or 0
+        if is_processed:
+            # Return historical data - wage changes won't affect this
+            for emp_id, record in processed_payroll.items():
+                employee_payroll = {
+                    'employee_id': record['employee_id'],
+                    'employee_name': record['employee_name'],
+                    'position': record['position'],
+                    'job_classification': record['job_classification'] or 'Other',
+                    'hourly_rate': record['hourly_rate_used'],
+                    'total_hours': record['total_hours'],
+                    'regular_hours': record['regular_hours'],
+                    'regular_wage': record['regular_wage'],
+                    'ot_hours': record['ot_hours'],
+                    'ot_wage': record['ot_wage'],
+                    'tips': record['tips'],
+                    'salary': record['salary_used'],
+                    'gross_pay': record['gross_pay'],
+                    'email': record['email'],
+                    'bank_account': record['bank_account_number'],
+                    'bank_routing': record['bank_routing_number'],
+                    'employment_type': record['employment_type']
+                }
+                payroll_data.append(employee_payroll)
 
-            # Get hours worked this week
-            hours_data = calculate_weekly_hours(cursor, emp_dict['id'], week_start, week_end)
+                # Update totals
+                totals['total_hours'] += record['total_hours']
+                totals['regular_hours'] += record['regular_hours']
+                totals['ot_hours'] += record['ot_hours']
+                totals['regular_wages'] += record['regular_wage']
+                totals['ot_wages'] += record['ot_wage']
+                totals['tips'] += record['tips']
+                totals['salary'] += record['salary_used'] if record['salary_used'] > 0 else 0
+                totals['gross_pay'] += record['gross_pay']
+        else:
+            # Calculate payroll using current wages (not yet processed)
+            cursor.execute("""
+                SELECT
+                    id, first_name, last_name, position,
+                    job_classification, hourly_rate, salary,
+                    employment_type, email,
+                    bank_account_number, bank_routing_number,
+                    receives_tips
+                FROM employees
+                WHERE organization_id = ? AND status = 'active'
+                ORDER BY job_classification, last_name
+            """, (g.organization['id'],))
 
-            # Calculate wages
-            regular_wage = round(hours_data['regular_hours'] * hourly_rate, 2)
-            ot_wage = round(hours_data['ot_hours'] * hourly_rate * 1.5, 2)
-            tips = hours_data['tips'] if emp_dict['receives_tips'] else 0
+            employees = cursor.fetchall()
 
-            # Gross pay (hourly wages + tips OR salary)
-            if salary > 0:
-                # Salaried employee - salary is per pay period (weekly in this case)
-                gross_pay = salary
-            else:
-                gross_pay = regular_wage + ot_wage + tips
+            for emp in employees:
+                emp_dict = dict(emp)
+                hourly_rate = emp_dict['hourly_rate'] or 0
+                salary = emp_dict['salary'] or 0
 
-            employee_payroll = {
-                'employee_id': emp_dict['id'],
-                'employee_name': f"{emp_dict['first_name']} {emp_dict['last_name']}",
-                'position': emp_dict['position'],
-                'job_classification': emp_dict['job_classification'] or 'Other',
-                'hourly_rate': hourly_rate,
-                'total_hours': hours_data['total_hours'],
-                'regular_hours': hours_data['regular_hours'],
-                'regular_wage': regular_wage,
-                'ot_hours': hours_data['ot_hours'],
-                'ot_wage': ot_wage,
-                'tips': tips,
-                'salary': salary,
-                'gross_pay': round(gross_pay, 2),
-                'email': emp_dict['email'],
-                'bank_account': emp_dict['bank_account_number'],
-                'bank_routing': emp_dict['bank_routing_number'],
-                'employment_type': emp_dict['employment_type']
-            }
+                # Get hours worked this week
+                hours_data = calculate_weekly_hours(cursor, emp_dict['id'], week_start, week_end)
 
-            payroll_data.append(employee_payroll)
+                # Calculate wages
+                regular_wage = round(hours_data['regular_hours'] * hourly_rate, 2)
+                ot_wage = round(hours_data['ot_hours'] * hourly_rate * 1.5, 2)
+                tips = hours_data['tips'] if emp_dict['receives_tips'] else 0
 
-            # Update totals
-            totals['total_hours'] += hours_data['total_hours']
-            totals['regular_hours'] += hours_data['regular_hours']
-            totals['ot_hours'] += hours_data['ot_hours']
-            totals['regular_wages'] += regular_wage
-            totals['ot_wages'] += ot_wage
-            totals['tips'] += tips
-            totals['salary'] += salary if salary > 0 else 0
-            totals['gross_pay'] += gross_pay
+                # Gross pay (hourly wages + tips OR salary)
+                if salary > 0:
+                    gross_pay = salary
+                else:
+                    gross_pay = regular_wage + ot_wage + tips
+
+                employee_payroll = {
+                    'employee_id': emp_dict['id'],
+                    'employee_name': f"{emp_dict['first_name']} {emp_dict['last_name']}",
+                    'position': emp_dict['position'],
+                    'job_classification': emp_dict['job_classification'] or 'Other',
+                    'hourly_rate': hourly_rate,
+                    'total_hours': hours_data['total_hours'],
+                    'regular_hours': hours_data['regular_hours'],
+                    'regular_wage': regular_wage,
+                    'ot_hours': hours_data['ot_hours'],
+                    'ot_wage': ot_wage,
+                    'tips': tips,
+                    'salary': salary,
+                    'gross_pay': round(gross_pay, 2),
+                    'email': emp_dict['email'],
+                    'bank_account': emp_dict['bank_account_number'],
+                    'bank_routing': emp_dict['bank_routing_number'],
+                    'employment_type': emp_dict['employment_type']
+                }
+
+                payroll_data.append(employee_payroll)
+
+                # Update totals
+                totals['total_hours'] += hours_data['total_hours']
+                totals['regular_hours'] += hours_data['regular_hours']
+                totals['ot_hours'] += hours_data['ot_hours']
+                totals['regular_wages'] += regular_wage
+                totals['ot_wages'] += ot_wage
+                totals['tips'] += tips
+                totals['salary'] += salary if salary > 0 else 0
+                totals['gross_pay'] += gross_pay
 
         # Round totals
         for key in totals:
@@ -166,7 +373,8 @@ def get_weekly_payroll():
             'pay_period': {
                 'start': week_start,
                 'end': week_end,
-                'type': 'weekly'
+                'type': 'weekly',
+                'is_processed': is_processed
             },
             'employees': payroll_data,
             'totals': totals
@@ -175,6 +383,205 @@ def get_weekly_payroll():
     except Exception as e:
         conn.close()
         print(f"Error getting payroll data: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@payroll_bp.route('/process', methods=['POST'])
+@login_required
+@organization_required
+@permission_required('employees.read')
+def process_payroll():
+    """
+    Process and lock in payroll for a period.
+    Once processed, wage changes will NOT affect this period's payroll.
+    Body:
+      - period_start: Start date (YYYY-MM-DD)
+      - period_end: End date (YYYY-MM-DD)
+      - period_type: 'weekly' or 'monthly'
+    """
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'Request body required'}), 400
+
+    period_start = data.get('period_start')
+    period_end = data.get('period_end')
+    period_type = data.get('period_type', 'weekly')
+
+    if not period_start or not period_end:
+        return jsonify({'error': 'period_start and period_end are required'}), 400
+
+    conn = get_org_db()
+    cursor = conn.cursor()
+
+    try:
+        ensure_payroll_history_table(cursor)
+
+        # Check if already processed
+        existing = get_processed_payroll(cursor, g.organization['id'], period_start, period_end)
+        if existing:
+            conn.close()
+            return jsonify({
+                'success': False,
+                'error': 'This pay period has already been processed',
+                'processed_count': len(existing)
+            }), 400
+
+        # Get all active employees and calculate their payroll
+        cursor.execute("""
+            SELECT
+                id, first_name, last_name, position,
+                job_classification, hourly_rate, salary,
+                receives_tips
+            FROM employees
+            WHERE organization_id = ? AND status = 'active'
+        """, (g.organization['id'],))
+
+        employees = cursor.fetchall()
+        processed_count = 0
+
+        for emp in employees:
+            emp_dict = dict(emp)
+            hourly_rate = emp_dict['hourly_rate'] or 0
+            salary = emp_dict['salary'] or 0
+
+            # Calculate hours for period
+            if period_type == 'weekly':
+                hours_data = calculate_weekly_hours(cursor, emp_dict['id'], period_start, period_end)
+                total_hours = hours_data['total_hours']
+                regular_hours = hours_data['regular_hours']
+                ot_hours = hours_data['ot_hours']
+                tips = hours_data['tips'] if emp_dict['receives_tips'] else 0
+            else:
+                # Monthly calculation with proper weekly OT
+                cursor.execute("""
+                    SELECT
+                        strftime('%W', clock_in) as week_num,
+                        COALESCE(SUM(total_hours), 0) as weekly_hours,
+                        COALESCE(SUM(cc_tips), 0) as weekly_tips
+                    FROM attendance
+                    WHERE employee_id = ?
+                      AND DATE(clock_in) >= ?
+                      AND DATE(clock_in) <= ?
+                      AND status = 'clocked_out'
+                    GROUP BY week_num
+                """, (emp_dict['id'], period_start, period_end))
+
+                weekly_data = cursor.fetchall()
+                total_hours = 0
+                regular_hours = 0
+                ot_hours = 0
+                tips = 0
+
+                for week in weekly_data:
+                    wh = week['weekly_hours'] or 0
+                    total_hours += wh
+                    regular_hours += min(wh, 40)
+                    ot_hours += max(wh - 40, 0)
+                    if emp_dict['receives_tips']:
+                        tips += week['weekly_tips'] or 0
+
+            # Calculate wages with CURRENT rates (these get locked in)
+            regular_wage = round(regular_hours * hourly_rate, 2)
+            ot_wage = round(ot_hours * hourly_rate * 1.5, 2)
+
+            if salary > 0:
+                gross_pay = salary
+            else:
+                gross_pay = regular_wage + ot_wage + tips
+
+            # Insert into payroll_history
+            cursor.execute("""
+                INSERT INTO payroll_history (
+                    organization_id, employee_id, pay_period_start, pay_period_end,
+                    pay_period_type, hourly_rate_used, salary_used,
+                    total_hours, regular_hours, ot_hours,
+                    regular_wage, ot_wage, tips, gross_pay,
+                    job_classification, position, processed_by
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                g.organization['id'], emp_dict['id'], period_start, period_end,
+                period_type, hourly_rate, salary,
+                round(total_hours, 2), round(regular_hours, 2), round(ot_hours, 2),
+                regular_wage, ot_wage, round(tips, 2), round(gross_pay, 2),
+                emp_dict['job_classification'], emp_dict['position'], g.user['id']
+            ))
+
+            processed_count += 1
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': f'Payroll processed successfully for {processed_count} employees',
+            'processed_count': processed_count,
+            'period': {
+                'start': period_start,
+                'end': period_end,
+                'type': period_type
+            }
+        })
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        print(f"Error processing payroll: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@payroll_bp.route('/unprocess', methods=['POST'])
+@login_required
+@organization_required
+@permission_required('employees.read')
+def unprocess_payroll():
+    """
+    Remove processed payroll for a period (allows recalculation).
+    Use with caution - this removes the historical record.
+    Body:
+      - period_start: Start date (YYYY-MM-DD)
+      - period_end: End date (YYYY-MM-DD)
+    """
+    data = request.get_json()
+
+    if not data:
+        return jsonify({'error': 'Request body required'}), 400
+
+    period_start = data.get('period_start')
+    period_end = data.get('period_end')
+
+    if not period_start or not period_end:
+        return jsonify({'error': 'period_start and period_end are required'}), 400
+
+    conn = get_org_db()
+    cursor = conn.cursor()
+
+    try:
+        ensure_payroll_history_table(cursor)
+
+        cursor.execute("""
+            DELETE FROM payroll_history
+            WHERE organization_id = ?
+              AND pay_period_start = ?
+              AND pay_period_end = ?
+        """, (g.organization['id'], period_start, period_end))
+
+        deleted_count = cursor.rowcount
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': f'Removed processed payroll for {deleted_count} employees',
+            'deleted_count': deleted_count
+        })
+
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        print(f"Error unprocessing payroll: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -364,11 +771,14 @@ def get_available_years():
 @permission_required('employees.read')
 def get_monthly_payroll():
     """
-    Get payroll data for a specific month
+    Get payroll data for a specific month.
+    If payroll has been processed for this period, returns the locked-in historical data.
     Query params:
       - month: Month number (1-12)
       - year: Year (YYYY)
     """
+    import calendar
+
     month = request.args.get('month', type=int)
     year = request.args.get('year', type=int)
 
@@ -376,7 +786,6 @@ def get_monthly_payroll():
         return jsonify({'error': 'Month and year are required'}), 400
 
     # Calculate month boundaries
-    import calendar
     first_day = f"{year}-{month:02d}-01"
     last_day_num = calendar.monthrange(year, month)[1]
     last_day = f"{year}-{month:02d}-{last_day_num:02d}"
@@ -387,20 +796,17 @@ def get_monthly_payroll():
     cursor = conn.cursor()
 
     try:
-        # Get all active employees
-        cursor.execute("""
-            SELECT
-                id, first_name, last_name, position,
-                job_classification, hourly_rate, salary,
-                employment_type, email,
-                bank_account_number, bank_routing_number,
-                receives_tips
-            FROM employees
-            WHERE organization_id = ? AND status = 'active'
-            ORDER BY job_classification, last_name
-        """, (g.organization['id'],))
+        # Check if this period has already been processed
+        processed_payroll = get_processed_payroll(cursor, g.organization['id'], first_day, last_day)
 
-        employees = cursor.fetchall()
+        # Auto-process if period is complete and not yet processed
+        if processed_payroll is None and is_period_complete(last_day):
+            auto_process_payroll(cursor, g.organization['id'], first_day, last_day, 'monthly')
+            conn.commit()
+            # Fetch the newly processed payroll
+            processed_payroll = get_processed_payroll(cursor, g.organization['id'], first_day, last_day)
+
+        is_processed = processed_payroll is not None
 
         payroll_data = []
         totals = {
@@ -414,103 +820,149 @@ def get_monthly_payroll():
             'gross_pay': 0
         }
 
-        for emp in employees:
-            emp_dict = dict(emp)
-            hourly_rate = emp_dict['hourly_rate'] or 0
-            salary = emp_dict['salary'] or 0
+        if is_processed:
+            # Return historical data - wage changes won't affect this
+            for emp_id, record in processed_payroll.items():
+                employee_payroll = {
+                    'employee_id': record['employee_id'],
+                    'employee_name': record['employee_name'],
+                    'position': record['position'],
+                    'job_classification': record['job_classification'] or 'Other',
+                    'hourly_rate': record['hourly_rate_used'],
+                    'total_hours': record['total_hours'],
+                    'regular_hours': record['regular_hours'],
+                    'regular_wage': record['regular_wage'],
+                    'ot_hours': record['ot_hours'],
+                    'ot_wage': record['ot_wage'],
+                    'tips': record['tips'],
+                    'salary': record['salary_used'],
+                    'gross_pay': record['gross_pay'],
+                    'email': record['email'],
+                    'bank_account': record['bank_account_number'],
+                    'bank_routing': record['bank_routing_number'],
+                    'employment_type': record['employment_type']
+                }
+                payroll_data.append(employee_payroll)
 
-            # Get all attendance for this employee in the month
+                # Update totals
+                totals['total_hours'] += record['total_hours']
+                totals['regular_hours'] += record['regular_hours']
+                totals['ot_hours'] += record['ot_hours']
+                totals['regular_wages'] += record['regular_wage']
+                totals['ot_wages'] += record['ot_wage']
+                totals['tips'] += record['tips']
+                totals['salary'] += record['salary_used'] if record['salary_used'] > 0 else 0
+                totals['gross_pay'] += record['gross_pay']
+        else:
+            # Calculate payroll using current wages (not yet processed)
             cursor.execute("""
                 SELECT
-                    DATE(clock_in) as work_date,
-                    strftime('%W', clock_in) as week_num,
-                    COALESCE(SUM(total_hours), 0) as daily_hours,
-                    COALESCE(SUM(cc_tips), 0) as daily_tips
-                FROM attendance
-                WHERE employee_id = ?
-                  AND DATE(clock_in) >= ?
-                  AND DATE(clock_in) <= ?
-                  AND status = 'clocked_out'
-                GROUP BY DATE(clock_in)
-                ORDER BY work_date
-            """, (emp_dict['id'], first_day, last_day))
+                    id, first_name, last_name, position,
+                    job_classification, hourly_rate, salary,
+                    employment_type, email,
+                    bank_account_number, bank_routing_number,
+                    receives_tips
+                FROM employees
+                WHERE organization_id = ? AND status = 'active'
+                ORDER BY job_classification, last_name
+            """, (g.organization['id'],))
 
-            daily_records = cursor.fetchall()
+            employees = cursor.fetchall()
 
-            # Calculate weekly overtime properly
-            # Group by week and calculate OT per week
-            weekly_hours = {}
-            total_tips = 0
+            for emp in employees:
+                emp_dict = dict(emp)
+                hourly_rate = emp_dict['hourly_rate'] or 0
+                salary = emp_dict['salary'] or 0
 
-            for record in daily_records:
-                week = record['week_num']
-                if week not in weekly_hours:
-                    weekly_hours[week] = 0
-                weekly_hours[week] += record['daily_hours']
-                total_tips += record['daily_tips']
+                # Get all attendance for this employee in the month
+                cursor.execute("""
+                    SELECT
+                        DATE(clock_in) as work_date,
+                        strftime('%W', clock_in) as week_num,
+                        COALESCE(SUM(total_hours), 0) as daily_hours,
+                        COALESCE(SUM(cc_tips), 0) as daily_tips
+                    FROM attendance
+                    WHERE employee_id = ?
+                      AND DATE(clock_in) >= ?
+                      AND DATE(clock_in) <= ?
+                      AND status = 'clocked_out'
+                    GROUP BY DATE(clock_in)
+                    ORDER BY work_date
+                """, (emp_dict['id'], first_day, last_day))
 
-            # Calculate regular and OT hours across all weeks
-            total_hours = 0
-            regular_hours = 0
-            ot_hours = 0
+                daily_records = cursor.fetchall()
 
-            for week, hours in weekly_hours.items():
-                total_hours += hours
-                week_regular = min(hours, 40)
-                week_ot = max(hours - 40, 0)
-                regular_hours += week_regular
-                ot_hours += week_ot
+                # Calculate weekly overtime properly
+                weekly_hours = {}
+                total_tips = 0
 
-            # Calculate wages
-            regular_wage = round(regular_hours * hourly_rate, 2)
-            ot_wage = round(ot_hours * hourly_rate * 1.5, 2)
-            tips = total_tips if emp_dict['receives_tips'] else 0
+                for record in daily_records:
+                    week = record['week_num']
+                    if week not in weekly_hours:
+                        weekly_hours[week] = 0
+                    weekly_hours[week] += record['daily_hours']
+                    total_tips += record['daily_tips']
 
-            # For salaried employees, calculate monthly salary
-            # Assuming salary field is bi-weekly, multiply by ~2.17 for monthly
-            monthly_salary = 0
-            if salary > 0:
-                # Count weeks in this month (for salary calculation)
-                weeks_in_month = len(weekly_hours) if weekly_hours else 4
-                monthly_salary = salary * (weeks_in_month / 1)  # salary is already weekly equivalent
+                # Calculate regular and OT hours across all weeks
+                total_hours = 0
+                regular_hours = 0
+                ot_hours = 0
 
-            # Gross pay
-            if salary > 0:
-                gross_pay = monthly_salary
-            else:
-                gross_pay = regular_wage + ot_wage + tips
+                for week, hours in weekly_hours.items():
+                    total_hours += hours
+                    week_regular = min(hours, 40)
+                    week_ot = max(hours - 40, 0)
+                    regular_hours += week_regular
+                    ot_hours += week_ot
 
-            employee_payroll = {
-                'employee_id': emp_dict['id'],
-                'employee_name': f"{emp_dict['first_name']} {emp_dict['last_name']}",
-                'position': emp_dict['position'],
-                'job_classification': emp_dict['job_classification'] or 'Other',
-                'hourly_rate': hourly_rate,
-                'total_hours': round(total_hours, 2),
-                'regular_hours': round(regular_hours, 2),
-                'regular_wage': regular_wage,
-                'ot_hours': round(ot_hours, 2),
-                'ot_wage': ot_wage,
-                'tips': round(tips, 2),
-                'salary': round(monthly_salary, 2),
-                'gross_pay': round(gross_pay, 2),
-                'email': emp_dict['email'],
-                'bank_account': emp_dict['bank_account_number'],
-                'bank_routing': emp_dict['bank_routing_number'],
-                'employment_type': emp_dict['employment_type']
-            }
+                # Calculate wages
+                regular_wage = round(regular_hours * hourly_rate, 2)
+                ot_wage = round(ot_hours * hourly_rate * 1.5, 2)
+                tips = total_tips if emp_dict['receives_tips'] else 0
 
-            payroll_data.append(employee_payroll)
+                # For salaried employees, calculate monthly salary
+                monthly_salary = 0
+                if salary > 0:
+                    weeks_in_month = len(weekly_hours) if weekly_hours else 4
+                    monthly_salary = salary * (weeks_in_month / 1)
 
-            # Update totals
-            totals['total_hours'] += total_hours
-            totals['regular_hours'] += regular_hours
-            totals['ot_hours'] += ot_hours
-            totals['regular_wages'] += regular_wage
-            totals['ot_wages'] += ot_wage
-            totals['tips'] += tips
-            totals['salary'] += monthly_salary
-            totals['gross_pay'] += gross_pay
+                # Gross pay
+                if salary > 0:
+                    gross_pay = monthly_salary
+                else:
+                    gross_pay = regular_wage + ot_wage + tips
+
+                employee_payroll = {
+                    'employee_id': emp_dict['id'],
+                    'employee_name': f"{emp_dict['first_name']} {emp_dict['last_name']}",
+                    'position': emp_dict['position'],
+                    'job_classification': emp_dict['job_classification'] or 'Other',
+                    'hourly_rate': hourly_rate,
+                    'total_hours': round(total_hours, 2),
+                    'regular_hours': round(regular_hours, 2),
+                    'regular_wage': regular_wage,
+                    'ot_hours': round(ot_hours, 2),
+                    'ot_wage': ot_wage,
+                    'tips': round(tips, 2),
+                    'salary': round(monthly_salary, 2),
+                    'gross_pay': round(gross_pay, 2),
+                    'email': emp_dict['email'],
+                    'bank_account': emp_dict['bank_account_number'],
+                    'bank_routing': emp_dict['bank_routing_number'],
+                    'employment_type': emp_dict['employment_type']
+                }
+
+                payroll_data.append(employee_payroll)
+
+                # Update totals
+                totals['total_hours'] += total_hours
+                totals['regular_hours'] += regular_hours
+                totals['ot_hours'] += ot_hours
+                totals['regular_wages'] += regular_wage
+                totals['ot_wages'] += ot_wage
+                totals['tips'] += tips
+                totals['salary'] += monthly_salary
+                totals['gross_pay'] += gross_pay
 
         # Round totals
         for key in totals:
@@ -526,7 +978,8 @@ def get_monthly_payroll():
                 'type': 'monthly',
                 'month': month,
                 'year': year,
-                'month_name': month_name
+                'month_name': month_name,
+                'is_processed': is_processed
             },
             'employees': payroll_data,
             'totals': totals
