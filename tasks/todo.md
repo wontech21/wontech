@@ -1,4 +1,4 @@
-# WONTECH Refactoring + POS Build — Master Plan
+# WONTECH — Master Plan
 
 > Started: 2026-02-08
 > Reference: `/docs/CODEBASE_AUDIT_2026-02-08.md`, `/docs/POS_BUILD_PLAN.md`
@@ -67,6 +67,55 @@
 
 - [x] **C2. Update .gitignore** — cleaned duplicates, added backups/, data/test/, proper structure
 - [x] **C3. Consolidate documentation** — 54 root .md files organized into docs/ (guides/, deployment/, archive/), 3 stray scripts moved to scripts/
+
+## Track D — Voice AI
+
+- [x] **D1. Voice AI core** — OpenAI Realtime API via WebRTC
+  - [x] Backend: `routes/voice_routes.py` — ephemeral session creation, 12 function-calling tools (sales, inventory, suppliers, invoices, employees, schedules, attendance, payroll, analytics, POS, menu, ad-hoc SQL)
+  - [x] Frontend: `static/js/voice-ai.js` — WebRTC peer connection, data channel message handler, function call routing (ROUTES lookup table), data visualization renderer (5 patterns: SQL tables, ranked lists, array tables, object arrays, flat stats)
+  - [x] CSS: `static/css/voice-ai.css` — full-screen immersive dark glass panel, 16-bar glowing waveform, entrance animation, responsive
+  - [x] HTML: Voice AI panel + mic button injected into `dashboard.html` and `dashboard_home.html` (admin-only)
+  - [x] `app.py` + `routes/__init__.py` — registered voice blueprint
+
+- [x] **D2. Full-screen chat experience** — ChatGPT-style immersive voice mode
+  - [x] Panel: `inset: 0`, dark glass background (`rgba(10,10,15,0.95)`), heavy backdrop-blur
+  - [x] Waveform: 16 bars, 80px tall, theme-colored glow, symmetrical animation delays
+  - [x] Typography: AI response 18px white, user transcript 14px dim italic
+  - [x] Data viz: dark-mode glass cards, white values, theme accents, staggered animations
+  - [x] Escape key to close, body scroll lock
+  - [x] Entrance animation: `translateY(40px) scale(0.95)` → normal, origin bottom-right
+
+- [x] **D3. Data viz polish**
+  - [x] HEADER_MAP: 70+ backend keys → polished display labels (prettifyHeader)
+  - [x] BADGE_MAP: collection names → human-friendly labels (prettifyBadge)
+  - [x] Bigger stat cards (28px values, 150px min-width), ranked list rows (15px), tables (14px, bordered container)
+  - [x] Fix: data viz persists when interrupting AI with another voice prompt (only clear text on speech_started, not data)
+
+- [x] **D4. Date awareness + payroll fix**
+  - [x] `_get_data_date_ranges()` queries min/max dates from attendance, payroll, sales, invoices
+  - [x] DATA AVAILABILITY section injected into system prompt
+  - [x] `get_available_years()` fixed to UNION attendance + payroll_history, always includes current + previous year
+
+- [x] **D5. System prompt optimization**
+  - [x] Schema whitelist: 22 essential tables (down from 47) — prompt reduced from ~11K to ~6.2K chars
+  - [x] Trimmed verbose instructions → concise 2-sentence format
+  - [x] `truncateResult()` in JS: caps function call output at 4K chars, slices arrays to 20 items before sending back to Realtime API (full data still renders locally)
+
+- [ ] **D6. Voice AI write actions** — let AI execute functions (clock in, approve PTO, 86 items, etc.)
+  - Plan documented in `/docs/VOICE_AI_ACTIONS_PLAN.md`
+  - 7 action tools, ~20 action types
+  - Verbal confirmation required before every write
+  - Centralized `POST /api/voice/action` endpoint
+
+## Track E — Data
+
+- [x] **E1. Historical data simulation** — `scripts/simulate_historical_data.py`
+  - [x] 94,992 sales records (Jan 1 - Oct 24, 2025) with seasonality, DOW patterns, 3% monthly growth
+  - [x] 372 invoices + 926 line items (Jan 2 - Oct 27, 2025) matching supplier delivery cadences
+  - [x] 2,916 attendance records (Jan 1, 2025 - Jan 24, 2026) with department-specific scheduling
+  - [x] 120 payroll records (Jan-Dec 2025, 10 employees × 12 months)
+  - [x] Employee hire dates backdated to 2024
+  - [x] Database backed up before running (`org_1.db.bak`)
 
 ## Track A (continued) — Frontend
 

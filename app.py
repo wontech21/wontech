@@ -27,7 +27,7 @@ from routes import (
     admin_bp, employee_bp, pos_bp,
     auth_bp, portal_bp, attendance_bp,
     employee_mgmt_bp, inventory_app_bp, analytics_app_bp,
-    storefront_bp, menu_admin_bp,
+    storefront_bp, menu_admin_bp, voice_bp,
 )
 from routes.schedule_routes import schedule_bp
 from routes.payroll_routes import payroll_bp
@@ -107,6 +107,7 @@ app.register_blueprint(inventory_app_bp)
 app.register_blueprint(analytics_app_bp)
 app.register_blueprint(storefront_bp)
 app.register_blueprint(menu_admin_bp)
+app.register_blueprint(voice_bp)
 
 # Register legacy route modules (old register_* pattern)
 register_crud_routes(app)

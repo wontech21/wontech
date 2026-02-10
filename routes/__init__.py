@@ -13,10 +13,11 @@ from .inventory_app_routes import inventory_app_bp
 from .analytics_app_routes import analytics_app_bp
 from .storefront_routes import storefront_bp
 from .menu_admin_routes import menu_admin_bp
+from .voice_routes import voice_bp
 
 __all__ = [
     'admin_bp', 'employee_bp', 'pos_bp',
     'auth_bp', 'portal_bp', 'attendance_bp',
     'employee_mgmt_bp', 'inventory_app_bp', 'analytics_app_bp',
-    'storefront_bp', 'menu_admin_bp',
+    'storefront_bp', 'menu_admin_bp', 'voice_bp',
 ]

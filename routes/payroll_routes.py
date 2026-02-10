@@ -739,19 +739,37 @@ def get_available_weeks():
 @login_required
 @organization_required
 def get_available_years():
-    """Get list of years that have attendance data"""
+    """Get list of years that have attendance or payroll data."""
+    from datetime import datetime
     conn = get_org_db()
     cursor = conn.cursor()
 
     try:
+        # Check both attendance and payroll_history tables
         cursor.execute("""
-            SELECT DISTINCT strftime('%Y', clock_in) as year
-            FROM attendance
-            WHERE organization_id = ?
+            SELECT DISTINCT year FROM (
+                SELECT strftime('%Y', clock_in) as year
+                FROM attendance
+                WHERE organization_id = ?
+                UNION
+                SELECT strftime('%Y', pay_period_start) as year
+                FROM payroll_history
+                WHERE organization_id = ?
+            )
+            WHERE year IS NOT NULL
             ORDER BY year DESC
-        """, (g.organization['id'],))
+        """, (g.organization['id'], g.organization['id']))
 
-        years = [row['year'] for row in cursor.fetchall() if row['year']]
+        years = [row['year'] for row in cursor.fetchall()]
+
+        # Always include current year and previous year
+        current_year = str(datetime.now().year)
+        prev_year = str(int(current_year) - 1)
+        for y in [current_year, prev_year]:
+            if y not in years:
+                years.append(y)
+        years.sort(reverse=True)
+
         conn.close()
 
         return jsonify({
