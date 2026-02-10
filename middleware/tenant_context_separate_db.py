@@ -114,6 +114,46 @@ def get_organization_by_slug(slug):
 
     return dict(row)
 
+
+def get_organization_full(org_id):
+    """Get full organization record (all columns) for storefront rendering."""
+    if not org_id:
+        return None
+
+    conn = get_master_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM organizations WHERE id = ? AND active = 1", (org_id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row:
+        return None
+
+    return dict(row)
+
+
+def get_organization_by_custom_domain(domain):
+    """Get organization by custom domain from master database."""
+    if not domain:
+        return None
+
+    conn = get_master_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT * FROM organizations
+            WHERE custom_domain = ? AND active = 1
+        """, (domain,))
+        row = cursor.fetchone()
+    except Exception:
+        row = None
+    conn.close()
+
+    if not row:
+        return None
+
+    return dict(row)
+
 def get_subdomain_from_host(host):
     """Extract subdomain from hostname"""
     if 'localhost' in host or '127.0.0.1' in host:
@@ -157,23 +197,67 @@ def user_has_permission(user, required_permission):
 
     return False
 
+def _resolve_storefront():
+    """
+    Resolve storefront org from custom domain (Host header) or /s/<slug>/ path.
+    Sets g.storefront_org and g.storefront_db_path if a storefront is detected.
+    Independent of user auth — works for anonymous visitors.
+    """
+    g.storefront_org = None
+    g.storefront_db_path = None
+
+    host = request.host.split(':')[0]  # Strip port
+    path = request.path
+
+    # 1. Check custom domain
+    org = get_organization_by_custom_domain(host)
+    if org and org.get('website_enabled'):
+        g.storefront_org = org
+        from db_manager import get_org_db_path
+        g.storefront_db_path = get_org_db_path(org['id'])
+        return
+
+    # 2. Check /s/<slug>/ path
+    if path.startswith('/s/'):
+        parts = path.split('/')
+        if len(parts) >= 3 and parts[2]:
+            slug = parts[2]
+            org_basic = get_organization_by_slug(slug)
+            if org_basic:
+                org = get_organization_full(org_basic['id'])
+                if org and org.get('website_enabled'):
+                    g.storefront_org = org
+                    from db_manager import get_org_db_path
+                    g.storefront_db_path = get_org_db_path(org['id'])
+
+
 def set_tenant_context():
     """
     Called before EVERY request
     Sets g.user, g.organization, and g.org_db_path
+    Also resolves g.storefront_org and g.storefront_db_path for public storefront routes.
     """
+    # Resolve storefront FIRST (works for unauthenticated visitors)
+    _resolve_storefront()
+
     user = get_current_user()
 
     # Check for clock terminal session (employee code login)
     if not user and 'clock_employee_id' in session and 'clock_org_id' in session:
-        # Set minimal context for clock terminal
-        g.user = None
+        # Set context for clock terminal with employee info
+        org_id = session.get('clock_org_id') or session.get('organization_id')
+        g.user = {
+            'id': session.get('clock_employee_id'),
+            'first_name': session.get('clock_employee_name', '').split()[0] if session.get('clock_employee_name') else '',
+            'last_name': ' '.join(session.get('clock_employee_name', '').split()[1:]) if session.get('clock_employee_name') else '',
+            'role': 'employee',
+            'organization_id': org_id
+        }
         g.is_super_admin = False
         g.is_organization_admin = False
         g.is_employee = True
 
         # Set organization from clock terminal session
-        org_id = session.get('clock_org_id')
         g.organization = get_organization_by_id(org_id)
 
         if g.organization:
@@ -279,7 +363,7 @@ def login_required(f):
         if not hasattr(g, 'user') or not g.user:
             if request.is_json:
                 return jsonify({'error': 'Authentication required'}), 401
-            return redirect(url_for('login', next=request.url))
+            return redirect(url_for('auth.login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -290,7 +374,7 @@ def super_admin_required(f):
         if not hasattr(g, 'user') or not g.user:
             if request.is_json:
                 return jsonify({'error': 'Authentication required'}), 401
-            return redirect(url_for('login'))
+            return redirect(url_for('auth.login'))
 
         if not g.is_super_admin:
             if request.is_json:
@@ -318,7 +402,7 @@ def organization_admin_required(f):
         if not hasattr(g, 'user') or not g.user:
             if request.is_json:
                 return jsonify({'error': 'Authentication required'}), 401
-            return redirect(url_for('login'))
+            return redirect(url_for('auth.login'))
 
         if not (g.is_super_admin or g.is_organization_admin):
             if request.is_json:
@@ -336,7 +420,7 @@ def permission_required(permission):
             if not hasattr(g, 'user') or not g.user:
                 if request.is_json:
                     return jsonify({'error': 'Authentication required'}), 401
-                return redirect(url_for('login'))
+                return redirect(url_for('auth.login'))
 
             if not user_has_permission(g.user, permission):
                 if request.is_json:

@@ -1,4 +1,4 @@
-# FIRINGup Inventory Management System
+# WONTECH Business Management Platform
 # Python Dependencies
 
 # Core Framework

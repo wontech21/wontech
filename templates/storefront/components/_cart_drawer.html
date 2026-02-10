@@ -1,0 +1,42 @@
+<!-- Cart Overlay -->
+<div class="sf-cart-overlay" id="sfCartOverlay" onclick="SF.toggleCart()"></div>
+
+<!-- Cart Drawer -->
+<aside class="sf-cart" id="sfCart">
+    <div class="sf-cart__header">
+        <h2 class="sf-cart__title">Your Cart</h2>
+        <button class="sf-cart__close" onclick="SF.toggleCart()" aria-label="Close cart">&times;</button>
+    </div>
+
+    <div class="sf-cart__body" id="sfCartBody">
+        <!-- Cart items rendered by JS -->
+        <div class="sf-cart__empty" id="sfCartEmpty">
+            <p>Your cart is empty</p>
+            <a href="#" onclick="SF.toggleCart(); return false;" class="sf-btn sf-btn--outline sf-btn--sm">Browse Menu</a>
+        </div>
+    </div>
+
+    <div class="sf-cart__footer" id="sfCartFooter" style="display:none;">
+        <div class="sf-cart__totals">
+            <div class="sf-cart__total-row">
+                <span>Subtotal</span>
+                <span id="sfCartSubtotal">$0.00</span>
+            </div>
+            <div class="sf-cart__total-row sf-cart__total-row--tax">
+                <span>Tax</span>
+                <span id="sfCartTax">$0.00</span>
+            </div>
+            <div class="sf-cart__total-row sf-cart__total-row--delivery" id="sfCartDeliveryRow" style="display:none;">
+                <span>Delivery Fee</span>
+                <span id="sfCartDeliveryFee">$0.00</span>
+            </div>
+            <div class="sf-cart__total-row sf-cart__total-row--grand">
+                <span>Total</span>
+                <span id="sfCartTotal">$0.00</span>
+            </div>
+        </div>
+        <button class="sf-btn sf-btn--primary sf-btn--block sf-btn--lg" id="sfCheckoutBtn" onclick="SFCheckout.show()">
+            Proceed to Checkout
+        </button>
+    </div>
+</aside>

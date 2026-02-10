@@ -1,7 +1,7 @@
 #!/bin/bash
 # Production startup script for Render.com
 
-echo "🔥 Starting FIRINGup Inventory System..."
+echo "Starting WONTECH Business Management Platform..."
 
 # Run database migrations
 echo "📦 Running database migrations..."

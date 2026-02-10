@@ -104,7 +104,7 @@
 
         .section-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 30px;
             margin-bottom: 40px;
         }
@@ -244,7 +244,7 @@
             box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 960px) {
             .section-cards {
                 grid-template-columns: 1fr;
             }
@@ -271,7 +271,7 @@
                 <span>🔥</span>
             </div>
             {% endif %}
-            <h1 class="landing-title" style="font-weight: 700;">Firing Up Data Center</h1>
+            <h1 class="landing-title" style="font-weight: 700;">{{ g.organization.organization_name }} Data Center</h1>
         </div>
 
         <div class="section-cards">
@@ -348,8 +348,7 @@
             </div>
 
             <!-- POS Card -->
-            <div class="section-card" onclick="window.location.href='/dashboard/pos'" style="position: relative;">
-                <div class="coming-soon-badge">Coming Soon</div>
+            <div class="section-card" onclick="window.location.href='/dashboard/pos'">
                 <span class="section-icon">🛒</span>
                 <h2 class="section-title">Point of Sale</h2>
                 <p class="section-description">
@@ -366,20 +365,56 @@
 
                 <div class="section-stats">
                     <div class="stat-item">
-                        <div class="stat-value">-</div>
+                        <div class="stat-value" id="statPosToday">-</div>
                         <div class="stat-label">Today Sales</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">-</div>
+                        <div class="stat-value" id="statPosOrders">-</div>
                         <div class="stat-label">Orders</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">-</div>
+                        <div class="stat-value" id="statPosAvg">-</div>
                         <div class="stat-label">Avg Order</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">-</div>
+                        <div class="stat-value" id="statPosItems">-</div>
                         <div class="stat-label">Items Sold</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kitchen Display Card -->
+            <div class="section-card" onclick="window.location.href='/dashboard/kitchen'">
+                <span class="section-icon">🍳</span>
+                <h2 class="section-title">Kitchen Display</h2>
+                <p class="section-description">
+                    Real-time kitchen order management. Track incoming orders and coordinate preparation flow.
+                </p>
+
+                <ul class="feature-list">
+                    <li>Live Order Queue</li>
+                    <li>Status Tracking</li>
+                    <li>Elapsed Time Alerts</li>
+                    <li>Order Type Indicators</li>
+                    <li>One-Tap Status Updates</li>
+                </ul>
+
+                <div class="section-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="statKdsPending">-</div>
+                        <div class="stat-label">Pending</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statKdsPreparing">-</div>
+                        <div class="stat-label">Preparing</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statKdsReady">-</div>
+                        <div class="stat-label">Ready</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statKdsTotal">-</div>
+                        <div class="stat-label">Today Total</div>
                     </div>
                 </div>
             </div>
@@ -455,6 +490,26 @@
             }
         }
 
+        // Load stats for kitchen display
+        async function loadKitchenStats() {
+            try {
+                const res = await fetch('/api/pos/kitchen');
+                const data = await res.json();
+                if (data.success) {
+                    const orders = data.orders || [];
+                    const pending = orders.filter(o => o.status === 'confirmed').length;
+                    const preparing = orders.filter(o => o.status === 'preparing').length;
+                    const ready = orders.filter(o => o.status === 'ready').length;
+                    document.getElementById('statKdsPending').textContent = pending;
+                    document.getElementById('statKdsPreparing').textContent = preparing;
+                    document.getElementById('statKdsReady').textContent = ready;
+                    document.getElementById('statKdsTotal').textContent = orders.length;
+                }
+            } catch (err) {
+                console.error('Error loading kitchen stats:', err);
+            }
+        }
+
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
                 window.location.href = '/logout';
@@ -464,6 +519,7 @@
         // Load all stats
         loadInventoryStats();
         loadAttendanceStats();
+        loadKitchenStats();
     </script>
 </body>
 </html>

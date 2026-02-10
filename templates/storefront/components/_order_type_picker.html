@@ -1,0 +1,33 @@
+<div class="sf-order-type" id="sfOrderType">
+    <h2 class="sf-order-type__title">How would you like your order?</h2>
+    <div class="sf-order-type__options">
+        {% if org.pickup_enabled %}
+        <button class="sf-order-type__card sf-order-type__card--active" data-type="pickup" onclick="SF.setOrderType('pickup')">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+            </svg>
+            <span class="sf-order-type__label">Pickup</span>
+            <span class="sf-order-type__time">~{{ org.estimated_pickup_minutes or 20 }} min</span>
+        </button>
+        {% endif %}
+        {% if org.delivery_enabled %}
+        <button class="sf-order-type__card" data-type="delivery" onclick="SF.setOrderType('delivery')">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"/>
+                <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+            </svg>
+            <span class="sf-order-type__label">Delivery</span>
+            <span class="sf-order-type__time">~{{ org.estimated_delivery_minutes or 45 }} min</span>
+        </button>
+        {% endif %}
+        {% if org.dinein_enabled %}
+        <button class="sf-order-type__card" data-type="dine_in" onclick="SF.setOrderType('dine_in')">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M3 2l1 18h16l1-18M9 2v4a3 3 0 006 0V2"/>
+            </svg>
+            <span class="sf-order-type__label">Dine In</span>
+            <span class="sf-order-type__time">Order ahead</span>
+        </button>
+        {% endif %}
+    </div>
+</div>

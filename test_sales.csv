@@ -1,6 +1,0 @@
-product_code,product_name,quantity_sold,sale_date,sale_price
-PIZZA-CHZ-S,"Cheese Pizza - Small (10"")",2,2026-01-19,9.99
-PIZZA-CHZ-M,"Cheese Pizza - Medium (14"")",5,2026-01-19,13.99
-PIZZA-CHZ-L,"Cheese Pizza - Large (16"")",3,2026-01-19,16.99
-PIZZA-PEP-M,"Pepperoni Pizza - Medium (14"")",4,2026-01-19,15.99
-PIZZA-SUP-L,"Supreme Pizza - Large (16"")",2,2026-01-19,20.99

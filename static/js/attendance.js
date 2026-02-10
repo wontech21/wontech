@@ -96,12 +96,13 @@ function filterAndDisplayAttendance() {
     }
 
     // Filter by date range
+    // Note: Use local date extraction to avoid UTC timezone shifts
     if (dateFrom) {
         filtered = filtered.filter(record => {
             if (!record.clock_in) return false;
-            // Convert SQL format to ISO if needed
-            const isoString = record.clock_in.replace(' ', 'T');
-            const recordDate = new Date(isoString).toISOString().split('T')[0];
+            // Extract date portion directly from SQL datetime string (YYYY-MM-DD HH:MM:SS)
+            // This avoids timezone conversion issues
+            const recordDate = record.clock_in.split(' ')[0];
             return recordDate >= dateFrom;
         });
     }
@@ -109,9 +110,8 @@ function filterAndDisplayAttendance() {
     if (dateTo) {
         filtered = filtered.filter(record => {
             if (!record.clock_in) return false;
-            // Convert SQL format to ISO if needed
-            const isoString = record.clock_in.replace(' ', 'T');
-            const recordDate = new Date(isoString).toISOString().split('T')[0];
+            // Extract date portion directly from SQL datetime string
+            const recordDate = record.clock_in.split(' ')[0];
             return recordDate <= dateTo;
         });
     }

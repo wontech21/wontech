@@ -10,7 +10,7 @@ Before deploying, create these icon files:
 ## Options to Create
 
 ### Option 1: Use Your Logo
-- Export your FIRINGup logo at 192x192 and 512x512
+- Export your WONTECH logo at 192x192 and 512x512
 - Transparent background recommended
 - PNG format
 
@@ -59,7 +59,7 @@ convert -size 512x512 xc:"#6f42c1" \
 
 ## After Creating Icons
 
-Place in `/Users/dell/FIRINGup/static/`:
+Place in `/Users/dell/WONTECH/static/`:
 - icon-192.png
 - icon-512.png
 

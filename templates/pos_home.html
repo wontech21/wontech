@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ g.organization.organization_name }} - POS Terminal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background: var(--theme-gradient);
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .landing-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            white-space: nowrap;
+            z-index: 100;
+            text-decoration: none;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .back-btn:active {
+            transform: translateY(0);
+        }
+
+        .landing-header {
+            text-align: center;
+            color: white;
+            padding: 60px 20px 40px 20px;
+            margin-bottom: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .landing-logo {
+            height: 120px;
+            width: 120px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 4px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .landing-logo-placeholder {
+            height: 120px;
+            width: 120px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 4px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+
+        .landing-title {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .section-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .section-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .section-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .section-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+            border-color: rgba(102, 126, 234, 0.8);
+        }
+
+        .section-card:active {
+            transform: translateY(-4px);
+        }
+
+        .section-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            display: block;
+            animation: float 1.5s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .section-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+
+        .section-description {
+            font-size: 16px;
+            color: #6b7280;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .section-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 2px solid #f3f4f6;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #9ca3af;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0 0 0;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            color: #4b5563;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-list li::before {
+            content: '\2713';
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 960px) {
+            .section-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .landing-title {
+                font-size: 36px;
+            }
+
+            .section-card {
+                padding: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="landing-container">
+        <a href="/dashboard" class="back-btn">&larr; Back to Data Center</a>
+
+        <div class="landing-header">
+            {% if g.organization.logo_url %}
+            <img src="{{ g.organization.logo_url }}" alt="{{ g.organization.organization_name }} Logo" class="landing-logo">
+            {% else %}
+            <div class="landing-logo-placeholder">
+                <span>🛒</span>
+            </div>
+            {% endif %}
+            <h1 class="landing-title" style="font-weight: 700;">POS Terminal</h1>
+        </div>
+
+        <div class="section-cards">
+            <!-- Register Card -->
+            <div class="section-card" onclick="window.location.href='/dashboard/pos/register'">
+                <span class="section-icon">🖥️</span>
+                <h2 class="section-title">Register</h2>
+                <p class="section-description">
+                    Ring up orders, process payments, and manage your active register session.
+                </p>
+
+                <ul class="feature-list">
+                    <li>Quick Order Entry</li>
+                    <li>Product Grid</li>
+                    <li>Payment Processing</li>
+                    <li>Order Types</li>
+                    <li>Employee Auth</li>
+                </ul>
+
+                <div class="section-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="statTodaySales">-</div>
+                        <div class="stat-label">Today Sales</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statOrders">-</div>
+                        <div class="stat-label">Orders</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statAvgOrder">-</div>
+                        <div class="stat-label">Avg Order</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statItemsSold">-</div>
+                        <div class="stat-label">Items Sold</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders Card -->
+            <div class="section-card" onclick="window.location.href='/dashboard/pos/orders'">
+                <span class="section-icon">📜</span>
+                <h2 class="section-title">Orders</h2>
+                <p class="section-description">
+                    View order history, search and filter past orders, export data, and manage voids.
+                </p>
+
+                <ul class="feature-list">
+                    <li>Order History</li>
+                    <li>Search & Filter</li>
+                    <li>Export CSV</li>
+                    <li>Void Orders</li>
+                    <li>Type Breakdown</li>
+                </ul>
+
+                <div class="section-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="statOrdersToday">-</div>
+                        <div class="stat-label">Orders Today</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statRevenue">-</div>
+                        <div class="stat-label">Revenue</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statDineIn">-</div>
+                        <div class="stat-label">Dine In</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statPickupDelivery">-</div>
+                        <div class="stat-label">Pickup/Delivery</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Card -->
+            <div class="section-card" onclick="window.location.href='/dashboard/pos/settings'">
+                <span class="section-icon">⚙️</span>
+                <h2 class="section-title">Settings</h2>
+                <p class="section-description">
+                    Configure tax rates, delivery zones, business hours, 86 groups, and register management.
+                </p>
+
+                <ul class="feature-list">
+                    <li>Tax Configuration</li>
+                    <li>Delivery Zones</li>
+                    <li>Business Hours</li>
+                    <li>86 Groups</li>
+                    <li>Register Management</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load POS stats from server or localStorage
+        async function loadPosStats() {
+            let orders = [];
+
+            // Try server first
+            try {
+                const response = await fetch('/api/pos/orders');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.orders) {
+                        orders = data.orders.map(o => ({
+                            total: o.total || 0,
+                            itemCount: o.item_count || 0,
+                            type: o.order_type || 'dine-in',
+                            status: o.status
+                        }));
+                    }
+                } else {
+                    throw new Error('Server unavailable');
+                }
+            } catch (e) {
+                // Fall back to localStorage
+                const saved = localStorage.getItem('posOrderHistory');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    const today = new Date().toDateString();
+                    if (data.date === today) {
+                        orders = (data.orders || []).map(o => ({
+                            total: o.total || 0,
+                            itemCount: o.itemCount || 0,
+                            type: o.type || 'dine-in',
+                            status: o.status
+                        }));
+                    }
+                }
+            }
+
+            // Filter out voided orders for stats
+            const activeOrders = orders.filter(o => o.status !== 'voided');
+
+            const totalSales = activeOrders.reduce((sum, o) => sum + o.total, 0);
+            const totalOrders = activeOrders.length;
+            const avgOrder = totalOrders > 0 ? totalSales / totalOrders : 0;
+            const totalItems = activeOrders.reduce((sum, o) => sum + (o.itemCount || 0), 0);
+            const dineInCount = activeOrders.filter(o => o.type === 'dine-in').length;
+            const otherCount = activeOrders.filter(o => o.type !== 'dine-in').length;
+
+            // Register card stats
+            document.getElementById('statTodaySales').textContent = '$' + totalSales.toFixed(0);
+            document.getElementById('statOrders').textContent = totalOrders;
+            document.getElementById('statAvgOrder').textContent = '$' + avgOrder.toFixed(0);
+            document.getElementById('statItemsSold').textContent = totalItems;
+
+            // Orders card stats
+            document.getElementById('statOrdersToday').textContent = totalOrders;
+            document.getElementById('statRevenue').textContent = '$' + totalSales.toFixed(0);
+            document.getElementById('statDineIn').textContent = dineInCount;
+            document.getElementById('statPickupDelivery').textContent = otherCount;
+        }
+
+        loadPosStats();
+    </script>
+</body>
+</html>

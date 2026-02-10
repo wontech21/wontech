@@ -1,4 +1,4 @@
-# 🔥 FIRINGup Inventory Management System
+# WONTECH Business Management Platform
 
 A comprehensive restaurant inventory and sales tracking application built with Flask and vanilla JavaScript.
 
@@ -51,8 +51,8 @@ A comprehensive restaurant inventory and sales tracking application built with F
 
 ```bash
 # Clone the repository
-git clone https://github.com/wontech21/firingup-inventory.git
-cd firingup-inventory
+git clone https://github.com/wontech21/wontech.git
+cd wontech
 
 # Create virtual environment
 python3 -m venv venv
@@ -83,7 +83,7 @@ docker-compose down
 ## Project Structure
 
 ```
-FIRINGup/
+WONTECH/
 ├── app.py                      # Main Flask application
 ├── crud_operations.py          # CRUD API endpoints
 ├── sales_operations.py         # Sales processing logic

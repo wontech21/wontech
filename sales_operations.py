@@ -13,28 +13,126 @@ from datetime import datetime
 from db_manager import get_org_db
 
 
-def register_sales_routes(app, get_db_connection=None, INVENTORY_DB=None):
-    """Register all sales processing routes (multi-tenant enabled)"""
+def record_sales_to_db(cursor, sales_data, sale_date, sale_time='', request_ip='System'):
+    """
+    Record sales to sales_history, deduct ingredients, write audit log.
+    Caller owns the transaction — this does NOT commit or close.
 
-    def log_audit(action_type, entity_type, entity_reference, details, timestamp=None):
-        """Log action to audit_log table"""
-        conn = get_org_db()
-        cursor = conn.cursor()
+    Args:
+        cursor: An already-open DB cursor (with row_factory set)
+        sales_data: List of dicts with product_name, quantity, retail_price (optional), sale_time (optional)
+        sale_date: Date string 'YYYY-MM-DD'
+        sale_time: Default time if individual items don't specify one
+        request_ip: IP address for audit log
+
+    Returns:
+        dict with applied_count, total_revenue, total_cost, total_profit
+    """
+    applied_count = 0
+    total_revenue = 0
+    total_cost = 0
+
+    for sale in sales_data:
+        product_name = sale.get('product_name', '').strip()
+        quantity_sold = float(sale.get('quantity', 0))
+        item_sale_time = sale.get('sale_time', sale_time)
+        retail_price = sale.get('retail_price')
+
+        if not product_name or quantity_sold <= 0:
+            continue
+
+        # Find product
+        cursor.execute("""
+            SELECT id, product_name, selling_price
+            FROM products
+            WHERE LOWER(product_name) = LOWER(?)
+        """, (product_name,))
+        product = cursor.fetchone()
+
+        if not product:
+            continue
+
+        product_id = product['id']
+        original_price = float(product['selling_price'])
+        actual_retail_price = retail_price if retail_price is not None else original_price
+        actual_revenue = actual_retail_price * quantity_sold
+        sale_price = actual_retail_price
+        discount_amount = (original_price - sale_price) * quantity_sold
+        discount_percent = ((original_price - sale_price) / original_price * 100) if original_price > 0 else 0
+
+        # Get recipe and deduct ingredients
+        cursor.execute("""
+            SELECT r.ingredient_id, r.quantity_needed, i.unit_cost
+            FROM recipes r
+            JOIN ingredients i ON r.ingredient_id = i.id
+            WHERE r.product_id = ?
+        """, (product_id,))
+        recipe = cursor.fetchall()
+
+        product_cost = 0
+        for ingredient in recipe:
+            quantity_needed = ingredient['quantity_needed'] * quantity_sold
+            ingredient_cost = ingredient['unit_cost'] * quantity_needed
+            product_cost += ingredient_cost
+
+            cursor.execute("""
+                UPDATE ingredients
+                SET quantity_on_hand = quantity_on_hand - ?,
+                    last_updated = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (quantity_needed, ingredient['ingredient_id']))
+
+        # Record sale in history
+        gross_profit = actual_revenue - product_cost
+
+        cursor.execute("""
+            INSERT INTO sales_history (
+                sale_date, sale_time, product_id, product_name, quantity_sold,
+                revenue, cost_of_goods, gross_profit,
+                original_price, sale_price, discount_amount, discount_percent
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            sale_date, item_sale_time, product_id, product['product_name'],
+            quantity_sold, actual_revenue, product_cost, gross_profit,
+            original_price, sale_price, discount_amount, discount_percent
+        ))
+
+        applied_count += 1
+        total_revenue += actual_revenue
+        total_cost += product_cost
+
+        # Build audit log
+        cursor.execute("""
+            SELECT r.ingredient_id, r.quantity_needed, r.unit_of_measure, i.ingredient_name
+            FROM recipes r
+            JOIN ingredients i ON r.ingredient_id = i.id
+            WHERE r.product_id = ?
+        """, (product_id,))
+        recipe_for_audit = cursor.fetchall()
+        deductions = []
+        for ing in recipe_for_audit:
+            deduction_qty = ing['quantity_needed'] * quantity_sold
+            deductions.append(f"{ing['ingredient_name']}: -{deduction_qty:.2f} {ing['unit_of_measure']}")
+
+        audit_timestamp = f"{sale_date} {item_sale_time}" if item_sale_time else f"{sale_date} 00:00:00"
+        details = f"Sold {quantity_sold} x {product['product_name']}. Deductions: {'; '.join(deductions) if deductions else 'No recipe'}"
+
         cursor.execute("""
             INSERT INTO audit_log
             (timestamp, action_type, entity_type, entity_reference, details, user, ip_address)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            timestamp or datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            action_type,
-            entity_type,
-            entity_reference,
-            details,
-            request.remote_addr or 'System',
-            request.remote_addr or 'localhost'
-        ))
-        conn.commit()
-        conn.close()
+            VALUES (?, 'SALE_RECORDED', 'product', ?, ?, ?, ?)
+        """, (audit_timestamp, product['product_name'], details, request_ip, request_ip))
+
+    return {
+        'applied_count': applied_count,
+        'total_revenue': round(total_revenue, 2),
+        'total_cost': round(total_cost, 2),
+        'total_profit': round(total_revenue - total_cost, 2)
+    }
+
+
+def register_sales_routes(app, get_db_connection=None, INVENTORY_DB=None):
+    """Register all sales processing routes (multi-tenant enabled)"""
 
     @app.route('/api/sales/preview', methods=['POST'])
     def preview_sales():
@@ -198,147 +296,21 @@ def register_sales_routes(app, get_db_connection=None, INVENTORY_DB=None):
             conn = get_org_db()
             cursor = conn.cursor()
 
-            applied_count = 0
-            total_revenue = 0
-            total_cost = 0
-
-            for sale in sales_data:
-                product_name = sale.get('product_name', '').strip()
-                quantity_sold = float(sale.get('quantity', 0))
-                # Use individual sale time if provided, otherwise use global time
-                item_sale_time = sale.get('sale_time', sale_time)
-                retail_price = sale.get('retail_price')
-
-                if not product_name or quantity_sold <= 0:
-                    continue
-
-                # Find product
-                cursor.execute("""
-                    SELECT id, product_name, selling_price
-                    FROM products
-                    WHERE LOWER(product_name) = LOWER(?)
-                """, (product_name,))
-                product = cursor.fetchone()
-
-                if not product:
-                    continue  # Skip unmatched products
-
-                product_id = product['id']
-                original_price = float(product['selling_price'])
-
-                # Use retail_price if provided, otherwise use database price
-                actual_retail_price = retail_price if retail_price is not None else original_price
-
-                # Revenue = retail_price × quantity
-                actual_revenue = actual_retail_price * quantity_sold
-
-                # Sale price is the retail price
-                sale_price = actual_retail_price
-
-                # Calculate discount info (if sale price differs from database price)
-                discount_amount = (original_price - sale_price) * quantity_sold
-                discount_percent = ((original_price - sale_price) / original_price * 100) if original_price > 0 else 0
-
-                # Get recipe
-                cursor.execute("""
-                    SELECT
-                        r.ingredient_id,
-                        r.quantity_needed,
-                        i.unit_cost
-                    FROM recipes r
-                    JOIN ingredients i ON r.ingredient_id = i.id
-                    WHERE r.product_id = ?
-                """, (product_id,))
-                recipe = cursor.fetchall()
-
-                # Deduct ingredients from inventory
-                product_cost = 0
-                for ingredient in recipe:
-                    quantity_needed = ingredient['quantity_needed'] * quantity_sold
-                    ingredient_cost = ingredient['unit_cost'] * quantity_needed
-                    product_cost += ingredient_cost
-
-                    # UPDATE inventory
-                    cursor.execute("""
-                        UPDATE ingredients
-                        SET quantity_on_hand = quantity_on_hand - ?,
-                            last_updated = CURRENT_TIMESTAMP
-                        WHERE id = ?
-                    """, (quantity_needed, ingredient['ingredient_id']))
-
-                # Record sale in history
-                # Revenue = retail_price × quantity
-                gross_profit = actual_revenue - product_cost
-
-                cursor.execute("""
-                    INSERT INTO sales_history (
-                        sale_date, sale_time, product_id, product_name, quantity_sold,
-                        revenue, cost_of_goods, gross_profit,
-                        original_price, sale_price, discount_amount, discount_percent
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    sale_date,
-                    item_sale_time,
-                    product_id,
-                    product['product_name'],
-                    quantity_sold,
-                    actual_revenue,
-                    product_cost,
-                    gross_profit,
-                    original_price,
-                    sale_price,
-                    discount_amount,
-                    discount_percent
-                ))
-
-                applied_count += 1
-                total_revenue += actual_revenue
-                total_cost += product_cost
-
-                # Build ingredient deductions list for audit log
-                cursor.execute("""
-                    SELECT
-                        r.ingredient_id,
-                        r.quantity_needed,
-                        r.unit_of_measure,
-                        i.ingredient_name
-                    FROM recipes r
-                    JOIN ingredients i ON r.ingredient_id = i.id
-                    WHERE r.product_id = ?
-                """, (product_id,))
-
-                recipe_for_audit = cursor.fetchall()
-                deductions = []
-                for ing in recipe_for_audit:
-                    deduction_qty = ing['quantity_needed'] * quantity_sold
-                    deductions.append(f"{ing['ingredient_name']}: -{deduction_qty:.2f} {ing['unit_of_measure']}")
-
-                # Log to audit trail
-                audit_timestamp = f"{sale_date} {item_sale_time}" if item_sale_time else f"{sale_date} 00:00:00"
-                details = f"Sold {quantity_sold} x {product['product_name']}. Deductions: {'; '.join(deductions) if deductions else 'No recipe'}"
-
-                cursor.execute("""
-                    INSERT INTO audit_log
-                    (timestamp, action_type, entity_type, entity_reference, details, user, ip_address)
-                    VALUES (?, 'SALE_RECORDED', 'product', ?, ?, ?, ?)
-                """, (
-                    audit_timestamp,
-                    product['product_name'],
-                    details,
-                    request.remote_addr or 'System',
-                    request.remote_addr or 'localhost'
-                ))
+            result = record_sales_to_db(
+                cursor, sales_data, sale_date, sale_time,
+                request_ip=request.remote_addr or 'System'
+            )
 
             conn.commit()
 
             return jsonify({
                 'success': True,
-                'message': f'Successfully processed {applied_count} sales',
+                'message': f"Successfully processed {result['applied_count']} sales",
                 'summary': {
-                    'sales_processed': applied_count,
-                    'total_revenue': round(total_revenue, 2),
-                    'total_cost': round(total_cost, 2),
-                    'total_profit': round(total_revenue - total_cost, 2)
+                    'sales_processed': result['applied_count'],
+                    'total_revenue': result['total_revenue'],
+                    'total_cost': result['total_cost'],
+                    'total_profit': result['total_profit']
                 }
             })
 

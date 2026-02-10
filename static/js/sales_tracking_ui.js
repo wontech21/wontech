@@ -225,15 +225,23 @@ PIZZA-CHZ-L,"Cheese Pizza - Large (16")",3,${today},16.99
 PIZZA-PEP-M,"Pepperoni Pizza - Medium (14")",4,${today},15.99
 PIZZA-SUP-L,"Supreme Pizza - Large (16")",2,${today},20.99`;
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `sample_sales_${today}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    const fileName = `sample_sales_${today}.csv`;
 
-    showMessage('Sample CSV downloaded', 'success');
+    // Open share modal for email/text/download options
+    if (typeof shareCSV === 'function') {
+        shareCSV(csvContent, fileName);
+    } else {
+        // Fallback to direct download if share.js not loaded
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+
+    showMessage('Sample CSV ready', 'success');
 }

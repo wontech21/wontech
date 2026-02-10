@@ -518,12 +518,19 @@ function exportLaborAnalytics() {
     ]);
 
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const fileName = `labor_analytics_${currentLaborPeriod}_${new Date().toISOString().split('T')[0]}.csv`;
 
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `labor_analytics_${currentLaborPeriod}_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // Open share modal for email/text/download options
+    if (typeof shareCSV === 'function') {
+        shareCSV(csv, fileName);
+    } else {
+        // Fallback to direct download if share.js not loaded
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
 }

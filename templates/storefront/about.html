@@ -1,0 +1,32 @@
+{% extends 'storefront/base.html' %}
+
+{% block title %}About — {{ org.organization_name }}{% endblock %}
+
+{% block content %}
+<section class="sf-section">
+    <div class="sf-container" style="max-width: 720px;">
+        <h1 class="sf-page-title sf-text-center">About {{ org.organization_name }}</h1>
+
+        {% if org.tagline %}
+        <p class="sf-about__tagline sf-text-center">{{ org.tagline }}</p>
+        {% endif %}
+
+        {% if org.description %}
+        <div class="sf-about__body sf-mt-8">
+            <p>{{ org.description }}</p>
+        </div>
+        {% else %}
+        <div class="sf-about__body sf-mt-8 sf-text-center">
+            <p>Welcome to {{ org.organization_name }}! We're glad you're here.</p>
+        </div>
+        {% endif %}
+
+        <div class="sf-about__cta sf-text-center sf-mt-12">
+            {% if org.online_ordering_enabled %}
+            <a href="{{ '' if is_custom_domain else '/s/' + slug }}/order" class="sf-btn sf-btn--primary sf-btn--lg">Order Online</a>
+            {% endif %}
+            <a href="{{ '' if is_custom_domain else '/s/' + slug }}/contact" class="sf-btn sf-btn--outline sf-btn--lg">Contact Us</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

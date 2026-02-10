@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen Display</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #1a1a2e;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #e0e0e0;
+        }
+
+        .kds-header {
+            background: #16213e;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #0f3460;
+        }
+
+        .kds-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #e94560;
+        }
+
+        .kds-stats {
+            display: flex;
+            gap: 24px;
+            font-size: 14px;
+        }
+
+        .kds-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .kds-stat .count {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .kds-stat.pending .count { color: #f59e0b; }
+        .kds-stat.preparing .count { color: #3b82f6; }
+
+        .kds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+            padding: 20px;
+        }
+
+        .kds-card {
+            background: #16213e;
+            border-radius: 12px;
+            border-left: 5px solid #3b82f6;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .kds-card.status-confirmed { border-left-color: #f59e0b; }
+        .kds-card.status-preparing { border-left-color: #3b82f6; }
+
+        .kds-card-header {
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .kds-order-num {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .kds-order-type {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 3px 10px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .kds-order-type.dine_in { color: #10b981; }
+        .kds-order-type.pickup { color: #f59e0b; }
+        .kds-order-type.delivery { color: #ef4444; }
+
+        .kds-timer {
+            font-size: 14px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .kds-timer.green { color: #10b981; }
+        .kds-timer.yellow { color: #f59e0b; }
+        .kds-timer.red { color: #ef4444; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .kds-items {
+            padding: 12px 16px;
+        }
+
+        .kds-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 0;
+            font-size: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .kds-item:last-child { border-bottom: none; }
+
+        .kds-item-qty {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 6px;
+            min-width: 32px;
+            text-align: center;
+        }
+
+        .kds-customer {
+            padding: 8px 16px;
+            font-size: 12px;
+            color: #9ca3af;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .kds-card-footer {
+            padding: 10px 16px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .kds-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        .kds-btn:active { transform: scale(0.97); }
+
+        .kds-btn.start {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .kds-btn.start:hover { background: #2563eb; }
+
+        .kds-btn.done {
+            background: #10b981;
+            color: white;
+        }
+
+        .kds-btn.done:hover { background: #059669; }
+
+        .kds-btn.bump {
+            background: rgba(255,255,255,0.1);
+            color: #9ca3af;
+        }
+
+        .kds-empty {
+            text-align: center;
+            padding: 80px 20px;
+            color: #4b5563;
+            font-size: 18px;
+        }
+
+        .kds-empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="kds-header">
+        <div class="kds-title">Kitchen Display</div>
+        <div class="kds-stats">
+            <div class="kds-stat pending">
+                <span class="count" id="pendingCount">0</span>
+                <span>Pending</span>
+            </div>
+            <div class="kds-stat preparing">
+                <span class="count" id="preparingCount">0</span>
+                <span>Preparing</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="kds-grid" id="kdsGrid">
+        <div class="kds-empty">
+            <div class="kds-empty-icon">&#x1F373;</div>
+            <div>No active orders</div>
+        </div>
+    </div>
+
+    <script>
+        let kitchenOrders = [];
+        const POLL_INTERVAL = 5000; // 5 seconds
+
+        async function fetchOrders() {
+            try {
+                const res = await fetch('/api/pos/kitchen');
+                const data = await res.json();
+                if (data.success) {
+                    kitchenOrders = data.orders;
+                    renderOrders();
+                }
+            } catch (e) {
+                console.error('Failed to fetch kitchen orders:', e);
+            }
+        }
+
+        function renderOrders() {
+            const grid = document.getElementById('kdsGrid');
+            const pending = kitchenOrders.filter(o => o.status === 'confirmed').length;
+            const preparing = kitchenOrders.filter(o => o.status === 'preparing').length;
+
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('preparingCount').textContent = preparing;
+
+            if (kitchenOrders.length === 0) {
+                grid.innerHTML = `
+                    <div class="kds-empty">
+                        <div class="kds-empty-icon">&#x1F373;</div>
+                        <div>No active orders</div>
+                    </div>`;
+                return;
+            }
+
+            grid.innerHTML = kitchenOrders.map(order => {
+                const elapsed = getElapsedMinutes(order.created_at);
+                const timerClass = elapsed < 10 ? 'green' : elapsed < 20 ? 'yellow' : 'red';
+                const timerText = formatTimer(elapsed);
+                const typeClass = (order.order_type || '').replace('-', '_');
+
+                const items = (order.items || []).map(item => {
+                    const parts = item.match(/^(\d+)x (.+)$/);
+                    const qty = parts ? parts[1] : '1';
+                    const name = parts ? parts[2] : item;
+                    return `<div class="kds-item"><span class="kds-item-qty">${qty}</span>${name}</div>`;
+                }).join('');
+
+                const isConfirmed = order.status === 'confirmed';
+
+                return `
+                    <div class="kds-card status-${order.status}">
+                        <div class="kds-card-header">
+                            <div>
+                                <div class="kds-order-num">${order.order_number}</div>
+                                <span class="kds-order-type ${typeClass}">${order.order_type.replace('_', ' ')}</span>
+                            </div>
+                            <div class="kds-timer ${timerClass}">${timerText}</div>
+                        </div>
+                        <div class="kds-items">${items}</div>
+                        ${order.customer_name ? `<div class="kds-customer">${order.customer_name}${order.notes ? ' &mdash; ' + order.notes : ''}</div>` : ''}
+                        <div class="kds-card-footer">
+                            ${isConfirmed
+                                ? `<button class="kds-btn start" onclick="updateStatus(${order.id}, 'preparing')">Start</button>`
+                                : `<button class="kds-btn done" onclick="updateStatus(${order.id}, 'ready')">Done</button>`
+                            }
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function getElapsedMinutes(createdAt) {
+            const created = new Date(createdAt);
+            const now = new Date();
+            return Math.floor((now - created) / 60000);
+        }
+
+        function formatTimer(minutes) {
+            const h = Math.floor(minutes / 60);
+            const m = minutes % 60;
+            return h > 0 ? `${h}h ${m}m` : `${m}m`;
+        }
+
+        async function updateStatus(orderId, newStatus) {
+            try {
+                const res = await fetch(`/api/pos/orders/${orderId}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (res.ok) {
+                    fetchOrders(); // Refresh immediately
+                }
+            } catch (e) {
+                console.error('Failed to update order status:', e);
+            }
+        }
+
+        // Initial load + polling
+        fetchOrders();
+        setInterval(fetchOrders, POLL_INTERVAL);
+    </script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<footer class="sf-footer">
+    <div class="sf-container">
+        <div class="sf-footer__grid">
+            <div class="sf-footer__brand">
+                <h3 class="sf-footer__name">{{ org.organization_name }}</h3>
+                {% if org.tagline %}
+                <p class="sf-footer__tagline">{{ org.tagline }}</p>
+                {% endif %}
+            </div>
+            <div class="sf-footer__links">
+                <h4 class="sf-footer__heading">Quick Links</h4>
+                <a href="{{ '' if is_custom_domain else '/s/' + slug }}/menu">Menu</a>
+                {% if org.online_ordering_enabled %}
+                <a href="{{ '' if is_custom_domain else '/s/' + slug }}/order">Order Online</a>
+                {% endif %}
+                <a href="{{ '' if is_custom_domain else '/s/' + slug }}/contact">Contact</a>
+                <a href="{{ '' if is_custom_domain else '/s/' + slug }}/about">About</a>
+            </div>
+            <div class="sf-footer__contact">
+                <h4 class="sf-footer__heading">Contact</h4>
+                {% if org.phone %}
+                <a href="tel:{{ org.phone }}">{{ org.phone }}</a>
+                {% endif %}
+                {% if org.address %}
+                <p>{{ org.address }}</p>
+                {% endif %}
+                {% if org.city and org.state %}
+                <p>{{ org.city }}, {{ org.state }} {{ org.zip_code or '' }}</p>
+                {% endif %}
+            </div>
+            <div class="sf-footer__social">
+                <h4 class="sf-footer__heading">Follow Us</h4>
+                <div class="sf-footer__social-links">
+                    {% if org.facebook_url %}
+                    <a href="{{ org.facebook_url }}" target="_blank" rel="noopener" aria-label="Facebook">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
+                    </a>
+                    {% endif %}
+                    {% if org.instagram_url %}
+                    <a href="{{ org.instagram_url }}" target="_blank" rel="noopener" aria-label="Instagram">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="sf-footer__bottom">
+            <p>&copy; {{ org.organization_name }} {{ now().year if now is defined else '2026' }}. All rights reserved.</p>
+            <p class="sf-footer__powered">Powered by <a href="https://wontech.com" target="_blank" rel="noopener">WONTECH</a></p>
+        </div>
+    </div>
+</footer>

@@ -285,6 +285,14 @@ category icon system (🍞🥩🧀🥬 etc.)
     transform: translateY(0);
 }
 
+/* Smaller create ingredient button */
+.btn-create-primary {
+    padding: 8px 16px;
+    font-size: 0.85em;
+    gap: 6px;
+    border-radius: 8px;
+}
+
 /* Secondary Buttons */
 .modal-btn-secondary {
     background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);

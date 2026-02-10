@@ -1,0 +1,21 @@
+<div class="sf-card" data-item-id="{{ item.id }}" onclick="SF.openItemModal({{ item.id }})">
+    {% if item.is_popular %}
+    <span class="sf-badge sf-badge--popular">Popular</span>
+    {% endif %}
+    <div class="sf-card__body">
+        <h3 class="sf-card__name">{{ item.name }}</h3>
+        {% if item.description %}
+        <p class="sf-card__desc">{{ item.description }}</p>
+        {% endif %}
+        <div class="sf-card__footer">
+            <span class="sf-card__price">
+                {% if item.sizes|length > 1 %}From {% endif %}${{ '%.2f' % item.starting_price }}
+            </span>
+            <div class="sf-card__badges">
+                {% for tag in item.dietary_tags or [] %}
+                <span class="sf-badge sf-badge--{{ tag|lower }}">{{ tag }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ g.organization.organization_name }} - POS Settings</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .page-back {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .page-back:hover {
+            color: white;
+        }
+
+        .page-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .page-header-right {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .header-btn-save {
+            background: rgba(255, 255, 255, 0.95);
+            color: #667eea;
+        }
+
+        .header-btn-save:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .page-content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        /* Settings Cards */
+        .settings-card {
+            background: white;
+            border-radius: 16px;
+            border: 2px solid #e9ecef;
+            padding: 28px;
+            margin-bottom: 24px;
+        }
+
+        .settings-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #f3f4f6;
+        }
+
+        .settings-card-icon {
+            font-size: 28px;
+        }
+
+        .settings-card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .settings-section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .settings-row-label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .settings-row-desc {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        .settings-input {
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            width: 120px;
+            text-align: center;
+        }
+
+        .settings-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .settings-select {
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .settings-toggle {
+            position: relative;
+            width: 52px;
+            height: 28px;
+        }
+
+        .settings-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .settings-toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #cbd5e1;
+            border-radius: 28px;
+            transition: 0.3s;
+        }
+
+        .settings-toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .settings-toggle input:checked + .settings-toggle-slider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .settings-toggle input:checked + .settings-toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        .time-slots-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .settings-save-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .settings-save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .settings-cancel-btn {
+            padding: 12px 24px;
+            background: white;
+            color: #6b7280;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .settings-cancel-btn:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+        }
+
+        .save-toast {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            background: #059669;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            box-shadow: 0 8px 24px rgba(5, 150, 105, 0.4);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .save-toast.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .page-content {
+                padding: 16px;
+            }
+
+            .settings-card {
+                padding: 20px;
+            }
+
+            .time-slots-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="page-header-left">
+            <a href="/dashboard/pos" class="page-back">&larr; POS Terminal</a>
+            <h1 class="page-title">Settings</h1>
+        </div>
+        <div class="page-header-right">
+            <button class="header-btn header-btn-save" onclick="saveAllSettings()">Save Changes</button>
+        </div>
+    </div>
+
+    <div class="page-content">
+        <!-- Tax Settings -->
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <span class="settings-card-icon">💰</span>
+                <h2 class="settings-card-title">Tax Configuration</h2>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-title">Sales Tax</div>
+                <div class="settings-row">
+                    <div>
+                        <div class="settings-row-label">Enable Tax</div>
+                        <div class="settings-row-desc">Charge sales tax on orders</div>
+                    </div>
+                    <label class="settings-toggle">
+                        <input type="checkbox" id="taxEnabled" checked onchange="updateTaxDisplay()">
+                        <span class="settings-toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="settings-row" id="taxRateRow">
+                    <div>
+                        <div class="settings-row-label">Tax Rate</div>
+                        <div class="settings-row-desc">Percentage applied to subtotal</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <input type="number" class="settings-input" id="taxRate" value="8.00" step="0.125" min="0" max="25" style="width: 80px;" oninput="updateTaxDisplay()">
+                        <span>%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-title">Tax Display</div>
+                <div class="settings-row">
+                    <div>
+                        <div class="settings-row-label">Show Tax in Prices</div>
+                        <div class="settings-row-desc">Display "tax included" or add tax at checkout</div>
+                    </div>
+                    <select class="settings-select" id="taxDisplay">
+                        <option value="add">Add at checkout</option>
+                        <option value="included">Included in prices</option>
+                    </select>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <div class="settings-row-label">Tax Label</div>
+                        <div class="settings-row-desc">Text shown on receipt</div>
+                    </div>
+                    <input type="text" class="settings-input" id="taxLabel" value="Tax" placeholder="Tax" style="width: 120px;">
+                </div>
+            </div>
+
+            <div class="settings-section" style="background: #ecfdf5; padding: 16px; border-radius: 12px;">
+                <div style="display: flex; align-items: center; gap: 10px; color: #065f46;">
+                    <span style="font-size: 24px;">📊</span>
+                    <div>
+                        <strong>Tax Preview</strong>
+                        <div style="font-size: 12px;" id="taxPreviewText">On a $10.00 order: $0.80 tax = $10.80 total</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delivery Settings -->
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <span class="settings-card-icon">🚗</span>
+                <h2 class="settings-card-title">Delivery Configuration</h2>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-title">Delivery Fee</div>
+                <div class="settings-row">
+                    <div>
+                        <div class="settings-row-label">Fee Type</div>
+                        <div class="settings-row-desc">How delivery fee is calculated</div>
+                    </div>
+                    <select class="settings-select" id="deliveryFeeType" onchange="updateDeliveryFeeType()">
+                        <option value="fixed">Fixed Amount</option>
+                        <option value="variable">Variable (by distance)</option>
+                    </select>
+                </div>
+                <div class="settings-row" id="fixedFeeRow">
+                    <div>
+                        <div class="settings-row-label">Fixed Delivery Fee</div>
+                        <div class="settings-row-desc">Flat rate for all deliveries</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span>$</span>
+                        <input type="number" class="settings-input" id="fixedDeliveryFee" value="5.00" step="0.50" min="0">
+                    </div>
+                </div>
+                <div id="variableFeeRows" style="display: none;">
+                    <div class="settings-row">
+                        <div>
+                            <div class="settings-row-label">Base Fee</div>
+                            <div class="settings-row-desc">Starting delivery fee</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span>$</span>
+                            <input type="number" class="settings-input" id="baseDeliveryFee" value="3.00" step="0.50" min="0">
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <div>
+                            <div class="settings-row-label">Per Mile Fee</div>
+                            <div class="settings-row-desc">Additional charge per mile</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <span>$</span>
+                            <input type="number" class="settings-input" id="perMileFee" value="1.50" step="0.25" min="0">
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <div>
+                            <div class="settings-row-label">Max Delivery Distance</div>
+                            <div class="settings-row-desc">Maximum miles for delivery</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <input type="number" class="settings-input" id="maxDeliveryDistance" value="10" step="1" min="1">
+                            <span>miles</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-title">Minimum Order</div>
+                <div class="settings-row">
+                    <div>
+                        <div class="settings-row-label">Minimum for Delivery</div>
+                        <div class="settings-row-desc">Order minimum before delivery fee</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span>$</span>
+                        <input type="number" class="settings-input" id="minDeliveryOrder" value="15.00" step="1" min="0">
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <div class="settings-row-label">Free Delivery Threshold</div>
+                        <div class="settings-row-desc">Order amount for free delivery (0 = never)</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span>$</span>
+                        <input type="number" class="settings-input" id="freeDeliveryThreshold" value="50.00" step="5" min="0">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Operating Hours -->
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <span class="settings-card-icon">🕐</span>
+                <h2 class="settings-card-title">Operating Hours</h2>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-title">Dine-In / Pickup Hours</div>
+                <div class="time-slots-grid">
+                    <div class="settings-row">
+                        <div>
+                            <div class="settings-row-label">Opens</div>
+                        </div>
+                        <input type="time" class="settings-input" id="dineInOpens" value="11:00">
+                    </div>
+                    <div class="settings-row">
+                        <div>
+                            <div class="settings-row-label">Closes</div>
+                        </div>
+                        <input type="time" class="settings-input" id="dineInCloses" value="22:00">
+                    </div>
+                </div>
+                <div class="settings-row" style="margin-top: 12px;">
+                    <div>
+                        <div class="settings-row-label">Pickup Lead Time</div>
+                        <div class="settings-row-desc">Minimum minutes for pickup orders</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <input type="number" class="settings-input" id="pickupLeadTime" value="15" step="5" min="5">
+                        <span>min</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-title">Delivery Hours</div>
+                <div class="time-slots-grid">
+                    <div class="settings-row">
+                        <div>
+                            <div class="settings-row-label">Starts</div>
+                        </div>
+                        <input type="time" class="settings-input" id="deliveryStarts" value="11:30">
+                    </div>
+                    <div class="settings-row">
+                        <div>
+                            <div class="settings-row-label">Ends</div>
+                        </div>
+                        <input type="time" class="settings-input" id="deliveryEnds" value="21:30">
+                    </div>
+                </div>
+                <div class="settings-row" style="margin-top: 12px;">
+                    <div>
+                        <div class="settings-row-label">Delivery Lead Time</div>
+                        <div class="settings-row-desc">Minimum minutes for delivery orders</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <input type="number" class="settings-input" id="deliveryLeadTime" value="45" step="5" min="15">
+                        <span>min</span>
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div>
+                        <div class="settings-row-label">Estimated Delivery Time</div>
+                        <div class="settings-row-desc">Time range shown to customers</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <input type="number" class="settings-input" id="deliveryTimeMin" value="30" step="5" min="15" style="width: 70px;">
+                        <span>-</span>
+                        <input type="number" class="settings-input" id="deliveryTimeMax" value="45" step="5" min="20" style="width: 70px;">
+                        <span>min</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-title">Order Cutoff</div>
+                <div class="settings-row">
+                    <div>
+                        <div class="settings-row-label">Last Order Before Close</div>
+                        <div class="settings-row-desc">Stop accepting orders X minutes before closing</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <input type="number" class="settings-input" id="lastOrderBuffer" value="30" step="5" min="0">
+                        <span>min</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 86 Groups -->
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <span class="settings-card-icon">🚫</span>
+                <h2 class="settings-card-title">86 Groups</h2>
+            </div>
+
+            <div class="settings-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div class="settings-section-title" style="margin-bottom: 0;">Manage Groups</div>
+                    <button class="settings-save-btn" style="padding: 6px 14px; font-size: 13px;" onclick="showCreate86GroupForm()">+ New Group</button>
+                </div>
+
+                <!-- Create / Edit form (hidden by default) -->
+                <div id="eightySixGroupForm" style="display: none; background: #f8f9fa; border-radius: 10px; padding: 14px; margin-bottom: 14px;">
+                    <input type="hidden" id="editGroupId" value="">
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px;">Group Name</label>
+                        <input type="text" id="groupNameInput" class="settings-input" placeholder="e.g. Bacon Items" style="width: 100%;">
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px;">Products</label>
+                        <input type="text" id="groupProductSearch" class="settings-input" placeholder="Search products..." style="width: 100%; margin-bottom: 8px;" oninput="filterGroupProducts()">
+                        <div id="groupProductChecklist" style="max-height: 200px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 6px;"></div>
+                    </div>
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <button class="settings-cancel-btn" style="padding: 6px 14px; font-size: 13px;" onclick="hideGroupForm()">Cancel</button>
+                        <button class="settings-save-btn" style="padding: 6px 14px; font-size: 13px;" onclick="saveGroup()">Save</button>
+                    </div>
+                </div>
+
+                <!-- Group list -->
+                <div id="eightySixGroupList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+        </div>
+
+        <!-- Register Management -->
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <span class="settings-card-icon">💵</span>
+                <h2 class="settings-card-title">Register Management</h2>
+            </div>
+
+            <div id="registerContent">
+                <div style="text-align: center; padding: 20px; color: #9ca3af;">Loading register status...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Toast -->
+    <div class="save-toast" id="saveToast">Settings saved</div>
+
+    <script>
+        // Products list for 86 group management
+        let allProducts = [];
+        let eightySixGroups = [];
+        let productIngredientMap = {};
+        let registerSession = null;
+        let posEmployeeList = [];
+
+        const isAdmin = {{ 'true' if g.is_super_admin or g.is_organization_admin else 'false' }};
+
+        // POS Settings
+        let posSettings = {
+            taxEnabled: true,
+            taxRate: 8.00,
+            taxDisplay: 'add',
+            taxLabel: 'Tax',
+            deliveryFeeType: 'fixed',
+            fixedDeliveryFee: 5.00,
+            baseDeliveryFee: 3.00,
+            perMileFee: 1.50,
+            maxDeliveryDistance: 10,
+            minDeliveryOrder: 15.00,
+            freeDeliveryThreshold: 50.00,
+            dineInOpens: '11:00',
+            dineInCloses: '22:00',
+            pickupLeadTime: 15,
+            deliveryStarts: '11:30',
+            deliveryEnds: '21:30',
+            deliveryLeadTime: 45,
+            deliveryTimeMin: 30,
+            deliveryTimeMax: 45,
+            lastOrderBuffer: 30
+        };
+
+        // Load settings from localStorage
+        function loadSettings() {
+            const saved = localStorage.getItem('posSettings');
+            if (saved) {
+                posSettings = { ...posSettings, ...JSON.parse(saved) };
+            }
+            loadSettingsIntoForm();
+        }
+
+        // Load settings into form fields
+        function loadSettingsIntoForm() {
+            document.getElementById('taxEnabled').checked = posSettings.taxEnabled;
+            document.getElementById('taxRate').value = posSettings.taxRate;
+            document.getElementById('taxDisplay').value = posSettings.taxDisplay;
+            document.getElementById('taxLabel').value = posSettings.taxLabel;
+            updateTaxDisplay();
+
+            document.getElementById('deliveryFeeType').value = posSettings.deliveryFeeType;
+            document.getElementById('fixedDeliveryFee').value = posSettings.fixedDeliveryFee;
+            document.getElementById('baseDeliveryFee').value = posSettings.baseDeliveryFee;
+            document.getElementById('perMileFee').value = posSettings.perMileFee;
+            document.getElementById('maxDeliveryDistance').value = posSettings.maxDeliveryDistance;
+            document.getElementById('minDeliveryOrder').value = posSettings.minDeliveryOrder;
+            document.getElementById('freeDeliveryThreshold').value = posSettings.freeDeliveryThreshold;
+            document.getElementById('dineInOpens').value = posSettings.dineInOpens;
+            document.getElementById('dineInCloses').value = posSettings.dineInCloses;
+            document.getElementById('pickupLeadTime').value = posSettings.pickupLeadTime;
+            document.getElementById('deliveryStarts').value = posSettings.deliveryStarts;
+            document.getElementById('deliveryEnds').value = posSettings.deliveryEnds;
+            document.getElementById('deliveryLeadTime').value = posSettings.deliveryLeadTime;
+            document.getElementById('deliveryTimeMin').value = posSettings.deliveryTimeMin;
+            document.getElementById('deliveryTimeMax').value = posSettings.deliveryTimeMax;
+            document.getElementById('lastOrderBuffer').value = posSettings.lastOrderBuffer;
+
+            updateDeliveryFeeType();
+        }
+
+        // Save all settings
+        function saveAllSettings() {
+            posSettings.taxEnabled = document.getElementById('taxEnabled').checked;
+            posSettings.taxRate = parseFloat(document.getElementById('taxRate').value) || 8.00;
+            posSettings.taxDisplay = document.getElementById('taxDisplay').value;
+            posSettings.taxLabel = document.getElementById('taxLabel').value || 'Tax';
+
+            posSettings.deliveryFeeType = document.getElementById('deliveryFeeType').value;
+            posSettings.fixedDeliveryFee = parseFloat(document.getElementById('fixedDeliveryFee').value) || 5.00;
+            posSettings.baseDeliveryFee = parseFloat(document.getElementById('baseDeliveryFee').value) || 3.00;
+            posSettings.perMileFee = parseFloat(document.getElementById('perMileFee').value) || 1.50;
+            posSettings.maxDeliveryDistance = parseFloat(document.getElementById('maxDeliveryDistance').value) || 10;
+            posSettings.minDeliveryOrder = parseFloat(document.getElementById('minDeliveryOrder').value) || 15.00;
+            posSettings.freeDeliveryThreshold = parseFloat(document.getElementById('freeDeliveryThreshold').value) || 50.00;
+            posSettings.dineInOpens = document.getElementById('dineInOpens').value;
+            posSettings.dineInCloses = document.getElementById('dineInCloses').value;
+            posSettings.pickupLeadTime = parseInt(document.getElementById('pickupLeadTime').value) || 15;
+            posSettings.deliveryStarts = document.getElementById('deliveryStarts').value;
+            posSettings.deliveryEnds = document.getElementById('deliveryEnds').value;
+            posSettings.deliveryLeadTime = parseInt(document.getElementById('deliveryLeadTime').value) || 45;
+            posSettings.deliveryTimeMin = parseInt(document.getElementById('deliveryTimeMin').value) || 30;
+            posSettings.deliveryTimeMax = parseInt(document.getElementById('deliveryTimeMax').value) || 45;
+            posSettings.lastOrderBuffer = parseInt(document.getElementById('lastOrderBuffer').value) || 30;
+
+            localStorage.setItem('posSettings', JSON.stringify(posSettings));
+
+            // Show toast
+            const toast = document.getElementById('saveToast');
+            toast.classList.add('visible');
+            setTimeout(() => toast.classList.remove('visible'), 2000);
+        }
+
+        // Tax display helpers
+        function updateTaxDisplay() {
+            const enabled = document.getElementById('taxEnabled').checked;
+            const rate = parseFloat(document.getElementById('taxRate').value) || 0;
+
+            document.getElementById('taxRateRow').style.opacity = enabled ? '1' : '0.5';
+            document.getElementById('taxRate').disabled = !enabled;
+
+            const previewEl = document.getElementById('taxPreviewText');
+            if (!enabled) {
+                previewEl.textContent = 'Tax is disabled - no tax will be charged';
+            } else {
+                const sampleOrder = 10.00;
+                const taxAmount = sampleOrder * (rate / 100);
+                const total = sampleOrder + taxAmount;
+                previewEl.textContent = 'On a $' + sampleOrder.toFixed(2) + ' order: $' + taxAmount.toFixed(2) + ' tax = $' + total.toFixed(2) + ' total';
+            }
+        }
+
+        function updateDeliveryFeeType() {
+            const type = document.getElementById('deliveryFeeType').value;
+            document.getElementById('fixedFeeRow').style.display = type === 'fixed' ? 'flex' : 'none';
+            document.getElementById('variableFeeRows').style.display = type === 'variable' ? 'block' : 'none';
+        }
+
+        // ============== 86 GROUPS ==============
+
+        async function loadProducts() {
+            try {
+                const res = await fetch('/api/products/list');
+                const products = await res.json();
+                allProducts = Array.isArray(products) ? products : [];
+            } catch (err) {
+                console.error('Error loading products:', err);
+            }
+        }
+
+        async function loadProductIngredients() {
+            try {
+                const res = await fetch('/api/pos/product-ingredients');
+                const data = await res.json();
+                if (data.success) {
+                    productIngredientMap = data.ingredients;
+                }
+            } catch (e) {
+                console.warn('Could not load product ingredients:', e);
+            }
+        }
+
+        async function syncCategoryGroups() {
+            try {
+                await fetch('/api/pos/86-groups/sync-categories', { method: 'POST' });
+            } catch (e) {
+                console.warn('Could not sync category groups:', e);
+            }
+        }
+
+        async function loadEightySixGroups() {
+            try {
+                const res = await fetch('/api/pos/86-groups');
+                const data = await res.json();
+                if (data.success) {
+                    eightySixGroups = data.groups;
+                }
+            } catch (e) {
+                console.warn('Could not load 86 groups:', e);
+            }
+        }
+
+        async function loadGroupsSettingsTab() {
+            await syncCategoryGroups();
+            await loadEightySixGroups();
+            renderGroupSettingsList();
+        }
+
+        function renderGroupSettingsList() {
+            const container = document.getElementById('eightySixGroupList');
+            if (eightySixGroups.length === 0) {
+                container.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:20px;font-size:13px;">No 86 groups yet. Category groups will sync automatically.</div>';
+                return;
+            }
+            container.innerHTML = eightySixGroups.map(function(g) {
+                var typeBadge = g.groupType === 'category'
+                    ? '<span style="font-size:10px;background:#dbeafe;color:#1d4ed8;padding:2px 6px;border-radius:4px;margin-left:6px;">Category</span>'
+                    : '<span style="font-size:10px;background:#f3e8ff;color:#7c3aed;padding:2px 6px;border-radius:4px;margin-left:6px;">Custom</span>';
+                var deleteBtn = g.groupType === 'custom'
+                    ? '<button onclick="deleteGroup(' + g.id + ')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:13px;padding:4px 8px;">Delete</button>'
+                    : '';
+                var editLabel = g.groupType === 'category' ? 'Rename' : 'Edit';
+                return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f8f9fa;border-radius:8px;">' +
+                    '<div>' +
+                        '<span style="font-weight:600;font-size:14px;">' + g.groupName + '</span>' + typeBadge +
+                        '<span style="font-size:12px;color:#6b7280;margin-left:8px;">' + g.totalProducts + ' product' + (g.totalProducts !== 1 ? 's' : '') + '</span>' +
+                    '</div>' +
+                    '<div>' +
+                        '<button onclick="editGroup(' + g.id + ')" style="background:none;border:none;color:#3b82f6;cursor:pointer;font-size:13px;padding:4px 8px;">' + editLabel + '</button>' +
+                        deleteBtn +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        function showCreate86GroupForm() {
+            document.getElementById('editGroupId').value = '';
+            document.getElementById('groupNameInput').value = '';
+            document.getElementById('groupProductSearch').value = '';
+            renderGroupProductChecklist([]);
+            document.getElementById('eightySixGroupForm').style.display = 'block';
+        }
+
+        function editGroup(groupId) {
+            var group = eightySixGroups.find(function(g) { return g.id === groupId; });
+            if (!group) return;
+            document.getElementById('editGroupId').value = groupId;
+            document.getElementById('groupNameInput').value = group.groupName;
+            document.getElementById('groupProductSearch').value = '';
+            var selectedIds = group.products.map(function(p) { return p.productId; });
+            renderGroupProductChecklist(selectedIds, group.groupType === 'category');
+            document.getElementById('eightySixGroupForm').style.display = 'block';
+        }
+
+        function hideGroupForm() {
+            document.getElementById('eightySixGroupForm').style.display = 'none';
+        }
+
+        function renderGroupProductChecklist(selectedIds, disabled) {
+            selectedIds = selectedIds || [];
+            disabled = disabled || false;
+            var container = document.getElementById('groupProductChecklist');
+            var search = (document.getElementById('groupProductSearch').value || '').toLowerCase();
+            var results = [];
+            allProducts.forEach(function(p) {
+                var name = (p.product_name || p.name || '').toLowerCase();
+                var ingredients = (productIngredientMap[String(p.id)] || []);
+                var ingredientStr = ingredients.map(function(i) { return i.toLowerCase(); });
+                if (!search) {
+                    results.push({ product: p, matchedIngredient: null });
+                } else if (name.indexOf(search) !== -1) {
+                    results.push({ product: p, matchedIngredient: null });
+                } else {
+                    var match = null;
+                    for (var i = 0; i < ingredients.length; i++) {
+                        if (ingredientStr[i].indexOf(search) !== -1) {
+                            match = ingredients[i];
+                            break;
+                        }
+                    }
+                    if (match) {
+                        results.push({ product: p, matchedIngredient: match });
+                    }
+                }
+            });
+            container.innerHTML = results.map(function(r) {
+                var p = r.product;
+                var name = p.product_name || p.name || 'Unknown';
+                var checked = selectedIds.indexOf(p.id) !== -1 ? 'checked' : '';
+                var dis = disabled ? 'disabled' : '';
+                var hint = r.matchedIngredient
+                    ? '<span style="font-size:11px;color:#6b7280;margin-left:4px;">(has ' + r.matchedIngredient + ')</span>'
+                    : '';
+                return '<label style="display:flex;align-items:center;gap:8px;padding:4px 6px;font-size:13px;cursor:' + (disabled ? 'default' : 'pointer') + ';">' +
+                    '<input type="checkbox" class="group-product-cb" value="' + p.id + '" ' + checked + ' ' + dis + '> ' + name + hint +
+                '</label>';
+            }).join('');
+        }
+
+        function filterGroupProducts() {
+            var groupId = document.getElementById('editGroupId').value;
+            var group = groupId ? eightySixGroups.find(function(g) { return g.id === parseInt(groupId); }) : null;
+            var checkedIds = Array.from(document.querySelectorAll('.group-product-cb:checked')).map(function(cb) { return parseInt(cb.value); });
+            var isCategory = group && group.groupType === 'category';
+            var selectedIds = isCategory ? group.products.map(function(p) { return p.productId; }) : checkedIds;
+            renderGroupProductChecklist(selectedIds, isCategory);
+        }
+
+        async function saveGroup() {
+            var groupId = document.getElementById('editGroupId').value;
+            var name = document.getElementById('groupNameInput').value.trim();
+            var productIds = Array.from(document.querySelectorAll('.group-product-cb:checked')).map(function(cb) { return parseInt(cb.value); });
+
+            if (!name) return;
+
+            try {
+                if (groupId) {
+                    await fetch('/api/pos/86-groups/' + groupId, {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ name: name, productIds: productIds })
+                    });
+                } else {
+                    await fetch('/api/pos/86-groups', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ name: name, productIds: productIds })
+                    });
+                }
+                hideGroupForm();
+                await loadEightySixGroups();
+                renderGroupSettingsList();
+            } catch (e) {
+                console.error('Failed to save group:', e);
+            }
+        }
+
+        async function deleteGroup(groupId) {
+            if (!confirm('Delete this 86 group?')) return;
+            try {
+                await fetch('/api/pos/86-groups/' + groupId, { method: 'DELETE' });
+                await loadEightySixGroups();
+                renderGroupSettingsList();
+            } catch (e) {
+                console.error('Failed to delete group:', e);
+            }
+        }
+
+        // ============== REGISTER MANAGEMENT ==============
+
+        async function loadRegisterStatus() {
+            try {
+                const res = await fetch('/api/pos/register/current');
+                const data = await res.json();
+                registerSession = data.success ? data.session : null;
+            } catch (e) {
+                registerSession = null;
+            }
+            try {
+                const res = await fetch('/api/pos/employees');
+                const data = await res.json();
+                if (data.success) posEmployeeList = data.employees;
+            } catch (e) {}
+        }
+
+        function renderRegisterTab() {
+            const container = document.getElementById('registerContent');
+            const permissionsHtml = isAdmin ? renderPermissionsSection() : '';
+            if (!registerSession) {
+                container.innerHTML =
+                    '<div class="settings-section" style="text-align:center;">' +
+                        '<div style="font-size:48px; margin-bottom:12px;">💵</div>' +
+                        '<div style="font-size:16px; font-weight:600; margin-bottom:8px;">No Register Open</div>' +
+                        '<div style="font-size:13px; color:#6b7280; margin-bottom:16px;">Count your drawer and enter the opening amount to start.</div>' +
+                        '<div style="display:flex; gap:8px; justify-content:center; align-items:center; margin-bottom:12px;">' +
+                            '<label style="font-weight:600;">Opening Cash: $</label>' +
+                            '<input type="number" id="openingCashInput" class="settings-input" value="200" min="0" step="0.01" style="width:100px;">' +
+                        '</div>' +
+                        '<button class="settings-save-btn" onclick="openRegister()">Open Register</button>' +
+                    '</div>' + permissionsHtml;
+            } else {
+                var s = registerSession;
+                container.innerHTML =
+                    '<div class="settings-section">' +
+                        '<div class="settings-section-title">Register Open</div>' +
+                        '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">' +
+                            '<div style="background:#f8f9fa; padding:12px; border-radius:8px; text-align:center;">' +
+                                '<div style="font-size:11px; color:#6b7280;">Opened</div>' +
+                                '<div style="font-weight:600;">' + new Date(s.openedAt).toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'}) + '</div>' +
+                            '</div>' +
+                            '<div style="background:#f8f9fa; padding:12px; border-radius:8px; text-align:center;">' +
+                                '<div style="font-size:11px; color:#6b7280;">Orders</div>' +
+                                '<div style="font-weight:600;">' + s.orderCount + '</div>' +
+                            '</div>' +
+                            '<div style="background:#f8f9fa; padding:12px; border-radius:8px; text-align:center;">' +
+                                '<div style="font-size:11px; color:#6b7280;">Total Sales</div>' +
+                                '<div style="font-weight:600;">$' + s.totalSales.toFixed(2) + '</div>' +
+                            '</div>' +
+                            '<div style="background:#f8f9fa; padding:12px; border-radius:8px; text-align:center;">' +
+                                '<div style="font-size:11px; color:#6b7280;">Expected Cash</div>' +
+                                '<div style="font-weight:600;">$' + s.expectedCash.toFixed(2) + '</div>' +
+                            '</div>' +
+                            '<div style="background:#f8f9fa; padding:12px; border-radius:8px; text-align:center;">' +
+                                '<div style="font-size:11px; color:#6b7280;">Cash Sales</div>' +
+                                '<div style="font-weight:600;">$' + s.cashSales.toFixed(2) + '</div>' +
+                            '</div>' +
+                            '<div style="background:#f8f9fa; padding:12px; border-radius:8px; text-align:center;">' +
+                                '<div style="font-size:11px; color:#6b7280;">Card Sales</div>' +
+                                '<div style="font-weight:600;">$' + s.cardSales.toFixed(2) + '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<hr style="border:none; border-top:1px solid #e5e7eb; margin:16px 0;">' +
+                        '<div style="font-weight:600; margin-bottom:8px;">Close Register</div>' +
+                        '<div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">' +
+                            '<label style="font-size:13px;">Closing Cash: $</label>' +
+                            '<input type="number" id="closingCashInput" class="settings-input" value="" min="0" step="0.01" style="width:100px;" placeholder="' + s.expectedCash.toFixed(2) + '">' +
+                        '</div>' +
+                        '<div style="margin-bottom:12px;">' +
+                            '<label style="font-size:13px;">Notes</label>' +
+                            '<input type="text" id="closeRegisterNotes" class="settings-input" placeholder="Optional shift notes" style="width:100%;">' +
+                        '</div>' +
+                        '<button class="settings-save-btn" style="background:#dc2626;" onclick="closeRegister()">Close Register</button>' +
+                    '</div>' + permissionsHtml;
+            }
+        }
+
+        function renderPermissionsSection() {
+            if (posEmployeeList.length === 0) return '';
+            var rows = posEmployeeList.map(function(e) {
+                var name = e.first_name + ' ' + e.last_name;
+                var checked = e.pos_can_void ? 'checked' : '';
+                return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;">' +
+                    '<div>' +
+                        '<span style="font-weight:600;font-size:13px;">' + name + '</span>' +
+                        '<span style="font-size:11px;color:#6b7280;margin-left:6px;">' + (e.position || '') + '</span>' +
+                    '</div>' +
+                    '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;">' +
+                        '<input type="checkbox" ' + checked + ' onchange="toggleVoidPermission(' + e.id + ', this.checked)"> Can Void' +
+                    '</label>' +
+                '</div>';
+            }).join('');
+            return '<div class="settings-section" style="margin-top:16px;">' +
+                '<div class="settings-section-title">Void Permissions</div>' +
+                '<div style="font-size:12px;color:#6b7280;margin-bottom:10px;">Admins can always void. Toggle which employees can void orders without a manager override.</div>' +
+                rows +
+            '</div>';
+        }
+
+        async function toggleVoidPermission(employeeId, enabled) {
+            try {
+                var res = await fetch('/api/pos/employees/' + employeeId + '/void-permission', { method: 'POST' });
+                var data = await res.json();
+                if (!data.success) {
+                    alert(data.error || 'Failed to update permission');
+                    await loadRegisterStatus();
+                    renderRegisterTab();
+                } else {
+                    var emp = posEmployeeList.find(function(e) { return e.id === employeeId; });
+                    if (emp) emp.pos_can_void = data.canVoid ? 1 : 0;
+                }
+            } catch (e) {
+                alert('Failed to update permission');
+            }
+        }
+
+        async function openRegister() {
+            var openingCash = parseFloat(document.getElementById('openingCashInput').value) || 0;
+            try {
+                var res = await fetch('/api/pos/register/open', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ openingCash: openingCash })
+                });
+                var data = await res.json();
+                if (data.success) {
+                    await loadRegisterStatus();
+                    renderRegisterTab();
+                } else {
+                    alert(data.error);
+                }
+            } catch (e) {
+                alert('Failed to open register');
+            }
+        }
+
+        async function closeRegister() {
+            var closingCash = parseFloat(document.getElementById('closingCashInput').value);
+            if (isNaN(closingCash)) { alert('Enter closing cash amount'); return; }
+            var notes = document.getElementById('closeRegisterNotes').value;
+            try {
+                var res = await fetch('/api/pos/register/close', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ closingCash: closingCash, notes: notes })
+                });
+                var data = await res.json();
+                if (data.success) {
+                    var s = data.summary;
+                    var variance = s.cashVariance;
+                    var varianceLabel = variance >= 0 ? '+$' + variance.toFixed(2) : '-$' + Math.abs(variance).toFixed(2);
+                    var varianceColor = Math.abs(variance) < 1 ? '#059669' : '#dc2626';
+                    document.getElementById('registerContent').innerHTML =
+                        '<div class="settings-section" style="text-align:center;">' +
+                            '<div style="font-size:48px; margin-bottom:12px;">&#x2705;</div>' +
+                            '<div style="font-size:16px; font-weight:600; margin-bottom:16px;">Register Closed</div>' +
+                            '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; max-width:400px; margin:0 auto 16px;">' +
+                                '<div style="background:#f8f9fa; padding:12px; border-radius:8px;">' +
+                                    '<div style="font-size:11px; color:#6b7280;">Total Sales</div>' +
+                                    '<div style="font-weight:600;">$' + s.totalSales.toFixed(2) + '</div>' +
+                                '</div>' +
+                                '<div style="background:#f8f9fa; padding:12px; border-radius:8px;">' +
+                                    '<div style="font-size:11px; color:#6b7280;">Orders</div>' +
+                                    '<div style="font-weight:600;">' + s.orderCount + '</div>' +
+                                '</div>' +
+                                '<div style="background:#f8f9fa; padding:12px; border-radius:8px;">' +
+                                    '<div style="font-size:11px; color:#6b7280;">Expected Cash</div>' +
+                                    '<div style="font-weight:600;">$' + s.expectedCash.toFixed(2) + '</div>' +
+                                '</div>' +
+                                '<div style="background:#f8f9fa; padding:12px; border-radius:8px;">' +
+                                    '<div style="font-size:11px; color:#6b7280;">Variance</div>' +
+                                    '<div style="font-weight:600;color:' + varianceColor + ';">' + varianceLabel + '</div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<button class="settings-save-btn" onclick="location.reload()">Open New Register</button>' +
+                        '</div>';
+                } else {
+                    alert(data.error);
+                }
+            } catch (e) {
+                alert('Failed to close register');
+            }
+        }
+
+        // ============== INITIALIZE ==============
+
+        async function init() {
+            loadSettings();
+            await loadProducts();
+            await loadProductIngredients();
+            await loadGroupsSettingsTab();
+            await loadRegisterStatus();
+            renderRegisterTab();
+        }
+
+        init();
+    </script>
+</body>
+</html>

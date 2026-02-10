@@ -1,5 +1,4 @@
-# FIRINGup - Git Ignore File
-# Prevents unnecessary files from being committed
+# WONTECH Platform — .gitignore
 
 # Python
 __pycache__/
@@ -7,29 +6,15 @@ __pycache__/
 *$py.class
 *.so
 .Python
-venv/
-env/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
+.installed.cfg
 
 # Virtual Environment
 venv/
-ENV/
 env/
+ENV/
+.venv/
 
 # IDEs and Editors
 .vscode/
@@ -37,14 +22,15 @@ env/
 *.swp
 *.swo
 *~
+
+# OS Files
 .DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
 
-# Flask
-instance/
-.webassets-cache
-flask.log
-
-# Database files (environment-specific, should not be committed)
+# Databases (environment-specific, never commit)
 *.db
 databases/
 master.db
@@ -52,70 +38,39 @@ master.db
 # Logs
 *.log
 logs/
-flask.log
+
+# Backups
+*.backup
+*.bak
+backups/
 
 # Environment variables
 .env
 .env.local
 .env.*.local
 
-# OS Files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Test data (generated, not source)
+data/test/
 
-# Backup files
-*.backup
-*.bak
+# Temporary files
 *.tmp
-*~
 
-# Test files (keep test CSVs for now)
-# *.csv
+# Jupyter
+.ipynb_checkpoints/
 
-# Documentation (keep MD files tracked)
-# *.md
-
-# PyCharm
-.idea/
-
-# VS Code
-.vscode/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# pyenv
-.python-version
-
-# Coverage reports
+# Coverage / Testing
 htmlcov/
 .tox/
 .coverage
 .coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
+.cache/
 .hypothesis/
+coverage.xml
+nosetests.xml
 
-# Translations
-*.mo
-*.pot
+# pyenv
+.python-version
 
-# Migrations (keep tracked)
-# migrations/
-
-# Docker and Cloud Deployment (removed - local development only)
-docker-compose.yml
-docker-compose.override.yml
-Dockerfile
-.dockerignore
-render.yaml
-deploy.sh
-
-# Database files - too large for GitHub
+# Build artifacts
+build/
+dist/

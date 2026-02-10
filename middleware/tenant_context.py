@@ -90,9 +90,9 @@ def get_organization_by_slug(slug):
 
 def get_subdomain_from_host(host):
     """Extract subdomain from hostname"""
-    # Example: joes-pizza.firingup.com -> joes-pizza
+    # Example: joes-pizza.wontech.com -> joes-pizza
     #          localhost:5001 -> None
-    #          admin.firingup.com -> admin
+    #          admin.wontech.com -> admin
 
     if 'localhost' in host or '127.0.0.1' in host:
         return None
@@ -152,6 +152,24 @@ def set_tenant_context():
     user = get_current_user()
 
     if not user:
+        # Check for clock terminal session (employee code login, no user_id)
+        if 'clock_employee_id' in session and 'organization_id' in session:
+            # Clock terminal session - set up context from session
+            org_id = session.get('organization_id')
+            g.user = {
+                'id': session.get('clock_employee_id'),
+                'first_name': session.get('clock_employee_name', '').split()[0] if session.get('clock_employee_name') else '',
+                'last_name': ' '.join(session.get('clock_employee_name', '').split()[1:]) if session.get('clock_employee_name') else '',
+                'role': 'employee',
+                'organization_id': org_id
+            }
+            g.organization = get_organization_by_id(org_id)
+            g.is_super_admin = False
+            g.is_organization_admin = False
+            g.is_employee = True
+            return
+
+        # No user and no clock terminal session
         g.user = None
         g.organization = None
         g.is_super_admin = False
@@ -248,7 +266,7 @@ def login_required(f):
         if not hasattr(g, 'user') or not g.user:
             if request.is_json:
                 return jsonify({'error': 'Authentication required'}), 401
-            return redirect(url_for('login', next=request.url))
+            return redirect(url_for('auth.login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -259,7 +277,7 @@ def super_admin_required(f):
         if not hasattr(g, 'user') or not g.user:
             if request.is_json:
                 return jsonify({'error': 'Authentication required'}), 401
-            return redirect(url_for('login'))
+            return redirect(url_for('auth.login'))
 
         if not g.is_super_admin:
             if request.is_json:
@@ -287,7 +305,7 @@ def organization_admin_required(f):
         if not hasattr(g, 'user') or not g.user:
             if request.is_json:
                 return jsonify({'error': 'Authentication required'}), 401
-            return redirect(url_for('login'))
+            return redirect(url_for('auth.login'))
 
         if not (g.is_super_admin or g.is_organization_admin):
             if request.is_json:
@@ -315,7 +333,7 @@ def permission_required(permission):
             if not hasattr(g, 'user') or not g.user:
                 if request.is_json:
                     return jsonify({'error': 'Authentication required'}), 401
-                return redirect(url_for('login'))
+                return redirect(url_for('auth.login'))
 
             if not user_has_permission(g.user, permission):
                 if request.is_json:

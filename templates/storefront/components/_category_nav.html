@@ -1,0 +1,11 @@
+<div class="sf-category-nav" id="sfCategoryNav">
+    <div class="sf-category-nav__scroll">
+        {% for cat in categories %}
+        <button class="sf-category-nav__pill {% if loop.first %}sf-category-nav__pill--active{% endif %}"
+                data-category-id="{{ cat.id }}"
+                onclick="SF.scrollToCategory({{ cat.id }})">
+            {% if cat.icon %}{{ cat.icon }} {% endif %}{{ cat.name }}
+        </button>
+        {% endfor %}
+    </div>
+</div>

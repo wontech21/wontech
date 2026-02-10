@@ -1,9 +1,9 @@
 /**
- * FIRINGup Service Worker
+ * WONTECH Service Worker
  * Provides offline capabilities and improved mobile performance
  */
 
-const CACHE_NAME = 'firingup-v2-scanner';
+const CACHE_NAME = 'wontech-v2-scanner';
 const urlsToCache = [
   '/',
   '/static/css/style.css',

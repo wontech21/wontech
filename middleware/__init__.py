@@ -1,5 +1,5 @@
 """
-Middleware package for FIRINGup
+Middleware package for WONTECH
 """
 
 from .tenant_context_separate_db import (

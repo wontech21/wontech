@@ -1,6 +1,6 @@
 {
-  "name": "FIRINGup Inventory Management",
-  "short_name": "FIRINGup",
+  "name": "WONTECH Business Management",
+  "short_name": "WONTECH",
   "description": "Professional inventory management system for restaurants with barcode scanning",
   "start_url": "/",
   "display": "standalone",

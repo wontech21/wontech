@@ -312,7 +312,7 @@ def migrate():
             INSERT OR IGNORE INTO organizations
             (id, organization_name, slug, db_filename, owner_name, owner_email, plan_type, features)
             VALUES
-            (1, 'Default Organization', 'default', 'org_1.db', 'System Admin', 'admin@firingup.com', 'enterprise',
+            (1, 'Default Organization', 'default', 'org_1.db', 'System Admin', 'admin@wontech.com', 'enterprise',
              '["barcode_scanning", "payroll", "invoicing", "multi_location"]')
         """)
         print("   ✓ Default organization created (will use existing inventory.db)")
@@ -321,7 +321,7 @@ def migrate():
         # CREATE SUPER ADMIN
         # ==========================================
         print("\n9️⃣  Creating super admin user...")
-        admin_email = 'admin@firingup.com'
+        admin_email = 'admin@wontech.com'
         admin_password = 'admin123'
         password_hash = hash_password(admin_password)
 

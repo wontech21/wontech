@@ -724,24 +724,28 @@ async function exportSalesRecords() {
         }
         filename += '.csv';
 
-        // Create download link
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const downloadUrl = URL.createObjectURL(blob);
+        // Open share modal for email/text/download options
+        if (typeof shareCSV === 'function') {
+            shareCSV(csvContent, filename);
+        } else {
+            // Fallback to direct download if share.js not loaded
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const downloadUrl = URL.createObjectURL(blob);
 
-        link.setAttribute('href', downloadUrl);
-        link.setAttribute('download', filename);
-        link.style.display = 'none';
+            link.setAttribute('href', downloadUrl);
+            link.setAttribute('download', filename);
+            link.style.display = 'none';
 
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
 
-        // Clean up
-        URL.revokeObjectURL(downloadUrl);
+            URL.revokeObjectURL(downloadUrl);
+        }
 
         // Show success message
-        showMessage(`✅ Exported ${salesData.length} sales records to ${filename}`, 'success');
+        showMessage(`✅ ${salesData.length} sales records ready to share`, 'success');
 
         // Restore button
         exportBtn.innerHTML = originalText;

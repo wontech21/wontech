@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ g.organization.organization_name }} - POS Orders</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .page-back {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .page-back:hover {
+            color: white;
+        }
+
+        .page-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .page-header-right {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .header-btn-export {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .header-btn-export:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .page-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        /* Summary Stats */
+        .orders-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .orders-stat {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 14px;
+            color: white;
+            text-align: center;
+        }
+
+        .orders-stat__value {
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .orders-stat__label {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        /* Filters */
+        .orders-filters {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .orders-search {
+            flex: 1;
+            padding: 10px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .orders-search:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .orders-filter-select {
+            padding: 10px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            min-width: 140px;
+        }
+
+        .orders-filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* Table */
+        .orders-table-wrap {
+            background: white;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            overflow: hidden;
+        }
+
+        .order-history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .order-history-table th,
+        .order-history-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .order-history-table th {
+            background: #f8f9fa;
+            font-weight: 700;
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+
+        .order-history-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .order-type-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .order-type-badge.dine-in {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .order-type-badge.pickup {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .order-type-badge.delivery {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .order-history-empty {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+        }
+
+        .date-display {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        @media (max-width: 768px) {
+            .orders-summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .page-content {
+                padding: 16px;
+            }
+
+            .orders-filters {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <div class="page-header-left">
+            <a href="/dashboard/pos" class="page-back">&larr; POS Terminal</a>
+            <h1 class="page-title">Orders</h1>
+            <span class="date-display" id="orderDate"></span>
+        </div>
+        <div class="page-header-right">
+            <button class="header-btn header-btn-export" onclick="exportOrdersToCSV()">📥 Export CSV</button>
+        </div>
+    </div>
+
+    <div class="page-content">
+        <div class="orders-summary">
+            <div class="orders-stat">
+                <div class="orders-stat__value" id="ordersViewCount">0</div>
+                <div class="orders-stat__label">Orders Today</div>
+            </div>
+            <div class="orders-stat">
+                <div class="orders-stat__value" id="ordersViewRevenue">$0</div>
+                <div class="orders-stat__label">Revenue</div>
+            </div>
+            <div class="orders-stat">
+                <div class="orders-stat__value" id="ordersViewDineIn">0</div>
+                <div class="orders-stat__label">Dine In</div>
+            </div>
+            <div class="orders-stat">
+                <div class="orders-stat__value" id="ordersViewPickup">0</div>
+                <div class="orders-stat__label">Pickup / Delivery</div>
+            </div>
+        </div>
+
+        <div class="orders-filters">
+            <input type="text" class="orders-search" id="posOrdersSearch" placeholder="Search orders..." oninput="filterOrders()">
+            <select class="orders-filter-select" id="posOrdersTypeFilter" onchange="filterOrders()">
+                <option value="all">All Types</option>
+                <option value="dine-in">Dine In</option>
+                <option value="pickup">Pickup</option>
+                <option value="delivery">Delivery</option>
+            </select>
+        </div>
+
+        <div class="orders-table-wrap" id="posOrdersTableWrap">
+            <div class="order-history-empty">
+                <div style="font-size: 48px; margin-bottom: 12px;">📋</div>
+                <div>Loading orders...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/share.js') }}"></script>
+    <script>
+        // Order data
+        let orderHistory = [];
+
+        // Set date display
+        document.getElementById('orderDate').textContent = new Date().toLocaleDateString('en-US', {
+            weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+        });
+
+        // Load orders from server or localStorage
+        async function loadOrders() {
+            try {
+                const response = await fetch('/api/pos/orders');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.orders) {
+                        orderHistory = data.orders.map(o => ({
+                            orderNumber: o.order_number,
+                            serverId: o.id,
+                            time: new Date(o.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+                            timestamp: o.created_at,
+                            date: (o.created_at || '').split('T')[0] || (o.created_at || '').split(' ')[0],
+                            type: o.order_type,
+                            status: o.status,
+                            items: [],
+                            itemCount: o.item_count || 0,
+                            itemsList: o.items_summary || '',
+                            subtotal: o.subtotal,
+                            tax: o.tax_amount,
+                            deliveryFee: o.delivery_fee,
+                            total: o.total,
+                            customerName: o.customer_name || '',
+                            customerPhone: o.customer_phone || '',
+                            fullAddress: o.customer_address || '',
+                            serverOrder: true
+                        }));
+                    }
+                } else {
+                    throw new Error('Server unavailable');
+                }
+            } catch (e) {
+                // Fall back to localStorage
+                const saved = localStorage.getItem('posOrderHistory');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    const today = new Date().toDateString();
+                    if (data.date === today) {
+                        orderHistory = data.orders || [];
+                    }
+                }
+            }
+
+            renderOrderHistory();
+        }
+
+        function filterOrders() {
+            renderOrderHistory();
+        }
+
+        function renderOrderHistory() {
+            var container = document.getElementById('posOrdersTableWrap');
+            if (!container) return;
+
+            var activeOrders = orderHistory.filter(function(o) { return o.status !== 'voided'; });
+            var totalOrders = activeOrders.length;
+            var totalRevenue = activeOrders.reduce(function(sum, o) { return sum + o.total; }, 0);
+            var dineInCount = activeOrders.filter(function(o) { return o.type === 'dine-in'; }).length;
+            var deliveryCount = activeOrders.filter(function(o) { return o.type !== 'dine-in'; }).length;
+
+            // Update summary cards
+            var el;
+            el = document.getElementById('ordersViewCount');   if (el) el.textContent = totalOrders;
+            el = document.getElementById('ordersViewRevenue');  if (el) el.textContent = '$' + totalRevenue.toFixed(2);
+            el = document.getElementById('ordersViewDineIn');   if (el) el.textContent = dineInCount;
+            el = document.getElementById('ordersViewPickup');   if (el) el.textContent = deliveryCount;
+
+            // Apply filters
+            var searchVal = '';
+            var typeFilter = 'all';
+            var searchEl = document.getElementById('posOrdersSearch');
+            var typeEl = document.getElementById('posOrdersTypeFilter');
+            if (searchEl) searchVal = searchEl.value.toLowerCase();
+            if (typeEl) typeFilter = typeEl.value;
+
+            var filtered = orderHistory.slice().reverse().filter(function(order) {
+                if (typeFilter !== 'all' && order.type !== typeFilter) return false;
+                if (searchVal) {
+                    var haystack = ((order.orderNumber || '') + ' ' + (order.customerName || '') + ' ' + (order.customerPhone || '') + ' ' + (order.itemsList || '')).toLowerCase();
+                    if (haystack.indexOf(searchVal) === -1) return false;
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="order-history-empty"><div style="font-size:48px;margin-bottom:12px;">📋</div><div>' + (orderHistory.length === 0 ? 'No orders yet today' : 'No orders match your filter') + '</div></div>';
+                return;
+            }
+
+            container.innerHTML = '<table class="order-history-table"><thead><tr>' +
+                '<th>#</th><th>Time</th><th>Type</th><th>Items</th><th>Total</th><th>Customer</th><th></th>' +
+                '</tr></thead><tbody>' +
+                filtered.map(function(order) {
+                    var isVoided = order.status === 'voided';
+                    var rowStyle = isVoided ? 'opacity:0.5;text-decoration:line-through;' : '';
+                    var voidBadge = isVoided ? ' <span style="color:#dc2626;font-size:10px;text-decoration:none;display:inline-block;">VOID</span>' : '';
+                    var voidBtn = (!isVoided && order.serverId)
+                        ? '<button onclick="voidOrder(' + order.serverId + ')" style="background:none;border:1px solid #fca5a5;color:#dc2626;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">Void</button>'
+                        : '';
+                    return '<tr style="' + rowStyle + '">' +
+                        '<td><strong>' + order.orderNumber + '</strong>' + voidBadge + '</td>' +
+                        '<td>' + order.time + '</td>' +
+                        '<td><span class="order-type-badge ' + order.type + '">' + order.type.replace('-', ' ') + '</span></td>' +
+                        '<td>' + (order.itemCount || order.items.length) + ' items</td>' +
+                        '<td><strong>$' + order.total.toFixed(2) + '</strong></td>' +
+                        '<td>' + (order.customerName || '-') + '<br><span style="font-size:11px;color:#6b7280;">' + (order.customerPhone || '') + '</span></td>' +
+                        '<td>' + voidBtn + '</td></tr>';
+                }).join('') +
+                '</tbody></table>';
+        }
+
+        // Void an order
+        async function voidOrder(orderId) {
+            if (!confirm('Void this order? Inventory will be restored.')) return;
+
+            async function doVoid(overrideCode) {
+                const body = { status: 'voided' };
+                if (overrideCode) body.overrideCode = overrideCode;
+                try {
+                    const res = await fetch('/api/pos/orders/' + orderId + '/status', {
+                        method: 'PATCH',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(body)
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        await loadOrders();
+                    } else if (data.needsOverride) {
+                        const code = prompt('Manager code required to void:');
+                        if (code) doVoid(code);
+                    } else {
+                        alert(data.error || 'Failed to void order');
+                    }
+                } catch (e) {
+                    alert('Failed to void order');
+                }
+            }
+
+            doVoid(null);
+        }
+
+        // Export to CSV
+        function exportOrdersToCSV() {
+            if (orderHistory.length === 0) {
+                alert('No orders to export');
+                return;
+            }
+
+            var headers = [
+                'Order #', 'Date', 'Time', 'Timestamp', 'Order Type',
+                'Customer Name', 'Customer Phone', 'Pickup Time',
+                'Street Address', 'Apt/Unit', 'City', 'State', 'Zip Code', 'Full Address',
+                'Delivery Instructions', 'Delivery Distance', 'Delivery Duration',
+                'Items', 'Item Count', 'Subtotal', 'Tax', 'Delivery Fee', 'Total'
+            ];
+
+            var rows = orderHistory.map(function(order) {
+                return [
+                    order.orderNumber,
+                    order.date || '',
+                    order.time,
+                    order.timestamp,
+                    order.type,
+                    '"' + (order.customerName || '').replace(/"/g, '""') + '"',
+                    '"' + (order.customerPhone || '').replace(/"/g, '""') + '"',
+                    order.pickupTime || '',
+                    '"' + (order.streetAddress || '').replace(/"/g, '""') + '"',
+                    '"' + (order.aptUnit || '').replace(/"/g, '""') + '"',
+                    '"' + (order.city || '').replace(/"/g, '""') + '"',
+                    order.state || '',
+                    order.zipCode || '',
+                    '"' + (order.fullAddress || '').replace(/"/g, '""') + '"',
+                    '"' + (order.deliveryInstructions || '').replace(/"/g, '""') + '"',
+                    order.deliveryDistance || '',
+                    order.deliveryDuration || '',
+                    '"' + (order.itemsList || '').replace(/"/g, '""') + '"',
+                    order.itemCount,
+                    (order.subtotal || 0).toFixed(2),
+                    (order.tax || 0).toFixed(2),
+                    (order.deliveryFee || 0).toFixed(2),
+                    order.total.toFixed(2)
+                ];
+            });
+
+            var csvContent = [headers.join(',')].concat(rows.map(function(row) { return row.join(','); })).join('\n');
+            var fileName = 'orders_' + new Date().toISOString().split('T')[0] + '.csv';
+
+            shareCSV(csvContent, fileName);
+        }
+
+        // Load on page ready
+        loadOrders();
+    </script>
+</body>
+</html>

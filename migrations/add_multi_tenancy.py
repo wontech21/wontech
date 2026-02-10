@@ -407,7 +407,7 @@ def migrate():
             INSERT OR IGNORE INTO organizations
             (id, organization_name, slug, owner_name, owner_email, plan_type, features)
             VALUES
-            (1, 'Default Organization', 'default', 'System Admin', 'admin@firingup.com', 'enterprise',
+            (1, 'Default Organization', 'default', 'System Admin', 'admin@wontech.com', 'enterprise',
              '["barcode_scanning", "payroll", "invoicing", "multi_location"]')
         """)
         default_org_id = 1
@@ -449,7 +449,7 @@ def migrate():
 
         if not existing_admin:
             # Create super admin with default password
-            admin_email = 'admin@firingup.com'
+            admin_email = 'admin@wontech.com'
             admin_password = 'admin123'  # User should change this immediately
             password_hash = hash_password(admin_password)
 
@@ -495,7 +495,7 @@ def migrate():
         print("   3️⃣  Employee - Limited access to own data and basic features")
 
         print("\n🔐 Super Admin Login:")
-        print("   Email: admin@firingup.com")
+        print("   Email: admin@wontech.com")
         print("   Password: admin123")
         print("   ⚠️  CHANGE PASSWORD IMMEDIATELY!")
 
@@ -505,7 +505,7 @@ def migrate():
         print("   3. Change super admin password")
         print("   4. Create your first client organization")
         print("   5. Invite organization admin users")
-        print("   6. Configure subdomain routing (*.firingup.com)")
+        print("   6. Configure subdomain routing (*.wontech.com)")
 
         print("\n" + "="*60)
 

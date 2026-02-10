@@ -254,7 +254,9 @@ function updateSummaryCards(totals) {
 /**
  * Export payroll as CSV
  */
-function exportPayrollCSV() {
+async function exportPayrollCSV() {
+    let url, fileName;
+
     if (currentViewType === 'weekly') {
         const select = document.getElementById('payrollWeekSelect');
         const weekStart = select ? select.value : null;
@@ -264,7 +266,8 @@ function exportPayrollCSV() {
             return;
         }
 
-        window.location.href = `/api/payroll/export/csv?week_start=${weekStart}`;
+        url = `/api/payroll/export/csv?week_start=${weekStart}`;
+        fileName = `payroll_${weekStart}.csv`;
     } else {
         const monthSelect = document.getElementById('payrollMonthSelect');
         const yearSelect = document.getElementById('payrollYearSelect');
@@ -276,7 +279,25 @@ function exportPayrollCSV() {
             return;
         }
 
-        window.location.href = `/api/payroll/export/csv?month=${month}&year=${year}`;
+        url = `/api/payroll/export/csv?month=${month}&year=${year}`;
+        fileName = `payroll_${year}_${month}.csv`;
+    }
+
+    // Fetch CSV content and use share modal
+    if (typeof shareCSV === 'function') {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to fetch payroll data');
+            const csvContent = await response.text();
+            shareCSV(csvContent, fileName);
+        } catch (error) {
+            console.error('Error fetching payroll CSV:', error);
+            // Fallback to direct download
+            window.location.href = url;
+        }
+    } else {
+        // Fallback to direct download if share.js not loaded
+        window.location.href = url;
     }
 }
 

@@ -1,0 +1,41 @@
+{% extends 'storefront/base.html' %}
+
+{% block title %}Menu — {{ org.organization_name }}{% endblock %}
+
+{% block content %}
+<section class="sf-section sf-section--tight">
+    <div class="sf-container">
+        <div class="sf-menu-header">
+            <h1 class="sf-page-title">Our Menu</h1>
+        </div>
+
+        <!-- Category Navigation -->
+        {% include 'storefront/components/_category_nav.html' %}
+
+        <!-- Menu Categories -->
+        {% for cat in categories %}
+        {% if cat['items'] %}
+        <div class="sf-menu-section" id="category-{{ cat.id }}" data-category-id="{{ cat.id }}">
+            <h2 class="sf-menu-section__title">{{ cat.name }}</h2>
+            {% if cat.description %}
+            <p class="sf-menu-section__desc">{{ cat.description }}</p>
+            {% endif %}
+            <div class="sf-grid-3">
+                {% for item in cat['items'] %}
+                {% with item=item %}
+                {% include 'storefront/components/_menu_item_card.html' %}
+                {% endwith %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Pass menu data to JS for item modal (view-only mode) -->
+<script>
+    window.SF_MENU_DATA = {{ categories | tojson }};
+    window.SF_MENU_MODE = 'view';
+</script>
+{% endblock %}

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ org.organization_name }}{% endblock %}</title>
+    <meta name="description" content="{{ org.tagline or org.organization_name }}">
+
+    <!-- Org Branding CSS Variables -->
+    <style>
+        :root {
+            --sf-primary: {{ org.primary_color or '#2563eb' }};
+            --sf-secondary: {{ org.secondary_color or '#1e40af' }};
+            --sf-accent: {{ org.accent_color or '#f59e0b' }};
+        }
+    </style>
+
+    <link rel="stylesheet" href="/static/css/storefront.css">
+    {% block head %}{% endblock %}
+</head>
+<body class="sf-body">
+    {% include 'storefront/components/_nav.html' %}
+
+    <main class="sf-main">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include 'storefront/components/_footer.html' %}
+
+    {% if page == 'order' %}
+    {% include 'storefront/components/_cart_drawer.html' %}
+    {% include 'storefront/components/_item_modal.html' %}
+    <div class="sf-bottom-bar" id="sfBottomBar" style="display:none;">
+        <div class="sf-bottom-bar__info">
+            <span class="sf-bottom-bar__count" id="sfBottomCount">0 items</span>
+            <span class="sf-bottom-bar__total" id="sfBottomTotal">$0.00</span>
+        </div>
+        <button class="sf-btn sf-btn--accent sf-btn--sm" onclick="SF.toggleCart()">View Cart</button>
+    </div>
+    {% endif %}
+
+    <!-- Toast Container -->
+    <div class="sf-toast-container" id="sfToastContainer"></div>
+
+    <!-- Config for JS -->
+    <script>
+        window.SF_CONFIG = {
+            slug: '{{ slug }}',
+            isCustomDomain: {{ 'true' if is_custom_domain else 'false' }},
+            baseUrl: '{{ "" if is_custom_domain else "/s/" + slug }}',
+            orgName: {{ org.organization_name | tojson }},
+            pickupEnabled: {{ 'true' if org.pickup_enabled else 'false' }},
+            deliveryEnabled: {{ 'true' if org.delivery_enabled else 'false' }},
+            dineinEnabled: {{ 'true' if org.dinein_enabled else 'false' }},
+            deliveryFee: {{ org.delivery_fee or 0 }},
+            deliveryMinimum: {{ org.delivery_minimum or 0 }},
+            taxRate: {{ org.tax_rate or 0 }},
+            estimatedPickupMinutes: {{ org.estimated_pickup_minutes or 20 }},
+            estimatedDeliveryMinutes: {{ org.estimated_delivery_minutes or 45 }},
+        };
+    </script>
+    <script src="/static/js/storefront.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

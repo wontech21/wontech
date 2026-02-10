@@ -1,0 +1,68 @@
+{% extends 'storefront/base.html' %}
+
+{% block title %}Order Online — {{ org.organization_name }}{% endblock %}
+
+{% block content %}
+<section class="sf-section sf-section--tight" id="sfOrderPage">
+    <div class="sf-container">
+        <h1 class="sf-page-title">Order Online</h1>
+
+        {% if not is_open %}
+        <div class="sf-alert sf-alert--warning">
+            <strong>We're currently closed.</strong> You can still browse the menu, but orders can only be placed during business hours.
+        </div>
+        {% endif %}
+
+        <!-- Order Type Picker -->
+        {% include 'storefront/components/_order_type_picker.html' %}
+
+        <!-- Menu content loaded by JS -->
+        <div id="sfMenuContainer">
+            <div class="sf-category-nav" id="sfCategoryNav">
+                <div class="sf-category-nav__scroll" id="sfCategoryPills">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+            <div id="sfMenuSections">
+                <!-- Loading skeleton -->
+                <div class="sf-skeleton-grid">
+                    {% for i in range(6) %}
+                    <div class="sf-skeleton sf-skeleton--card"></div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Checkout Section (hidden initially) -->
+{% include 'storefront/components/_checkout_form.html' %}
+
+<!-- Confirmation Screen (hidden initially) -->
+<div class="sf-confirmation" id="sfConfirmation" style="display:none;">
+    <div class="sf-container sf-text-center">
+        <div class="sf-confirmation__icon">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--sf-primary)" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+        </div>
+        <h2 class="sf-confirmation__title">Order Confirmed!</h2>
+        <p class="sf-confirmation__number" id="sfConfirmNumber"></p>
+        <p class="sf-confirmation__estimate" id="sfConfirmEstimate"></p>
+        <div class="sf-confirmation__actions">
+            <a href="#" id="sfTrackLink" class="sf-btn sf-btn--primary sf-btn--lg">Track Your Order</a>
+            <a href="{{ '' if is_custom_domain else '/s/' + slug }}/order" class="sf-btn sf-btn--outline">Place Another Order</a>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script src="/static/js/storefront-checkout.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        SF.initOrderPage();
+    });
+</script>
+{% endblock %}
+{% endblock %}

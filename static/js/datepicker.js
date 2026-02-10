@@ -1,5 +1,5 @@
 /**
- * FIRINGup Custom Date/Time Picker
+ * WONTECH Custom Date/Time Picker
  * A modern, styled date and time picker to replace browser defaults
  */
 

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ g.organization.organization_name }} - Point of Sale</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Stripe.js -->
+    <script src="https://js.stripe.com/v3/"></script>
     <!-- Google Maps API - Replace YOUR_API_KEY with actual key -->
     <script src="https://maps.googleapis.com/maps/api/js?key={{ config.get('GOOGLE_MAPS_API_KEY', '') }}&libraries=places&callback=initGoogleMaps" async defer></script>
     <style>
@@ -33,6 +35,131 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+        }
+
+        /* ── Employee Selection Overlay ── */
+        .pos-employee-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pos-employee-overlay.hidden { display: none; }
+
+        .employee-select-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .employee-select-card h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .employee-select-card p {
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+
+        .employee-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .num-btn {
+            padding: 20px;
+            font-size: 1.8em;
+            font-weight: 600;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #1f2937;
+            min-height: 64px;
+        }
+
+        .num-btn:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .num-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* ── Employee Badge in Header ── */
+        .pos-employee-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pos-employee-badge:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+
+        .pos-employee-badge .badge-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* ── 86'd / Out-of-Stock Badge ── */
+        .product-btn.out-of-stock {
+            opacity: 0.35;
+            pointer-events: none;
+            position: relative;
+            background: rgba(220, 38, 38, 0.12) !important;
+            filter: grayscale(40%);
+        }
+
+        .product-low-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #f59e0b;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 6px;
+            z-index: 5;
+        }
+
+        .product-btn.low-stock {
+            position: relative;
         }
 
         .pos-header {
@@ -658,6 +785,49 @@
             padding: 24px;
         }
 
+        .pos-modal-footer {
+            padding: 16px 24px;
+            border-top: 2px solid #e9ecef;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background: #f8f9fa;
+        }
+
+        .settings-cancel-btn {
+            padding: 12px 24px;
+            background: white;
+            color: #6b7280;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .settings-cancel-btn:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+        }
+
+        .settings-save-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .settings-save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
         .pos-modal-tabs {
             display: flex;
             gap: 8px;
@@ -862,29 +1032,150 @@
             color: #9ca3af;
         }
 
-        .order-history-summary {
+        /* ── Orders View (full-page, replaces product grid) ── */
+        .pos-orders-view {
+            padding: 24px;
+            overflow-y: auto;
+            height: 100%;
+        }
+
+        .pos-orders-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .pos-orders-topbar-left {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .pos-orders-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .pos-orders-date {
+            font-size: 14px;
+            color: #9ca3af;
+            font-weight: 500;
+        }
+
+        .pos-orders-topbar-right {
+            display: flex;
+            gap: 10px;
+        }
+
+        .pos-orders-back-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pos-orders-back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .pos-orders-export-btn {
+            padding: 10px 20px;
+            background: white;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pos-orders-export-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .pos-orders-summary {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 16px;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
-        .order-summary-card {
+        .pos-orders-stat {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 16px;
-            border-radius: 12px;
+            padding: 20px;
+            border-radius: 14px;
             color: white;
             text-align: center;
         }
 
-        .order-summary-card .value {
-            font-size: 24px;
+        .pos-orders-stat__value {
+            font-size: 32px;
             font-weight: 700;
         }
 
-        .order-summary-card .label {
-            font-size: 12px;
+        .pos-orders-stat__label {
+            font-size: 13px;
             opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .pos-orders-filters {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .pos-orders-search {
+            flex: 1;
+            padding: 10px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .pos-orders-search:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .pos-orders-filter-select {
+            padding: 10px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            min-width: 140px;
+        }
+
+        .pos-orders-filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .pos-orders-table-wrap {
+            background: white;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            overflow: hidden;
+        }
+
+        .pos-orders-btn--active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: white !important;
+            border-color: transparent !important;
         }
 
         .time-slots-grid {
@@ -904,6 +1195,404 @@
             font-size: 13px;
             font-weight: 600;
             color: #374151;
+        }
+
+        /* Payment Modal Styles */
+        .payment-summary {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .payment-summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .payment-summary-row.payment-total {
+            border-top: 2px solid #e5e7eb;
+            margin-top: 8px;
+            padding-top: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .payment-methods {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .payment-method-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .payment-method-btn {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .payment-method-btn:hover {
+            border-color: #667eea;
+            background: #f5f3ff;
+        }
+
+        .payment-method-icon {
+            font-size: 32px;
+        }
+
+        .payment-method-label {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .payment-method-desc {
+            font-size: 12px;
+            color: #6b7280;
+            margin-left: auto;
+        }
+
+        .payment-form {
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cash Payment */
+        .cash-input-group {
+            margin-bottom: 16px;
+        }
+
+        .cash-input-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .cash-input-wrapper {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .cash-currency {
+            padding: 16px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #6b7280;
+            background: #e5e7eb;
+        }
+
+        .cash-input {
+            flex: 1;
+            border: none;
+            padding: 16px;
+            font-size: 24px;
+            font-weight: 700;
+            background: transparent;
+            outline: none;
+        }
+
+        .cash-quick-amounts {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .quick-amount-btn {
+            flex: 1;
+            padding: 12px;
+            background: #e5e7eb;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-amount-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .change-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .change-display span:first-child {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        #changeAmount {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        /* Card Payment */
+        .card-form {
+            margin-bottom: 20px;
+        }
+
+        .card-field {
+            margin-bottom: 16px;
+        }
+
+        .card-field label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .card-row {
+            display: flex;
+            gap: 16px;
+        }
+
+        .card-row .card-field {
+            flex: 1;
+        }
+
+        .stripe-element {
+            padding: 14px;
+            background: #f8f9fa;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            transition: border-color 0.2s;
+        }
+
+        .stripe-element.StripeElement--focus {
+            border-color: #667eea;
+        }
+
+        .stripe-element.StripeElement--invalid {
+            border-color: #dc2626;
+        }
+
+        .card-errors {
+            color: #dc2626;
+            font-size: 13px;
+            margin-top: 8px;
+            min-height: 20px;
+        }
+
+        /* Payment Buttons */
+        .payment-submit-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .payment-submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .payment-submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .payment-back-btn {
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            color: #6b7280;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+
+        .payment-back-btn:hover {
+            color: #1f2937;
+        }
+
+        .payment-cancel-btn {
+            width: 100%;
+            padding: 14px;
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .btn-spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Terminal Payment */
+        .terminal-status {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .terminal-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .terminal-message {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+
+        .terminal-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e7eb;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        .terminal-instructions {
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        /* Payment Success */
+        .payment-success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            font-size: 40px;
+            font-weight: 700;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .payment-success-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .payment-success-amount {
+            text-align: center;
+            font-size: 36px;
+            font-weight: 700;
+            color: #059669;
+            margin-bottom: 8px;
+        }
+
+        .payment-success-method {
+            text-align: center;
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+
+        .payment-receipt-options {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .receipt-btn {
+            flex: 1;
+            padding: 12px;
+            background: #f3f4f6;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .receipt-btn:hover {
+            background: #e5e7eb;
+        }
+
+        .payment-done-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .payment-done-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
         }
 
         /* Coming Soon Overlay */
@@ -1015,16 +1704,52 @@
     </style>
 </head>
 <body>
+    <!-- Employee Selection Overlay (keypad) -->
+    <div class="pos-employee-overlay" id="employeeOverlay">
+        <div class="employee-select-card" style="max-width:420px; padding:40px 35px;">
+            <h2>Employee Code</h2>
+            <p>Enter your code to start</p>
+            <input type="tel" id="employeePinField" readonly maxlength="10"
+                   style="width:100%; padding:16px; font-size:2em; text-align:center;
+                          border:2px solid #e5e7eb; border-radius:14px; font-weight:700;
+                          letter-spacing:0.3em; background:#f9fafb; color:#1f2937; margin-bottom:4px;">
+            <div class="pin-error" id="pinError" style="color:#dc2626; font-size:13px; min-height:24px; margin-bottom:8px;"></div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px;">
+                <button type="button" class="num-btn" onclick="posAddDigit('1')">1</button>
+                <button type="button" class="num-btn" onclick="posAddDigit('2')">2</button>
+                <button type="button" class="num-btn" onclick="posAddDigit('3')">3</button>
+                <button type="button" class="num-btn" onclick="posAddDigit('4')">4</button>
+                <button type="button" class="num-btn" onclick="posAddDigit('5')">5</button>
+                <button type="button" class="num-btn" onclick="posAddDigit('6')">6</button>
+                <button type="button" class="num-btn" onclick="posAddDigit('7')">7</button>
+                <button type="button" class="num-btn" onclick="posAddDigit('8')">8</button>
+                <button type="button" class="num-btn" onclick="posAddDigit('9')">9</button>
+                <button type="button" class="num-btn" style="grid-column:1/3;" onclick="posAddDigit('0')">0</button>
+                <button type="button" class="num-btn" onclick="posClearCode()" style="background:#fef2f2;color:#dc2626;font-size:1.1em;">&#x232B;</button>
+            </div>
+            <button onclick="submitEmployeePin()" style="
+                width:100%; padding:16px; font-size:1.1em; font-weight:600;
+                background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+                color:white; border:none; border-radius:14px; cursor:pointer;
+                box-shadow:0 4px 12px rgba(102,126,234,0.25);
+            ">Continue</button>
+        </div>
+    </div>
+
     <div class="pos-container">
         <!-- Left Side - Product Selection -->
         <div class="pos-main">
             <div class="pos-header">
                 <div class="pos-header-left">
-                    <a href="{% if g.is_super_admin %}/admin/dashboard{% else %}/dashboard{% endif %}" class="pos-logo">⬅ POS Terminal</a>
+                    <a href="/dashboard/pos" class="pos-logo">⬅ POS Terminal</a>
                 </div>
                 <div class="pos-header-right">
-                    <button class="pos-settings-btn" onclick="openPosSettings()">
-                        <span>⚙️</span> Settings
+                    <div class="pos-employee-badge" id="employeeBadge" onclick="switchEmployee()" style="display:none;">
+                        <span class="badge-avatar" id="badgeAvatar"></span>
+                        <span id="badgeName"></span>
+                    </div>
+                    <button class="pos-settings-btn" id="eightySixBtn" onclick="toggle86Mode()" style="border-color: transparent; background: #f1f3f4; color: #5f6368;">
+                        <span>86</span>
                     </button>
                 </div>
             </div>
@@ -1046,11 +1771,14 @@
                 <button class="category-btn" data-category="Add-ons">Add-ons</button>
             </div>
 
-            <div class="pos-products">
+            <div id="eightySixGroupBar" style="display:none; padding: 6px 12px; overflow-x: auto; white-space: nowrap; background: #fef2f2; border-bottom: 1px solid #fecaca;"></div>
+
+            <div class="pos-products" id="posProductsArea">
                 <div id="productsGrid">
                     <div class="loading-products">Loading products...</div>
                 </div>
             </div>
+
         </div>
 
         <!-- Right Side - Order Summary -->
@@ -1088,7 +1816,8 @@
                 </div>
                 <div class="customer-field">
                     <label>Phone Number</label>
-                    <input type="tel" id="customerPhone" placeholder="(555) 555-5555">
+                    <input type="tel" id="customerPhone" placeholder="(555) 555-5555" oninput="debouncedCustomerLookup()">
+                    <div id="customerLookupHint" style="display:none; font-size:12px; margin-top:4px; padding:6px 8px; border-radius:6px; background:#ecfdf5; color:#065f46;"></div>
                 </div>
                 <div class="pickup-time-row" id="pickupTimeRow">
                     <div class="customer-field">
@@ -1146,8 +1875,8 @@
                     <span>Subtotal</span>
                     <span id="subtotalAmount">$0.00</span>
                 </div>
-                <div class="summary-row">
-                    <span>Tax (8%)</span>
+                <div class="summary-row" id="taxRow">
+                    <span id="taxLabelDisplay">Tax (8%)</span>
                     <span id="taxAmount">$0.00</span>
                 </div>
                 <div class="summary-row" id="deliveryFeeRow" style="display: none; color: #667eea;">
@@ -1167,6 +1896,139 @@
         </div>
     </div>
 
+    <!-- Payment Modal -->
+    <div class="pos-modal-overlay" id="paymentModal">
+        <div class="pos-modal" style="max-width: 480px;">
+            <div class="pos-modal-header">
+                <h2>Payment</h2>
+                <button class="pos-modal-close" onclick="closePaymentModal()">&times;</button>
+            </div>
+            <div class="pos-modal-body">
+                <!-- Order Summary -->
+                <div class="payment-summary">
+                    <div class="payment-summary-row">
+                        <span>Subtotal</span>
+                        <span id="paymentSubtotal">$0.00</span>
+                    </div>
+                    <div class="payment-summary-row">
+                        <span>Tax</span>
+                        <span id="paymentTax">$0.00</span>
+                    </div>
+                    <div class="payment-summary-row" id="paymentDeliveryRow" style="display: none;">
+                        <span>Delivery Fee</span>
+                        <span id="paymentDeliveryFee">$0.00</span>
+                    </div>
+                    <div class="payment-summary-row payment-total">
+                        <span>Total</span>
+                        <span id="paymentTotal">$0.00</span>
+                    </div>
+                </div>
+
+                <!-- Payment Method Selection -->
+                <div id="paymentMethodSelect" class="payment-methods">
+                    <div class="payment-method-title">Select Payment Method</div>
+                    <button class="payment-method-btn" onclick="selectPaymentMethod('cash')">
+                        <span class="payment-method-icon">💵</span>
+                        <span class="payment-method-label">Cash</span>
+                    </button>
+                    <button class="payment-method-btn" onclick="selectPaymentMethod('card')">
+                        <span class="payment-method-icon">💳</span>
+                        <span class="payment-method-label">Card</span>
+                    </button>
+                    <button class="payment-method-btn" onclick="selectPaymentMethod('terminal')">
+                        <span class="payment-method-icon">📱</span>
+                        <span class="payment-method-label">Card Reader</span>
+                        <span class="payment-method-desc">Stripe Terminal</span>
+                    </button>
+                </div>
+
+                <!-- Cash Payment -->
+                <div id="cashPayment" class="payment-form" style="display: none;">
+                    <div class="payment-method-title">Cash Payment</div>
+                    <div class="cash-input-group">
+                        <label>Amount Received</label>
+                        <div class="cash-input-wrapper">
+                            <span class="cash-currency">$</span>
+                            <input type="number" id="cashReceived" class="cash-input" step="0.01" min="0" placeholder="0.00" oninput="calculateChange()">
+                        </div>
+                    </div>
+                    <div class="cash-quick-amounts">
+                        <button class="quick-amount-btn" onclick="setQuickAmount('exact')">Exact</button>
+                        <button class="quick-amount-btn" onclick="setQuickAmount(20)">$20</button>
+                        <button class="quick-amount-btn" onclick="setQuickAmount(50)">$50</button>
+                        <button class="quick-amount-btn" onclick="setQuickAmount(100)">$100</button>
+                    </div>
+                    <div class="change-display" id="changeDisplay">
+                        <span>Change Due</span>
+                        <span id="changeAmount">$0.00</span>
+                    </div>
+                    <button class="payment-submit-btn" id="cashSubmitBtn" onclick="completeCashPayment()" disabled>
+                        Complete Cash Payment
+                    </button>
+                    <button class="payment-back-btn" onclick="showPaymentMethods()">← Back</button>
+                </div>
+
+                <!-- Card Payment (Stripe Elements) -->
+                <div id="cardPayment" class="payment-form" style="display: none;">
+                    <div class="payment-method-title">Card Payment</div>
+                    <div class="card-form">
+                        <div class="card-field">
+                            <label>Card Number</label>
+                            <div id="card-number-element" class="stripe-element"></div>
+                        </div>
+                        <div class="card-row">
+                            <div class="card-field">
+                                <label>Expiry</label>
+                                <div id="card-expiry-element" class="stripe-element"></div>
+                            </div>
+                            <div class="card-field">
+                                <label>CVC</label>
+                                <div id="card-cvc-element" class="stripe-element"></div>
+                            </div>
+                        </div>
+                        <div id="card-errors" class="card-errors"></div>
+                    </div>
+                    <button class="payment-submit-btn" id="cardSubmitBtn" onclick="processCardPayment()">
+                        <span id="cardBtnText">Pay <span id="cardPayAmount">$0.00</span></span>
+                        <span id="cardBtnSpinner" class="btn-spinner" style="display: none;"></span>
+                    </button>
+                    <button class="payment-back-btn" onclick="showPaymentMethods()">← Back</button>
+                </div>
+
+                <!-- Terminal Payment (Stripe Terminal) -->
+                <div id="terminalPayment" class="payment-form" style="display: none;">
+                    <div class="payment-method-title">Card Reader</div>
+                    <div class="terminal-status" id="terminalStatus">
+                        <div class="terminal-icon">📱</div>
+                        <div class="terminal-message" id="terminalMessage">Connecting to reader...</div>
+                        <div class="terminal-spinner" id="terminalSpinner"></div>
+                    </div>
+                    <div class="terminal-instructions">
+                        <p>Present card to the reader when prompted</p>
+                    </div>
+                    <button class="payment-cancel-btn" id="terminalCancelBtn" onclick="cancelTerminalPayment()">
+                        Cancel
+                    </button>
+                    <button class="payment-back-btn" onclick="showPaymentMethods()">← Back</button>
+                </div>
+
+                <!-- Payment Success -->
+                <div id="paymentSuccess" class="payment-form" style="display: none;">
+                    <div class="payment-success-icon">✓</div>
+                    <div class="payment-success-title">Payment Complete!</div>
+                    <div class="payment-success-amount" id="successAmount">$0.00</div>
+                    <div class="payment-success-method" id="successMethod"></div>
+                    <div class="payment-receipt-options">
+                        <button class="receipt-btn" onclick="printReceipt()">🖨️ Print Receipt</button>
+                        <button class="receipt-btn" onclick="emailReceipt()">📧 Email Receipt</button>
+                        <button class="receipt-btn" onclick="textReceipt()">💬 Text Receipt</button>
+                    </div>
+                    <button class="payment-done-btn" onclick="finishPayment()">Done - New Order</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {% if not g.is_super_admin %}
     <!-- Coming Soon Overlay (only for non-super admins) -->
     <div class="coming-soon-overlay">
@@ -1178,248 +2040,13 @@
                 We're building a fast and intuitive POS system for quick ordering and checkout.
                 This feature will be available soon!
             </p>
-            <a href="/dashboard" class="back-home-btn">
-                <span>&#8592;</span> Back to Data Center
+            <a href="/dashboard/pos" class="back-home-btn">
+                <span>&#8592;</span> Back to POS Terminal
             </a>
         </div>
     </div>
     {% endif %}
 
-    <!-- POS Settings Modal -->
-    <div class="pos-modal-overlay" id="posSettingsModal">
-        <div class="pos-modal">
-            <div class="pos-modal-header">
-                <div class="pos-modal-title">
-                    <span>⚙️</span> POS Settings
-                </div>
-                <button class="pos-modal-close" onclick="closePosSettings()">&times;</button>
-            </div>
-            <div class="pos-modal-body">
-                <!-- Tabs -->
-                <div class="pos-modal-tabs">
-                    <button class="pos-modal-tab active" onclick="showSettingsTab('history')">📜 Order History</button>
-                    <button class="pos-modal-tab" onclick="showSettingsTab('delivery')">🚗 Delivery Settings</button>
-                    <button class="pos-modal-tab" onclick="showSettingsTab('hours')">🕐 Operating Hours</button>
-                </div>
-
-                <!-- Order History Tab -->
-                <div id="settingsTabHistory" class="settings-tab-content">
-                    <div class="order-history-summary">
-                        <div class="order-summary-card">
-                            <div class="value" id="todayOrderCount">0</div>
-                            <div class="label">Orders Today</div>
-                        </div>
-                        <div class="order-summary-card">
-                            <div class="value" id="todayRevenue">$0</div>
-                            <div class="label">Revenue</div>
-                        </div>
-                        <div class="order-summary-card">
-                            <div class="value" id="todayDineIn">0</div>
-                            <div class="label">Dine In</div>
-                        </div>
-                        <div class="order-summary-card">
-                            <div class="value" id="todayDelivery">0</div>
-                            <div class="label">Pickup/Delivery</div>
-                        </div>
-                    </div>
-
-                    <div class="settings-section">
-                        <div class="settings-section-title" style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>Today's Orders</span>
-                            <button onclick="exportOrdersToCSV()" class="export-csv-btn">
-                                📥 Export CSV
-                            </button>
-                        </div>
-                        <div id="orderHistoryTable">
-                            <div class="order-history-empty">
-                                <div style="font-size: 48px; margin-bottom: 12px;">📋</div>
-                                <div>No orders yet today</div>
-                                <div style="font-size: 12px; margin-top: 4px;">Orders will appear here as they're completed</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="settings-section" style="background: #fef3c7; padding: 16px; border-radius: 12px;">
-                        <div style="display: flex; align-items: center; gap: 10px; color: #92400e;">
-                            <span style="font-size: 24px;">⏰</span>
-                            <div>
-                                <strong>Auto-Export at 3:00 AM</strong>
-                                <div style="font-size: 12px;">Order history is automatically exported to Sales CSV and cleared daily</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Delivery Settings Tab -->
-                <div id="settingsTabDelivery" class="settings-tab-content" style="display: none;">
-                    <div class="settings-section">
-                        <div class="settings-section-title">Delivery Fee</div>
-                        <div class="settings-row">
-                            <div>
-                                <div class="settings-row-label">Fee Type</div>
-                                <div class="settings-row-desc">How delivery fee is calculated</div>
-                            </div>
-                            <select class="settings-select" id="deliveryFeeType" onchange="updateDeliveryFeeType()">
-                                <option value="fixed">Fixed Amount</option>
-                                <option value="variable">Variable (by distance)</option>
-                            </select>
-                        </div>
-                        <div class="settings-row" id="fixedFeeRow">
-                            <div>
-                                <div class="settings-row-label">Fixed Delivery Fee</div>
-                                <div class="settings-row-desc">Flat rate for all deliveries</div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <span>$</span>
-                                <input type="number" class="settings-input" id="fixedDeliveryFee" value="5.00" step="0.50" min="0">
-                            </div>
-                        </div>
-                        <div id="variableFeeRows" style="display: none;">
-                            <div class="settings-row">
-                                <div>
-                                    <div class="settings-row-label">Base Fee</div>
-                                    <div class="settings-row-desc">Starting delivery fee</div>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <span>$</span>
-                                    <input type="number" class="settings-input" id="baseDeliveryFee" value="3.00" step="0.50" min="0">
-                                </div>
-                            </div>
-                            <div class="settings-row">
-                                <div>
-                                    <div class="settings-row-label">Per Mile Fee</div>
-                                    <div class="settings-row-desc">Additional charge per mile</div>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <span>$</span>
-                                    <input type="number" class="settings-input" id="perMileFee" value="1.50" step="0.25" min="0">
-                                </div>
-                            </div>
-                            <div class="settings-row">
-                                <div>
-                                    <div class="settings-row-label">Max Delivery Distance</div>
-                                    <div class="settings-row-desc">Maximum miles for delivery</div>
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 4px;">
-                                    <input type="number" class="settings-input" id="maxDeliveryDistance" value="10" step="1" min="1">
-                                    <span>miles</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="settings-section">
-                        <div class="settings-section-title">Minimum Order</div>
-                        <div class="settings-row">
-                            <div>
-                                <div class="settings-row-label">Minimum for Delivery</div>
-                                <div class="settings-row-desc">Order minimum before delivery fee</div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <span>$</span>
-                                <input type="number" class="settings-input" id="minDeliveryOrder" value="15.00" step="1" min="0">
-                            </div>
-                        </div>
-                        <div class="settings-row">
-                            <div>
-                                <div class="settings-row-label">Free Delivery Threshold</div>
-                                <div class="settings-row-desc">Order amount for free delivery (0 = never)</div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <span>$</span>
-                                <input type="number" class="settings-input" id="freeDeliveryThreshold" value="50.00" step="5" min="0">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Operating Hours Tab -->
-                <div id="settingsTabHours" class="settings-tab-content" style="display: none;">
-                    <div class="settings-section">
-                        <div class="settings-section-title">Dine-In / Pickup Hours</div>
-                        <div class="time-slots-grid">
-                            <div class="settings-row">
-                                <div>
-                                    <div class="settings-row-label">Opens</div>
-                                </div>
-                                <input type="time" class="settings-input" id="dineInOpens" value="11:00">
-                            </div>
-                            <div class="settings-row">
-                                <div>
-                                    <div class="settings-row-label">Closes</div>
-                                </div>
-                                <input type="time" class="settings-input" id="dineInCloses" value="22:00">
-                            </div>
-                        </div>
-                        <div class="settings-row" style="margin-top: 12px;">
-                            <div>
-                                <div class="settings-row-label">Pickup Lead Time</div>
-                                <div class="settings-row-desc">Minimum minutes for pickup orders</div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <input type="number" class="settings-input" id="pickupLeadTime" value="15" step="5" min="5">
-                                <span>min</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="settings-section">
-                        <div class="settings-section-title">Delivery Hours</div>
-                        <div class="time-slots-grid">
-                            <div class="settings-row">
-                                <div>
-                                    <div class="settings-row-label">Starts</div>
-                                </div>
-                                <input type="time" class="settings-input" id="deliveryStarts" value="11:30">
-                            </div>
-                            <div class="settings-row">
-                                <div>
-                                    <div class="settings-row-label">Ends</div>
-                                </div>
-                                <input type="time" class="settings-input" id="deliveryEnds" value="21:30">
-                            </div>
-                        </div>
-                        <div class="settings-row" style="margin-top: 12px;">
-                            <div>
-                                <div class="settings-row-label">Delivery Lead Time</div>
-                                <div class="settings-row-desc">Minimum minutes for delivery orders</div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <input type="number" class="settings-input" id="deliveryLeadTime" value="45" step="5" min="15">
-                                <span>min</span>
-                            </div>
-                        </div>
-                        <div class="settings-row">
-                            <div>
-                                <div class="settings-row-label">Estimated Delivery Time</div>
-                                <div class="settings-row-desc">Time range shown to customers</div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <input type="number" class="settings-input" id="deliveryTimeMin" value="30" step="5" min="15" style="width: 70px;">
-                                <span>-</span>
-                                <input type="number" class="settings-input" id="deliveryTimeMax" value="45" step="5" min="20" style="width: 70px;">
-                                <span>min</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="settings-section">
-                        <div class="settings-section-title">Order Cutoff</div>
-                        <div class="settings-row">
-                            <div>
-                                <div class="settings-row-label">Last Order Before Close</div>
-                                <div class="settings-row-desc">Stop accepting orders X minutes before closing</div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 4px;">
-                                <input type="number" class="settings-input" id="lastOrderBuffer" value="30" step="5" min="0">
-                                <span>min</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <script>
         let allProducts = [];
@@ -1442,12 +2069,34 @@
             lng: null
         };
 
+        // Stripe configuration
+        const stripePublicKey = '{{ config.get("STRIPE_PUBLIC_KEY", "") }}';
+        let stripe = null;
+        let cardNumberElement = null;
+        let cardExpiryElement = null;
+        let cardCvcElement = null;
+        let currentPaymentIntent = null;
+        let pendingOrderData = null;
+
+        // Initialize Stripe if key is available
+        if (stripePublicKey) {
+            stripe = Stripe(stripePublicKey);
+        }
+
         // Order history cache (persisted to localStorage)
         let orderHistory = [];
         let orderNumber = 1;
+        let lastCompletedOrderId = null;
+        let registerSession = null;
 
         // POS Settings (persisted to localStorage)
         let posSettings = {
+            // Tax settings
+            taxEnabled: true,
+            taxRate: 8.00,
+            taxDisplay: 'add',
+            taxLabel: 'Tax',
+            // Delivery settings
             deliveryFeeType: 'fixed',
             fixedDeliveryFee: 5.00,
             baseDeliveryFee: 3.00,
@@ -1467,24 +2116,59 @@
         };
 
         // Load settings and order history from localStorage
-        function loadPosData() {
+        async function loadPosData() {
             const savedSettings = localStorage.getItem('posSettings');
             if (savedSettings) {
                 posSettings = { ...posSettings, ...JSON.parse(savedSettings) };
             }
 
-            const savedHistory = localStorage.getItem('posOrderHistory');
-            if (savedHistory) {
-                const data = JSON.parse(savedHistory);
-                // Check if it's from today
-                const today = new Date().toDateString();
-                if (data.date === today) {
-                    orderHistory = data.orders;
-                    orderNumber = data.nextOrderNumber;
+            // Try loading today's orders from server
+            try {
+                const response = await fetch('/api/pos/orders');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.orders.length > 0) {
+                        orderHistory = data.orders.map(o => ({
+                            orderNumber: o.order_number,
+                            serverId: o.id,
+                            time: new Date(o.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+                            timestamp: o.created_at,
+                            date: (o.created_at || '').split('T')[0] || (o.created_at || '').split(' ')[0],
+                            type: o.order_type,
+                            status: o.status,
+                            items: [],
+                            itemCount: o.item_count || 0,
+                            itemsList: o.items_summary || '',
+                            subtotal: o.subtotal,
+                            tax: o.tax_amount,
+                            deliveryFee: o.delivery_fee,
+                            total: o.total,
+                            customerName: o.customer_name || '',
+                            customerPhone: o.customer_phone || '',
+                            fullAddress: o.customer_address || '',
+                            serverOrder: true
+                        }));
+                        // Set orderNumber from server's last sequence
+                        const lastNum = data.orders[0].order_number;
+                        const lastSeq = parseInt(lastNum.split('-').pop());
+                        orderNumber = lastSeq + 1;
+                    }
                 } else {
-                    // Different day - clear history (would be exported at 3am)
-                    orderHistory = [];
-                    orderNumber = 1;
+                    throw new Error('Server unavailable');
+                }
+            } catch (e) {
+                // Fall back to localStorage
+                const savedHistory = localStorage.getItem('posOrderHistory');
+                if (savedHistory) {
+                    const data = JSON.parse(savedHistory);
+                    const today = new Date().toDateString();
+                    if (data.date === today) {
+                        orderHistory = data.orders;
+                        orderNumber = data.nextOrderNumber;
+                    } else {
+                        orderHistory = [];
+                        orderNumber = 1;
+                    }
                 }
             }
 
@@ -1508,56 +2192,520 @@
             }));
         }
 
-        // Export order history to CSV
-        function exportOrdersToCSV() {
-            if (orderHistory.length === 0) {
-                alert('No orders to export');
+        // ============== PAYMENT HANDLING ==============
+
+        // Open payment modal
+        function openPaymentModal() {
+            const itemsTotal = orderItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const taxRate = posSettings.taxEnabled ? (posSettings.taxRate / 100) : 0;
+
+            let subtotal, tax, total;
+
+            if (posSettings.taxDisplay === 'included' && posSettings.taxEnabled) {
+                // Tax is included in prices - extract it
+                subtotal = itemsTotal / (1 + taxRate);
+                tax = itemsTotal - subtotal;
+                total = itemsTotal + deliveryFee;
+            } else {
+                // Tax is added at checkout
+                subtotal = itemsTotal;
+                tax = subtotal * taxRate;
+                total = subtotal + tax + deliveryFee;
+            }
+
+            // Store order data for later
+            pendingOrderData = {
+                subtotal,
+                tax,
+                taxRate: posSettings.taxRate,
+                taxEnabled: posSettings.taxEnabled,
+                taxDisplay: posSettings.taxDisplay,
+                deliveryFee,
+                total,
+                customerInfo: getCustomerInfo()
+            };
+
+            // Update payment summary
+            document.getElementById('paymentSubtotal').textContent = `$${subtotal.toFixed(2)}`;
+            document.getElementById('paymentTax').textContent = posSettings.taxEnabled ? `$${tax.toFixed(2)}` : '$0.00';
+            document.getElementById('paymentTotal').textContent = `$${total.toFixed(2)}`;
+            document.getElementById('cardPayAmount').textContent = `$${total.toFixed(2)}`;
+
+            if (deliveryFee > 0) {
+                document.getElementById('paymentDeliveryRow').style.display = 'flex';
+                document.getElementById('paymentDeliveryFee').textContent = `$${deliveryFee.toFixed(2)}`;
+            } else {
+                document.getElementById('paymentDeliveryRow').style.display = 'none';
+            }
+
+            // Reset to payment method selection
+            showPaymentMethods();
+
+            // Show modal
+            document.getElementById('paymentModal').classList.add('visible');
+        }
+
+        // Close payment modal
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.remove('visible');
+            pendingOrderData = null;
+            currentPaymentIntent = null;
+        }
+
+        // Show payment method selection
+        function showPaymentMethods() {
+            document.getElementById('paymentMethodSelect').style.display = 'flex';
+            document.getElementById('cashPayment').style.display = 'none';
+            document.getElementById('cardPayment').style.display = 'none';
+            document.getElementById('terminalPayment').style.display = 'none';
+            document.getElementById('paymentSuccess').style.display = 'none';
+        }
+
+        // Select payment method
+        function selectPaymentMethod(method) {
+            document.getElementById('paymentMethodSelect').style.display = 'none';
+
+            switch(method) {
+                case 'cash':
+                    document.getElementById('cashPayment').style.display = 'block';
+                    document.getElementById('cashReceived').value = '';
+                    document.getElementById('changeAmount').textContent = '$0.00';
+                    document.getElementById('cashSubmitBtn').disabled = true;
+                    break;
+                case 'card':
+                    document.getElementById('cardPayment').style.display = 'block';
+                    initializeStripeElements();
+                    break;
+                case 'terminal':
+                    document.getElementById('terminalPayment').style.display = 'block';
+                    initializeTerminalPayment();
+                    break;
+            }
+        }
+
+        // ============== CASH PAYMENT ==============
+
+        function setQuickAmount(amount) {
+            const total = pendingOrderData.total;
+            if (amount === 'exact') {
+                document.getElementById('cashReceived').value = total.toFixed(2);
+            } else {
+                document.getElementById('cashReceived').value = amount.toFixed(2);
+            }
+            calculateChange();
+        }
+
+        function calculateChange() {
+            const received = parseFloat(document.getElementById('cashReceived').value) || 0;
+            const total = pendingOrderData.total;
+            const change = received - total;
+
+            document.getElementById('changeAmount').textContent = change >= 0 ? `$${change.toFixed(2)}` : '-$' + Math.abs(change).toFixed(2);
+            document.getElementById('cashSubmitBtn').disabled = change < 0;
+
+            // Visual feedback
+            const changeDisplay = document.getElementById('changeDisplay');
+            if (change < 0) {
+                changeDisplay.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+            } else {
+                changeDisplay.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            }
+        }
+
+        async function completeCashPayment() {
+            const received = parseFloat(document.getElementById('cashReceived').value) || 0;
+            const change = received - pendingOrderData.total;
+
+            // Record payment and complete order
+            await completeOrder('cash', {
+                amountReceived: received,
+                changeGiven: change
+            });
+        }
+
+        // ============== CARD PAYMENT (STRIPE ELEMENTS) ==============
+
+        function initializeStripeElements() {
+            if (!stripe) {
+                document.getElementById('card-errors').textContent = 'Stripe is not configured. Please add your Stripe API key.';
                 return;
             }
 
-            // CSV headers - all user input fields as separate columns
-            const headers = [
-                'Order #', 'Date', 'Time', 'Timestamp', 'Order Type',
-                'Customer Name', 'Customer Phone', 'Pickup Time',
-                'Street Address', 'Apt/Unit', 'City', 'State', 'Zip Code', 'Full Address',
-                'Delivery Instructions', 'Delivery Distance', 'Delivery Duration',
-                'Items', 'Item Count', 'Subtotal', 'Tax', 'Delivery Fee', 'Total'
-            ];
+            // Create elements if not already created
+            if (!cardNumberElement) {
+                const elements = stripe.elements({
+                    fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' }]
+                });
 
-            const rows = orderHistory.map(order => [
-                order.orderNumber,
-                order.date || '',
-                order.time,
-                order.timestamp,
-                order.type,
-                `"${(order.customerName || '').replace(/"/g, '""')}"`,
-                `"${(order.customerPhone || '').replace(/"/g, '""')}"`,
-                order.pickupTime || '',
-                `"${(order.streetAddress || '').replace(/"/g, '""')}"`,
-                `"${(order.aptUnit || '').replace(/"/g, '""')}"`,
-                `"${(order.city || '').replace(/"/g, '""')}"`,
-                order.state || '',
-                order.zipCode || '',
-                `"${(order.fullAddress || '').replace(/"/g, '""')}"`,
-                `"${(order.deliveryInstructions || '').replace(/"/g, '""')}"`,
-                order.deliveryDistance || '',
-                order.deliveryDuration || '',
-                `"${(order.itemsList || '').replace(/"/g, '""')}"`,
-                order.itemCount,
-                order.subtotal.toFixed(2),
-                order.tax.toFixed(2),
-                order.deliveryFee.toFixed(2),
-                order.total.toFixed(2)
-            ]);
+                const elementStyle = {
+                    base: {
+                        fontSize: '16px',
+                        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+                        fontWeight: '500',
+                        color: '#1f2937',
+                        '::placeholder': { color: '#9ca3af' }
+                    },
+                    invalid: {
+                        color: '#dc2626'
+                    }
+                };
 
-            const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `orders_${new Date().toISOString().split('T')[0]}.csv`;
-            link.click();
-            URL.revokeObjectURL(url);
+                cardNumberElement = elements.create('cardNumber', { style: elementStyle, showIcon: true });
+                cardExpiryElement = elements.create('cardExpiry', { style: elementStyle });
+                cardCvcElement = elements.create('cardCvc', { style: elementStyle });
+
+                cardNumberElement.mount('#card-number-element');
+                cardExpiryElement.mount('#card-expiry-element');
+                cardCvcElement.mount('#card-cvc-element');
+
+                // Handle errors
+                [cardNumberElement, cardExpiryElement, cardCvcElement].forEach(element => {
+                    element.on('change', (event) => {
+                        const errorEl = document.getElementById('card-errors');
+                        errorEl.textContent = event.error ? event.error.message : '';
+                    });
+                });
+            }
+        }
+
+        async function processCardPayment() {
+            if (!stripe) {
+                alert('Stripe is not configured');
+                return;
+            }
+
+            const submitBtn = document.getElementById('cardSubmitBtn');
+            const btnText = document.getElementById('cardBtnText');
+            const btnSpinner = document.getElementById('cardBtnSpinner');
+
+            // Show loading state
+            submitBtn.disabled = true;
+            btnText.style.display = 'none';
+            btnSpinner.style.display = 'block';
+
+            try {
+                // Create payment intent on server
+                const response = await fetch('/api/pos/create-payment-intent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: Math.round(pendingOrderData.total * 100), // Convert to cents
+                        currency: 'usd',
+                        orderData: {
+                            type: orderType,
+                            items: orderItems,
+                            customer: pendingOrderData.customerInfo
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create payment intent');
+                }
+
+                const { clientSecret } = await response.json();
+
+                // Confirm card payment
+                const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+                    payment_method: {
+                        card: cardNumberElement,
+                        billing_details: {
+                            name: pendingOrderData.customerInfo.name,
+                            phone: pendingOrderData.customerInfo.phone
+                        }
+                    }
+                });
+
+                if (error) {
+                    document.getElementById('card-errors').textContent = error.message;
+                } else if (paymentIntent.status === 'succeeded') {
+                    await completeOrder('card', {
+                        paymentIntentId: paymentIntent.id,
+                        last4: paymentIntent.payment_method_types[0] // Will be updated with actual card info
+                    });
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                document.getElementById('card-errors').textContent = error.message || 'Payment failed. Please try again.';
+            } finally {
+                // Reset button state
+                submitBtn.disabled = false;
+                btnText.style.display = 'flex';
+                btnSpinner.style.display = 'none';
+            }
+        }
+
+        // ============== TERMINAL PAYMENT (STRIPE TERMINAL) ==============
+
+        async function initializeTerminalPayment() {
+            const messageEl = document.getElementById('terminalMessage');
+            const spinnerEl = document.getElementById('terminalSpinner');
+
+            if (!stripe) {
+                messageEl.textContent = 'Stripe is not configured';
+                spinnerEl.style.display = 'none';
+                return;
+            }
+
+            messageEl.textContent = 'Connecting to card reader...';
+
+            try {
+                // In production, you would:
+                // 1. Create a connection token from your server
+                // 2. Initialize Stripe Terminal
+                // 3. Discover and connect to readers
+                // 4. Collect payment method
+                // 5. Process payment
+
+                // For now, show placeholder message
+                setTimeout(() => {
+                    messageEl.textContent = 'No card readers found. Please connect a Stripe Terminal reader.';
+                    spinnerEl.style.display = 'none';
+                }, 2000);
+
+                // Example of what the real implementation would look like:
+                /*
+                const terminal = StripeTerminal.create({
+                    onFetchConnectionToken: async () => {
+                        const response = await fetch('/api/pos/connection-token');
+                        const { secret } = await response.json();
+                        return secret;
+                    },
+                    onUnexpectedReaderDisconnect: () => {
+                        messageEl.textContent = 'Reader disconnected';
+                    }
+                });
+
+                const discoverResult = await terminal.discoverReaders();
+                if (discoverResult.discoveredReaders.length > 0) {
+                    await terminal.connectReader(discoverResult.discoveredReaders[0]);
+                    messageEl.textContent = 'Present card to reader...';
+
+                    // Create payment intent and collect payment
+                    const intent = await createPaymentIntent();
+                    const result = await terminal.collectPaymentMethod(intent.client_secret);
+                    const processResult = await terminal.processPayment(result.paymentIntent);
+
+                    if (processResult.paymentIntent.status === 'succeeded') {
+                        completeOrder('terminal', { paymentIntentId: processResult.paymentIntent.id });
+                    }
+                }
+                */
+            } catch (error) {
+                console.error('Terminal error:', error);
+                messageEl.textContent = 'Error connecting to reader: ' + error.message;
+                spinnerEl.style.display = 'none';
+            }
+        }
+
+        function cancelTerminalPayment() {
+            showPaymentMethods();
+        }
+
+        // ============== ORDER COMPLETION ==============
+
+        async function completeOrder(paymentMethod, paymentDetails) {
+            const { subtotal, tax, deliveryFee, total, customerInfo } = pendingOrderData;
+
+            let serverOrder = null;
+
+            // POST to server for persistence
+            try {
+                const response = await fetch('/api/pos/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        orderType: orderType,
+                        employeeId: posEmployee ? posEmployee.id : null,
+                        items: orderItems.map(i => ({
+                            name: i.name,
+                            qty: i.qty,
+                            price: i.price,
+                            lineTotal: i.price * i.qty,
+                            modifiers: i.modifiers || null
+                        })),
+                        subtotal: subtotal,
+                        taxAmount: tax,
+                        deliveryFee: deliveryFee,
+                        total: total,
+                        customerName: customerInfo.name,
+                        customerPhone: customerInfo.phone,
+                        customerAddress: customerInfo.fullAddress,
+                        deliveryDistance: customerInfo.deliveryDistance,
+                        notes: customerInfo.instructions,
+                        payment: {
+                            method: paymentMethod,
+                            details: paymentDetails
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        serverOrder = data.order;
+                        lastCompletedOrderId = data.order.id;
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to save order to server, using localStorage fallback:', e);
+            }
+
+            // Add to order history (with server order number if available)
+            addToOrderHistory({
+                type: orderType,
+                items: [...orderItems],
+                subtotal: subtotal,
+                tax: tax,
+                deliveryFee: deliveryFee,
+                total: total,
+                customerName: customerInfo.name,
+                customerPhone: customerInfo.phone,
+                pickupTime: customerInfo.pickupTime,
+                streetAddress: customerInfo.streetAddress,
+                aptUnit: customerInfo.aptUnit,
+                city: customerInfo.city,
+                state: customerInfo.state,
+                zipCode: customerInfo.zipCode,
+                fullAddress: customerInfo.fullAddress,
+                deliveryInstructions: customerInfo.instructions,
+                deliveryDistance: customerInfo.deliveryDistance,
+                deliveryDuration: customerInfo.deliveryDuration,
+                paymentMethod: paymentMethod,
+                paymentDetails: paymentDetails
+            }, serverOrder);
+
+            // Show success screen
+            document.getElementById('cashPayment').style.display = 'none';
+            document.getElementById('cardPayment').style.display = 'none';
+            document.getElementById('terminalPayment').style.display = 'none';
+            document.getElementById('paymentSuccess').style.display = 'block';
+
+            document.getElementById('successAmount').textContent = `$${total.toFixed(2)}`;
+
+            const methodLabels = {
+                'cash': '💵 Paid with Cash',
+                'card': '💳 Paid with Card',
+                'terminal': '📱 Paid with Card Reader'
+            };
+            document.getElementById('successMethod').textContent = methodLabels[paymentMethod];
+        }
+
+        function finishPayment() {
+            // Close modal
+            closePaymentModal();
+
+            // Clear order
+            orderItems = [];
+            document.getElementById('customerName').value = '';
+            document.getElementById('customerPhone').value = '';
+            document.getElementById('pickupTime').value = '';
+            document.getElementById('streetAddress').value = '';
+            document.getElementById('aptUnit').value = '';
+            document.getElementById('city').value = '';
+            document.getElementById('state').value = '';
+            document.getElementById('zipCode').value = '';
+            document.getElementById('deliveryInstructions').value = '';
+            document.getElementById('mapPreview').style.display = 'none';
+            deliveryDistanceInfo = null;
+            deliveryFee = 0;
+
+            setOrderType('dine-in');
+            renderOrder();
+            updateOrderNumber();
+            loadProductAvailability(); // Refresh stock badges after sale
+        }
+
+        // Void order with permission check + manager override
+        async function voidOrder(orderId) {
+            if (!confirm('Void this order? Inventory will be restored.')) return;
+
+            async function doVoid(overrideCode) {
+                const body = { status: 'voided' };
+                if (overrideCode) body.overrideCode = overrideCode;
+                try {
+                    const res = await fetch(`/api/pos/orders/${orderId}/status`, {
+                        method: 'PATCH',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(body)
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        // Reload order history from server
+                        await loadPosData();
+                        loadProductAvailability();
+                    } else if (data.needsOverride) {
+                        const code = prompt('Manager code required to void:');
+                        if (code) doVoid(code);
+                    } else {
+                        alert(data.error || 'Failed to void order');
+                    }
+                } catch (e) {
+                    alert('Failed to void order');
+                }
+            }
+
+            doVoid(null);
+        }
+
+        // Receipt functions
+        async function printReceipt() {
+            if (!lastCompletedOrderId) { window.print(); return; }
+            try {
+                const res = await fetch(`/api/pos/orders/${lastCompletedOrderId}/receipt`);
+                const data = await res.json();
+                if (data.success) {
+                    const win = window.open('', '_blank', 'width=420,height=600');
+                    win.document.write(`<html><head><title>Receipt</title><style>@media print{body{margin:0}}</style></head><body>${data.receipt.html}<script>setTimeout(()=>{window.print();window.close()},300)<\/script></body></html>`);
+                    win.document.close();
+                } else {
+                    window.print();
+                }
+            } catch (e) {
+                window.print();
+            }
+        }
+
+        async function emailReceipt() {
+            if (!lastCompletedOrderId) return;
+            const email = prompt('Enter email address for receipt:');
+            if (!email) return;
+            try {
+                const res = await fetch(`/api/pos/orders/${lastCompletedOrderId}/receipt/email`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(`Receipt sent to ${email}`);
+                } else {
+                    alert(data.error || 'Failed to send receipt');
+                }
+            } catch (e) {
+                alert('Could not send receipt. Email service may not be configured.');
+            }
+        }
+
+        async function textReceipt() {
+            if (!lastCompletedOrderId) return;
+            const phone = pendingOrderData?.customerInfo?.phone || prompt('Enter phone number for receipt:');
+            if (!phone) return;
+            try {
+                const res = await fetch(`/api/pos/orders/${lastCompletedOrderId}/receipt/sms`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ phone })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(`Receipt texted to ${phone}`);
+                } else {
+                    alert(data.error || 'Failed to send receipt');
+                }
+            } catch (e) {
+                alert('Could not send receipt. SMS service may not be configured.');
+            }
         }
 
         // Google Maps initialization (called when API loads)
@@ -1735,140 +2883,16 @@
             });
         }
 
-        // Open POS Settings modal
-        function openPosSettings() {
-            document.getElementById('posSettingsModal').classList.add('visible');
-            loadSettingsIntoForm();
-            renderOrderHistory();
-        }
-
-        // Close POS Settings modal
-        function closePosSettings() {
-            document.getElementById('posSettingsModal').classList.remove('visible');
-            saveSettingsFromForm();
-        }
-
-        // Show settings tab
-        function showSettingsTab(tab) {
-            document.querySelectorAll('.pos-modal-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.settings-tab-content').forEach(c => c.style.display = 'none');
-
-            event.target.classList.add('active');
-            document.getElementById('settingsTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).style.display = 'block';
-        }
-
-        // Load settings into form
-        function loadSettingsIntoForm() {
-            document.getElementById('deliveryFeeType').value = posSettings.deliveryFeeType;
-            document.getElementById('fixedDeliveryFee').value = posSettings.fixedDeliveryFee;
-            document.getElementById('baseDeliveryFee').value = posSettings.baseDeliveryFee;
-            document.getElementById('perMileFee').value = posSettings.perMileFee;
-            document.getElementById('maxDeliveryDistance').value = posSettings.maxDeliveryDistance;
-            document.getElementById('minDeliveryOrder').value = posSettings.minDeliveryOrder;
-            document.getElementById('freeDeliveryThreshold').value = posSettings.freeDeliveryThreshold;
-            document.getElementById('dineInOpens').value = posSettings.dineInOpens;
-            document.getElementById('dineInCloses').value = posSettings.dineInCloses;
-            document.getElementById('pickupLeadTime').value = posSettings.pickupLeadTime;
-            document.getElementById('deliveryStarts').value = posSettings.deliveryStarts;
-            document.getElementById('deliveryEnds').value = posSettings.deliveryEnds;
-            document.getElementById('deliveryLeadTime').value = posSettings.deliveryLeadTime;
-            document.getElementById('deliveryTimeMin').value = posSettings.deliveryTimeMin;
-            document.getElementById('deliveryTimeMax').value = posSettings.deliveryTimeMax;
-            document.getElementById('lastOrderBuffer').value = posSettings.lastOrderBuffer;
-
-            updateDeliveryFeeType();
-        }
-
-        // Save settings from form
-        function saveSettingsFromForm() {
-            posSettings.deliveryFeeType = document.getElementById('deliveryFeeType').value;
-            posSettings.fixedDeliveryFee = parseFloat(document.getElementById('fixedDeliveryFee').value) || 5.00;
-            posSettings.baseDeliveryFee = parseFloat(document.getElementById('baseDeliveryFee').value) || 3.00;
-            posSettings.perMileFee = parseFloat(document.getElementById('perMileFee').value) || 1.50;
-            posSettings.maxDeliveryDistance = parseFloat(document.getElementById('maxDeliveryDistance').value) || 10;
-            posSettings.minDeliveryOrder = parseFloat(document.getElementById('minDeliveryOrder').value) || 15.00;
-            posSettings.freeDeliveryThreshold = parseFloat(document.getElementById('freeDeliveryThreshold').value) || 50.00;
-            posSettings.dineInOpens = document.getElementById('dineInOpens').value;
-            posSettings.dineInCloses = document.getElementById('dineInCloses').value;
-            posSettings.pickupLeadTime = parseInt(document.getElementById('pickupLeadTime').value) || 15;
-            posSettings.deliveryStarts = document.getElementById('deliveryStarts').value;
-            posSettings.deliveryEnds = document.getElementById('deliveryEnds').value;
-            posSettings.deliveryLeadTime = parseInt(document.getElementById('deliveryLeadTime').value) || 45;
-            posSettings.deliveryTimeMin = parseInt(document.getElementById('deliveryTimeMin').value) || 30;
-            posSettings.deliveryTimeMax = parseInt(document.getElementById('deliveryTimeMax').value) || 45;
-            posSettings.lastOrderBuffer = parseInt(document.getElementById('lastOrderBuffer').value) || 30;
-
-            savePosSettings();
-        }
-
-        // Toggle delivery fee type display
-        function updateDeliveryFeeType() {
-            const type = document.getElementById('deliveryFeeType').value;
-            document.getElementById('fixedFeeRow').style.display = type === 'fixed' ? 'flex' : 'none';
-            document.getElementById('variableFeeRows').style.display = type === 'variable' ? 'block' : 'none';
-        }
-
-        // Render order history table
-        function renderOrderHistory() {
-            const container = document.getElementById('orderHistoryTable');
-            const totalOrders = orderHistory.length;
-            const totalRevenue = orderHistory.reduce((sum, o) => sum + o.total, 0);
-            const dineInCount = orderHistory.filter(o => o.type === 'dine-in').length;
-            const deliveryCount = orderHistory.filter(o => o.type !== 'dine-in').length;
-
-            // Update summary cards
-            document.getElementById('todayOrderCount').textContent = totalOrders;
-            document.getElementById('todayRevenue').textContent = '$' + totalRevenue.toFixed(2);
-            document.getElementById('todayDineIn').textContent = dineInCount;
-            document.getElementById('todayDelivery').textContent = deliveryCount;
-
-            if (orderHistory.length === 0) {
-                container.innerHTML = `
-                    <div class="order-history-empty">
-                        <div style="font-size: 48px; margin-bottom: 12px;">📋</div>
-                        <div>No orders yet today</div>
-                        <div style="font-size: 12px; margin-top: 4px;">Orders will appear here as they're completed</div>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = `
-                <table class="order-history-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Time</th>
-                            <th>Type</th>
-                            <th>Items</th>
-                            <th>Total</th>
-                            <th>Customer</th>
-                            <th>Address</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${orderHistory.slice().reverse().map(order => `
-                            <tr>
-                                <td><strong>${order.orderNumber}</strong></td>
-                                <td>${order.time}</td>
-                                <td><span class="order-type-badge ${order.type}">${order.type.replace('-', ' ')}</span></td>
-                                <td>${order.itemCount} items</td>
-                                <td><strong>$${order.total.toFixed(2)}</strong></td>
-                                <td>${order.customerName || '-'}<br><span style="font-size: 11px; color: #6b7280;">${order.customerPhone || ''}</span></td>
-                                <td style="max-width: 200px; font-size: 11px;">${order.type === 'delivery' ? (order.fullAddress || order.streetAddress || '-') : '-'}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
 
         // Add completed order to history
-        function addToOrderHistory(orderData) {
+        function addToOrderHistory(orderData, serverOrder) {
             const now = new Date();
+            const useServerNumber = serverOrder && serverOrder.orderNumber;
+
             orderHistory.push({
-                // Order info
-                orderNumber: orderNumber,
+                // Order info — use server order number when available
+                orderNumber: useServerNumber ? serverOrder.orderNumber : orderNumber,
+                serverId: serverOrder ? serverOrder.id : null,
                 time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
                 timestamp: now.toISOString(),
                 date: now.toISOString().split('T')[0],
@@ -1898,7 +2922,11 @@
                 deliveryDistance: orderData.deliveryDistance || '',
                 deliveryDuration: orderData.deliveryDuration || ''
             });
-            orderNumber++;
+
+            // Only increment local counter for offline orders
+            if (!useServerNumber) {
+                orderNumber++;
+            }
             saveOrderHistory();
         }
 
@@ -2124,12 +3152,48 @@
                 : filtered.map(product => {
                     const name = product.product_name || product.name || 'Unknown';
                     const icon = getProductIcon(name, product.category);
-                    const price = parseFloat(product.selling_price || 0).toFixed(2);
+                    let basePrice = parseFloat(product.selling_price || 0);
+
+                    // Add tax to displayed price if "included in prices" is enabled
+                    let displayPrice = basePrice;
+                    if (posSettings.taxEnabled && posSettings.taxDisplay === 'included') {
+                        displayPrice = basePrice * (1 + posSettings.taxRate / 100);
+                    }
+
+                    // Check availability (Phase 2)
+                    const avail = productAvailability[String(product.id)];
+                    const is86d = avail && !avail.available;
+                    const isLow = avail && avail.lowStock && !is86d;
+
+                    // In 86 mode: all products clickable, click toggles 86
+                    const clickAction = eightySixMode
+                        ? `toggle86Product(${product.id})`
+                        : `addToOrder(${product.id}, '${escapeHtml(name)}', ${displayPrice})`;
+
+                    // Classes + inline overrides for 86 mode
+                    let classes = 'product-btn';
+                    let inlineStyle = '';
+                    if (eightySixMode) {
+                        inlineStyle = 'pointer-events:auto; cursor:pointer; position:relative;';
+                        if (is86d) inlineStyle += ' opacity:0.65;';
+                    } else {
+                        if (is86d) classes += ' out-of-stock';
+                        else if (isLow) classes += ' low-stock';
+                        if (is86d || isLow) inlineStyle = 'position:relative;';
+                    }
+
+                    // Build badge HTML (low stock only — 86'd uses CSS class)
+                    let badgeHTML = '';
+                    if (isLow && !eightySixMode) {
+                        badgeHTML = '<div class="product-low-badge">LOW</div>';
+                    }
+
                     return `
-                        <div class="product-btn" onclick="addToOrder(${product.id}, '${escapeHtml(name)}', ${product.selling_price || 0})">
+                        <div class="${classes}" style="${inlineStyle}" onclick="${clickAction}">
+                            ${badgeHTML}
                             <span class="product-icon">${icon}</span>
                             <span class="product-name">${escapeHtml(name)}</span>
-                            <span class="product-price">$${price}</span>
+                            <span class="product-price">$${displayPrice.toFixed(2)}</span>
                         </div>
                     `;
                 }).join('');
@@ -2294,15 +3358,31 @@
         // Render order panel
         function renderOrder() {
             const itemsContainer = document.getElementById('orderItems');
-            const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const itemsTotal = orderItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
-            // Recalculate delivery fee if delivery is selected (for free delivery threshold)
-            if (orderType === 'delivery') {
-                deliveryFee = calculateDeliveryFee(subtotal);
+            // Calculate tax based on settings
+            const taxRate = posSettings.taxEnabled ? (posSettings.taxRate / 100) : 0;
+            let subtotal, tax, total;
+
+            if (posSettings.taxDisplay === 'included' && posSettings.taxEnabled) {
+                // Tax is included in prices - extract it
+                subtotal = itemsTotal / (1 + taxRate);
+                tax = itemsTotal - subtotal;
+                // Recalculate delivery fee based on pre-tax subtotal
+                if (orderType === 'delivery') {
+                    deliveryFee = calculateDeliveryFee(subtotal);
+                }
+                total = itemsTotal + deliveryFee;
+            } else {
+                // Tax is added at checkout
+                subtotal = itemsTotal;
+                tax = subtotal * taxRate;
+                // Recalculate delivery fee if delivery is selected
+                if (orderType === 'delivery') {
+                    deliveryFee = calculateDeliveryFee(subtotal);
+                }
+                total = subtotal + tax + deliveryFee;
             }
-
-            const tax = subtotal * 0.08;
-            const total = subtotal + tax + deliveryFee;
 
             if (orderItems.length === 0) {
                 itemsContainer.innerHTML = `
@@ -2330,7 +3410,21 @@
 
             // Update summary
             document.getElementById('subtotalAmount').textContent = `$${subtotal.toFixed(2)}`;
-            document.getElementById('taxAmount').textContent = `$${tax.toFixed(2)}`;
+
+            // Update tax display
+            const taxRow = document.getElementById('taxRow');
+            if (posSettings.taxEnabled) {
+                taxRow.style.display = 'flex';
+                if (posSettings.taxDisplay === 'included') {
+                    document.getElementById('taxLabelDisplay').textContent = `${posSettings.taxLabel} (${posSettings.taxRate}% incl.)`;
+                } else {
+                    document.getElementById('taxLabelDisplay').textContent = `${posSettings.taxLabel} (${posSettings.taxRate}%)`;
+                }
+                document.getElementById('taxAmount').textContent = `$${tax.toFixed(2)}`;
+            } else {
+                taxRow.style.display = 'none';
+            }
+
             document.getElementById('totalAmount').textContent = `$${total.toFixed(2)}`;
 
             // Update delivery fee row
@@ -2500,93 +3594,25 @@
             return true;
         }
 
-        // Process payment
+        // Process payment - opens payment modal
         function processPayment() {
             if (!validateCustomerInfo()) return;
-
-            const customerInfo = getCustomerInfo();
-            const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
-            const tax = subtotal * 0.08;
-            const total = subtotal + tax + deliveryFee;
-
-            // Build order summary
-            let orderSummary = `Order Type: ${orderType.toUpperCase()}\n`;
-            if (orderType !== 'dine-in') {
-                orderSummary += `Customer: ${customerInfo.name}\n`;
-                orderSummary += `Phone: ${customerInfo.phone}\n`;
-                if (orderType === 'pickup' && customerInfo.pickupTime) {
-                    orderSummary += `Pickup Time: ${customerInfo.pickupTime}\n`;
-                }
-                if (orderType === 'delivery') {
-                    orderSummary += `Address: ${customerInfo.fullAddress}\n`;
-                    if (customerInfo.deliveryDistance) {
-                        orderSummary += `Distance: ${customerInfo.deliveryDistance} (${customerInfo.deliveryDuration})\n`;
-                    }
-                    if (customerInfo.instructions) {
-                        orderSummary += `Instructions: ${customerInfo.instructions}\n`;
-                    }
-                }
-            }
-            orderSummary += `\nItems:\n`;
-            orderItems.forEach(item => {
-                orderSummary += `  ${item.qty}x ${item.name} - $${(item.price * item.qty).toFixed(2)}\n`;
-            });
-            orderSummary += `\nSubtotal: $${subtotal.toFixed(2)}`;
-            orderSummary += `\nTax: $${tax.toFixed(2)}`;
-            if (deliveryFee > 0) {
-                orderSummary += `\nDelivery Fee: $${deliveryFee.toFixed(2)}`;
-            }
-            orderSummary += `\nTotal: $${total.toFixed(2)}`;
-
-            // Add to order history with all CSV-ready fields
-            addToOrderHistory({
-                type: orderType,
-                items: [...orderItems],
-                subtotal: subtotal,
-                tax: tax,
-                deliveryFee: deliveryFee,
-                total: total,
-                // Customer info - separate CSV components
-                customerName: customerInfo.name,
-                customerPhone: customerInfo.phone,
-                pickupTime: customerInfo.pickupTime,
-                // Address components - separate CSV fields
-                streetAddress: customerInfo.streetAddress,
-                aptUnit: customerInfo.aptUnit,
-                city: customerInfo.city,
-                state: customerInfo.state,
-                zipCode: customerInfo.zipCode,
-                fullAddress: customerInfo.fullAddress,
-                deliveryInstructions: customerInfo.instructions,
-                // Distance info from Google Maps
-                deliveryDistance: customerInfo.deliveryDistance,
-                deliveryDuration: customerInfo.deliveryDuration
-            });
-
-            // For now, just show confirmation (payment integration would go here)
-            alert(`Order #${String(orderNumber - 1).padStart(3, '0')} Confirmed!\n\n${orderSummary}`);
-
-            // Clear order after successful payment
-            orderItems = [];
-            document.getElementById('customerName').value = '';
-            document.getElementById('customerPhone').value = '';
-            document.getElementById('pickupTime').value = '';
-            document.getElementById('streetAddress').value = '';
-            document.getElementById('aptUnit').value = '';
-            document.getElementById('city').value = '';
-            document.getElementById('state').value = '';
-            document.getElementById('zipCode').value = '';
-            document.getElementById('deliveryInstructions').value = '';
-            // Reset map preview
-            document.getElementById('mapPreview').style.display = 'none';
-            deliveryDistanceInfo = null;
-            setOrderType('dine-in');
-            renderOrder();
-            updateOrderNumber();
+            openPaymentModal();
         }
 
         // Update order number display
-        function updateOrderNumber() {
+        async function updateOrderNumber() {
+            try {
+                const response = await fetch('/api/pos/next-order-number');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        orderNumber = data.sequence;
+                    }
+                }
+            } catch (e) {
+                // Use local counter as fallback
+            }
             const orderSubtitle = document.getElementById('orderSubtitle');
             const orderNum = String(orderNumber).padStart(3, '0');
             orderSubtitle.textContent = `Order #${orderNum} • ${orderType === 'dine-in' ? 'Dine In' : orderType === 'pickup' ? 'Pickup' : 'Delivery'}`;
@@ -2604,10 +3630,261 @@
             });
         });
 
+        // ============== EMPLOYEE AUTH (Phase 3) ==============
+
+        let posEmployee = null;
+        let selectedEmployeeId = null;
+        const isAdmin = {{ 'true' if g.is_super_admin or g.is_organization_admin else 'false' }};
+
+        // Admins bypass employee selection
+        if (isAdmin) {
+            document.getElementById('employeeOverlay').classList.add('hidden');
+            const badge = document.getElementById('employeeBadge');
+            document.getElementById('badgeAvatar').textContent = '{{ g.user.username[:2]|upper if g.user and g.user.username else "AD" }}';
+            document.getElementById('badgeName').textContent = '{{ g.user.username if g.user and g.user.username else "Admin" }}';
+            badge.style.display = 'inline-flex';
+            posEmployee = { id: null, firstName: '{{ g.user.username if g.user and g.user.username else "Admin" }}', lastName: '', position: 'Admin', canVoid: true };
+        }
+
+        function posAddDigit(d) {
+            const input = document.getElementById('employeePinField');
+            if (input.value.length < 10) {
+                input.value += d;
+                document.getElementById('pinError').textContent = '';
+            }
+        }
+
+        function posClearCode() {
+            document.getElementById('employeePinField').value = '';
+            document.getElementById('pinError').textContent = '';
+        }
+
+        async function submitEmployeePin() {
+            const code = document.getElementById('employeePinField').value.trim();
+            if (!code) {
+                document.getElementById('pinError').textContent = 'Enter your code';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/pos/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employeeCode: code })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    authenticateEmployee(
+                        data.employee.id,
+                        data.employee.firstName,
+                        data.employee.lastName,
+                        data.employee.position,
+                        data.employee.canVoid
+                    );
+                } else {
+                    document.getElementById('pinError').textContent = data.error || 'Invalid code';
+                    document.getElementById('employeePinField').value = '';
+                }
+            } catch (e) {
+                document.getElementById('pinError').textContent = 'Connection error';
+            }
+        }
+
+        function authenticateEmployee(id, firstName, lastName, position, canVoid = false) {
+            posEmployee = { id, firstName, lastName, position, canVoid: canVoid || isAdmin };
+
+            // Update header badge
+            const badge = document.getElementById('employeeBadge');
+            const initials = (firstName[0] + lastName[0]).toUpperCase();
+            document.getElementById('badgeAvatar').textContent = initials;
+            document.getElementById('badgeName').textContent = firstName;
+            badge.style.display = 'inline-flex';
+
+            // Hide overlay
+            document.getElementById('employeeOverlay').classList.add('hidden');
+        }
+
+        function switchEmployee() {
+            posEmployee = null;
+            selectedEmployeeId = null;
+            document.getElementById('employeeBadge').style.display = 'none';
+            document.getElementById('employeeOverlay').classList.remove('hidden');
+            document.getElementById('employeePinField').value = '';
+            document.getElementById('pinError').textContent = '';
+
+            // Clear server session
+            fetch('/api/pos/auth/logout', { method: 'POST' }).catch(() => {});
+        }
+
+        // ============== PRODUCT AVAILABILITY + 86 MODE (Phase 2) ==============
+
+        let productAvailability = {};
+        let eightySixMode = false;
+        let eightySixGroups = [];
+        let productIngredientMap = {};
+
+        async function loadProductAvailability() {
+            try {
+                const res = await fetch('/api/pos/product-availability');
+                const data = await res.json();
+                if (data.success) {
+                    productAvailability = {};
+                    data.availability.forEach(p => {
+                        productAvailability[String(p.productId)] = p;
+                    });
+                    renderProducts();
+                }
+            } catch (e) {
+                console.warn('Could not load product availability:', e);
+            }
+        }
+
+        async function loadProductIngredients() {
+            try {
+                const res = await fetch('/api/pos/product-ingredients');
+                const data = await res.json();
+                if (data.success) {
+                    productIngredientMap = data.ingredients;
+                }
+            } catch (e) {
+                console.warn('Could not load product ingredients:', e);
+            }
+        }
+
+        function toggle86Mode() {
+            eightySixMode = !eightySixMode;
+            const btn = document.getElementById('eightySixBtn');
+            if (eightySixMode) {
+                btn.style.background = '#dc2626';
+                btn.style.color = 'white';
+                btn.style.borderColor = '#dc2626';
+                loadEightySixGroups();
+            } else {
+                btn.style.background = '#f1f3f4';
+                btn.style.color = '#5f6368';
+                btn.style.borderColor = 'transparent';
+            }
+            renderGroupBar();
+            renderProducts();
+        }
+
+        async function toggle86Product(productId) {
+            try {
+                const res = await fetch(`/api/pos/86/${productId}`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    loadProductAvailability();
+                    loadEightySixGroups();
+                }
+            } catch (e) {
+                console.error('Failed to toggle 86:', e);
+            }
+        }
+
+        // ============== 86 GROUPS ==============
+
+        async function loadEightySixGroups() {
+            try {
+                const res = await fetch('/api/pos/86-groups');
+                const data = await res.json();
+                if (data.success) {
+                    eightySixGroups = data.groups;
+                    renderGroupBar();
+                }
+            } catch (e) {
+                console.warn('Could not load 86 groups:', e);
+            }
+        }
+
+        function renderGroupBar() {
+            const bar = document.getElementById('eightySixGroupBar');
+            if (!eightySixMode || eightySixGroups.length === 0) {
+                bar.style.display = 'none';
+                return;
+            }
+            bar.style.display = 'block';
+            bar.innerHTML = '<span style="font-size:12px;font-weight:700;color:#991b1b;margin-right:8px;vertical-align:middle;">QUICK 86:</span>' +
+                eightySixGroups.map(g => {
+                    const active = g.all86d;
+                    return `<button onclick="toggleGroupEightySix(${g.id})" style="
+                        display:inline-block; margin: 2px 4px; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1.5px solid ${active ? '#dc2626' : '#d1d5db'};
+                        background: ${active ? '#dc2626' : '#fff'}; color: ${active ? '#fff' : '#374151'}; transition: all 0.15s;
+                    ">${g.groupName} <span style="opacity:0.7">${g.count86d}/${g.totalProducts}</span></button>`;
+                }).join('');
+        }
+
+        async function toggleGroupEightySix(groupId) {
+            try {
+                const res = await fetch(`/api/pos/86-groups/${groupId}/toggle`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({})
+                });
+                const data = await res.json();
+                if (data.success) {
+                    await loadProductAvailability();
+                    await loadEightySixGroups();
+                }
+            } catch (e) {
+                console.error('Failed to toggle 86 group:', e);
+            }
+        }
+
+        async function syncCategoryGroups() {
+            try {
+                await fetch('/api/pos/86-groups/sync-categories', { method: 'POST' });
+            } catch (e) {
+                console.warn('Could not sync category groups:', e);
+            }
+        }
+
+        // ============== PHASE 8: CUSTOMER LOOKUP ==============
+
+        let customerLookupTimeout = null;
+        function debouncedCustomerLookup() {
+            clearTimeout(customerLookupTimeout);
+            const phone = document.getElementById('customerPhone').value.trim();
+            const hint = document.getElementById('customerLookupHint');
+            if (phone.length < 7) { hint.style.display = 'none'; return; }
+            customerLookupTimeout = setTimeout(() => lookupCustomer(phone), 400);
+        }
+
+        async function lookupCustomer(phone) {
+            const hint = document.getElementById('customerLookupHint');
+            try {
+                const res = await fetch(`/api/pos/customers/lookup?phone=${encodeURIComponent(phone)}`);
+                const data = await res.json();
+                if (data.success && data.customer) {
+                    const c = data.customer;
+                    // Auto-fill name if empty
+                    const nameField = document.getElementById('customerName');
+                    if (!nameField.value && c.name) nameField.value = c.name;
+                    // Auto-fill address for delivery
+                    if (orderType === 'delivery' && c.address) {
+                        const addrField = document.getElementById('streetAddress');
+                        if (!addrField.value) addrField.value = c.address;
+                    }
+                    let hintText = `Welcome back, ${c.name || 'customer'}! ${c.totalOrders} orders, $${c.totalSpent.toFixed(2)} total.`;
+                    if (c.notes) hintText += ` Note: ${c.notes}`;
+                    hint.innerHTML = hintText;
+                    hint.style.display = 'block';
+                    hint.style.background = '#ecfdf5';
+                    hint.style.color = '#065f46';
+                } else {
+                    hint.innerHTML = 'New customer';
+                    hint.style.display = 'block';
+                    hint.style.background = '#eff6ff';
+                    hint.style.color = '#1e40af';
+                }
+            } catch (e) {
+                hint.style.display = 'none';
+            }
+        }
+
         // Initialize
-        loadPosData();
-        loadProducts();
-        updateOrderNumber();
+        loadPosData().then(() => updateOrderNumber());
+        loadProducts().then(() => { loadProductAvailability(); loadEightySixGroups(); loadProductIngredients(); });
 
         // Add debounced address verification for manual entry
         let addressVerifyTimeout = null;
@@ -2622,5 +3899,6 @@
         });
     </script>
     <script src="{{ url_for('static', filename='js/datepicker.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/share.js') }}"></script>
 </body>
 </html>

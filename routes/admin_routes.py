@@ -13,6 +13,7 @@ import json
 import secrets
 import os
 from datetime import datetime, timedelta
+from utils.auth import hash_password
 
 # Import master database connection
 from db_manager import get_master_db
@@ -655,7 +656,7 @@ def invite_user_to_organization(org_id):
         conn.close()
 
         # TODO: Send invitation email
-        invitation_url = f"https://firingup.com/accept-invitation?token={invitation_token}"
+        invitation_url = f"https://wontech.com/accept-invitation?token={invitation_token}"
 
         return jsonify({
             'success': True,
@@ -861,12 +862,8 @@ def create_admin_user(org_id):
             conn.close()
             return jsonify({'error': 'User with this email already exists'}), 400
 
-        # Hash password with salt
-        import hashlib
-        import secrets
-        salt = secrets.token_hex(16)
-        pwd_hash = hashlib.sha256((data['password'] + salt).encode()).hexdigest()
-        password_hash = f"{salt}${pwd_hash}"
+        # Hash password
+        password_hash = hash_password(data['password'])
 
         # Get role permissions
         cursor.execute("""

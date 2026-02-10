@@ -1,0 +1,122 @@
+{% extends 'storefront/base.html' %}
+
+{% block title %}{{ org.organization_name }} — {{ org.tagline or 'Welcome' }}{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<section class="sf-hero" {% if org.hero_image_url %}style="background-image: url('{{ org.hero_image_url }}')"{% endif %}>
+    <div class="sf-hero__overlay">
+        <div class="sf-container sf-hero__content">
+            {% if org.logo_url %}
+            <img src="{{ org.logo_url }}" alt="{{ org.organization_name }}" class="sf-hero__logo">
+            {% endif %}
+            <h1 class="sf-hero__title">{{ org.organization_name }}</h1>
+            {% if org.tagline %}
+            <p class="sf-hero__tagline">{{ org.tagline }}</p>
+            {% endif %}
+            <div class="sf-hero__actions">
+                {% if org.online_ordering_enabled %}
+                <a href="{{ '' if is_custom_domain else '/s/' + slug }}/order" class="sf-btn sf-btn--accent sf-btn--lg">Order Online</a>
+                {% endif %}
+                <a href="{{ '' if is_custom_domain else '/s/' + slug }}/menu" class="sf-btn sf-btn--outline-hero sf-btn--lg">View Menu</a>
+            </div>
+            <div class="sf-hero__status">
+                {% if is_open %}
+                <span class="sf-badge sf-badge--open">Open Now</span>
+                {% else %}
+                <span class="sf-badge sf-badge--closed">Currently Closed</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Popular Items -->
+{% if popular_items %}
+<section class="sf-section">
+    <div class="sf-container">
+        <h2 class="sf-section__title">Popular Items</h2>
+        <div class="sf-grid-4">
+            {% for item in popular_items %}
+            <div class="sf-card sf-card--home">
+                <div class="sf-card__body">
+                    <span class="sf-badge sf-badge--popular">Popular</span>
+                    <h3 class="sf-card__name">{{ item.name }}</h3>
+                    <p class="sf-card__category">{{ item.category_name }}</p>
+                    <span class="sf-card__price">
+                        {% if item.starting_price %}From ${{ '%.2f' % item.starting_price }}{% endif %}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if org.online_ordering_enabled %}
+        <div class="sf-text-center sf-mt-8">
+            <a href="{{ '' if is_custom_domain else '/s/' + slug }}/order" class="sf-btn sf-btn--primary sf-btn--lg">Order Now</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
+
+<!-- Hours & Location -->
+<section class="sf-section sf-section--alt">
+    <div class="sf-container">
+        <div class="sf-grid-2">
+            <!-- Hours -->
+            <div>
+                <h2 class="sf-section__title">Hours</h2>
+                {% if hours %}
+                <table class="sf-hours">
+                    <tbody>
+                        {% set day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                        {% for h in hours %}
+                        <tr {% if loop.index0 == now_weekday %}class="sf-hours__today"{% endif %}>
+                            <td class="sf-hours__day">{{ day_names[h.day_of_week] }}</td>
+                            <td class="sf-hours__time">
+                                {% if h.is_closed %}
+                                <span class="sf-badge sf-badge--closed">Closed</span>
+                                {% else %}
+                                {{ h.open_time }} &ndash; {{ h.close_time }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+
+            <!-- Location -->
+            <div>
+                <h2 class="sf-section__title">Location</h2>
+                {% if org.address %}
+                <p class="sf-location__address">
+                    {{ org.address }}<br>
+                    {{ org.city }}, {{ org.state }} {{ org.zip_code or '' }}
+                </p>
+                {% endif %}
+                {% if org.phone %}
+                <p class="sf-location__phone">
+                    <a href="tel:{{ org.phone }}">{{ org.phone }}</a>
+                </p>
+                {% endif %}
+                {% if org.google_maps_url %}
+                <a href="{{ org.google_maps_url }}" target="_blank" rel="noopener" class="sf-btn sf-btn--outline sf-btn--sm sf-mt-4">Get Directions</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- About Snippet -->
+{% if org.description %}
+<section class="sf-section">
+    <div class="sf-container sf-text-center">
+        <h2 class="sf-section__title">About Us</h2>
+        <p class="sf-about__snippet">{{ org.description }}</p>
+        <a href="{{ '' if is_custom_domain else '/s/' + slug }}/about" class="sf-btn sf-btn--outline sf-btn--sm sf-mt-4">Learn More</a>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

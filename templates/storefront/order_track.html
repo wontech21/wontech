@@ -1,0 +1,72 @@
+{% extends 'storefront/base.html' %}
+
+{% block title %}Track Order — {{ org.organization_name }}{% endblock %}
+
+{% block content %}
+<section class="sf-section">
+    <div class="sf-container" style="max-width: 640px;">
+        <h1 class="sf-page-title sf-text-center">Track Your Order</h1>
+
+        <div id="sfTrackingContainer">
+            <!-- Loading state -->
+            <div class="sf-skeleton sf-skeleton--tracking" id="sfTrackLoading">
+                <div class="sf-skeleton__bar"></div>
+                <div class="sf-skeleton__bar sf-skeleton__bar--short"></div>
+                <div class="sf-skeleton__bar"></div>
+            </div>
+
+            <!-- Tracking content populated by JS -->
+            <div id="sfTrackContent" style="display:none;">
+                <!-- Progress Bar -->
+                <div class="sf-tracking" id="sfTrackProgress">
+                    <div class="sf-tracking__step" data-step="confirmed">
+                        <div class="sf-tracking__dot"></div>
+                        <span class="sf-tracking__label">Confirmed</span>
+                    </div>
+                    <div class="sf-tracking__line"></div>
+                    <div class="sf-tracking__step" data-step="preparing">
+                        <div class="sf-tracking__dot"></div>
+                        <span class="sf-tracking__label">Preparing</span>
+                    </div>
+                    <div class="sf-tracking__line"></div>
+                    <div class="sf-tracking__step" data-step="ready">
+                        <div class="sf-tracking__dot"></div>
+                        <span class="sf-tracking__label">Ready</span>
+                    </div>
+                    <div class="sf-tracking__line"></div>
+                    <div class="sf-tracking__step" data-step="closed">
+                        <div class="sf-tracking__dot"></div>
+                        <span class="sf-tracking__label">Complete</span>
+                    </div>
+                </div>
+
+                <!-- Order Details -->
+                <div class="sf-track-details" id="sfTrackDetails">
+                    <h3 class="sf-track-details__number" id="sfTrackOrderNum"></h3>
+                    <p class="sf-track-details__type" id="sfTrackOrderType"></p>
+                    <p class="sf-track-details__time" id="sfTrackOrderTime"></p>
+                    <div class="sf-track-details__items" id="sfTrackItems">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div class="sf-track-details__total" id="sfTrackTotal"></div>
+                </div>
+            </div>
+
+            <!-- Error state -->
+            <div id="sfTrackError" style="display:none;" class="sf-text-center">
+                <p>Order not found. Please check your tracking link.</p>
+                <a href="{{ '' if is_custom_domain else '/s/' + slug }}/order" class="sf-btn sf-btn--primary sf-mt-4">Place an Order</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% block scripts %}
+<script src="/static/js/storefront-checkout.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        SFCheckout.initTracking('{{ token }}');
+    });
+</script>
+{% endblock %}
+{% endblock %}
