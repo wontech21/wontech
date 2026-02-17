@@ -70,9 +70,10 @@
   - [x] Terminal-based model: register_number, opened_by/closed_by, orders linked via register_session_id FK
   - [x] POS frontend: register picker (1/2/3), cash gate, indicator, persists across employee switches
   - [x] Settings page: open/close any register by number, multi-register overview
-- [ ] **B7. POS Phase 7 — Receipt System** (built, untested)
-  - [x] Receipt generation, email, and SMS endpoints exist
-  - [ ] Frontend receipt stubs not wired to backend
+- [x] **B7. POS Phase 7 — Receipt System**
+  - [x] Receipt generation, email, and SMS endpoints exist (`_build_receipt_html()`, `GET /receipt`, `POST /receipt/email`, `POST /receipt/sms`)
+  - [x] Frontend wired: `printReceipt()`, `emailReceipt()`, `textReceipt()` on payment success screen
+  - [x] Infrastructure: SendGrid/SMTP email + Twilio SMS in share_routes.py
 - [x] **B8. POS Phase 8 — Customer Profiles + History**
   - [x] Auto-create/update customer on order (when phone provided)
   - [x] Customer lookup endpoint exists
