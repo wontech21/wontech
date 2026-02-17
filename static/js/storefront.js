@@ -100,6 +100,7 @@ SF._loadMenu = function () {
             if (data && data.success) {
                 SF.menu = data.categories;
                 SF._renderMenu(data.categories);
+                SF._initSearch();
             } else {
                 SF._showMenuError('Could not load the menu. Please try again.');
             }
@@ -282,6 +283,13 @@ SF._setActivePill = function (catId) {
 
 
 SF.scrollToCategory = function (catId) {
+    // Clear any active search so the full menu is visible
+    var searchInput = document.getElementById('sfSearchInput');
+    if (searchInput && searchInput.value) {
+        searchInput.value = '';
+        SF._filterMenu('');
+    }
+
     var section = document.getElementById('category-' + catId);
     if (!section) return;
 
@@ -293,6 +301,123 @@ SF.scrollToCategory = function (catId) {
     window.scrollTo({ top: top, behavior: 'smooth' });
 
     SF._setActivePill(catId);
+};
+
+
+/* --------------------------------------------------------------------------
+ *  Menu Search
+ * ------------------------------------------------------------------------ */
+
+SF._initSearch = function () {
+    var input = document.getElementById('sfSearchInput');
+    var clearBtn = document.getElementById('sfSearchClear');
+    if (!input) return;
+
+    var timer = null;
+    input.addEventListener('input', function () {
+        clearTimeout(timer);
+        var q = input.value;
+        clearBtn.style.display = q ? 'flex' : 'none';
+        timer = setTimeout(function () {
+            SF._filterMenu(q);
+        }, 200);
+    });
+
+    clearBtn.addEventListener('click', function () {
+        input.value = '';
+        clearBtn.style.display = 'none';
+        SF._filterMenu('');
+        input.focus();
+    });
+
+    clearBtn.style.display = 'none';
+};
+
+
+SF._filterMenu = function (query) {
+    var q = (query || '').toLowerCase().trim();
+    var sections = document.querySelectorAll('.sf-menu-section[data-category-id]');
+    var noResults = document.getElementById('sfNoResults');
+
+    // Remove existing "no results" message
+    if (noResults) noResults.remove();
+
+    // Empty query — show everything
+    if (!q) {
+        sections.forEach(function (sec) { sec.style.display = ''; });
+        document.querySelectorAll('.sf-card[data-item-id]').forEach(function (card) {
+            card.style.display = '';
+        });
+        return;
+    }
+
+    var anyVisible = false;
+
+    // Walk categories from SF.menu (the original data with ingredients)
+    if (!SF.menu) return;
+
+    SF.menu.forEach(function (cat) {
+        var section = document.getElementById('category-' + cat.id);
+        if (!section) return;
+
+        var catHasVisible = false;
+
+        cat.items.forEach(function (item) {
+            var card = section.querySelector('.sf-card[data-item-id="' + item.id + '"]');
+            if (!card) return;
+
+            var match = false;
+
+            // Check item name
+            if (item.name && item.name.toLowerCase().indexOf(q) !== -1) match = true;
+
+            // Check description
+            if (!match && item.description && item.description.toLowerCase().indexOf(q) !== -1) match = true;
+
+            // Check ingredients
+            if (!match && item.ingredients) {
+                for (var i = 0; i < item.ingredients.length; i++) {
+                    if (item.ingredients[i].toLowerCase().indexOf(q) !== -1) {
+                        match = true;
+                        break;
+                    }
+                }
+            }
+
+            // Check modifier names
+            if (!match && item.modifier_groups) {
+                for (var g = 0; g < item.modifier_groups.length; g++) {
+                    var mods = item.modifier_groups[g].modifiers || [];
+                    for (var m = 0; m < mods.length; m++) {
+                        if (mods[m].name && mods[m].name.toLowerCase().indexOf(q) !== -1) {
+                            match = true;
+                            break;
+                        }
+                    }
+                    if (match) break;
+                }
+            }
+
+            card.style.display = match ? '' : 'none';
+            if (match) catHasVisible = true;
+        });
+
+        section.style.display = catHasVisible ? '' : 'none';
+        if (catHasVisible) anyVisible = true;
+    });
+
+    // Show "no results" if nothing matched
+    if (!anyVisible) {
+        var container = document.getElementById('sfMenuSections');
+        if (container) {
+            var msg = document.createElement('div');
+            msg.id = 'sfNoResults';
+            msg.className = 'sf-empty sf-text-center';
+            msg.style.padding = '3rem 1rem';
+            msg.innerHTML = '<p>No items found for "<strong>' + SF.escapeHtml(query.trim()) + '</strong>"</p>';
+            container.appendChild(msg);
+        }
+    }
 };
 
 

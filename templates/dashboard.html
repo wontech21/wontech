@@ -329,6 +329,19 @@
                             </div>
                         </div>
 
+                        <!-- Order Type Breakdown -->
+                        <div class="card" style="margin-bottom: 20px;">
+                            <h3>🍽️ Sales by Order Type</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: center; padding: 20px;">
+                                <div style="max-width: 250px; margin: 0 auto;">
+                                    <canvas id="orderTypeCanvas"></canvas>
+                                </div>
+                                <div id="order-type-stats" style="display: flex; flex-direction: column; gap: 10px;">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Top Products -->
                         <div class="card">
                             <h3>🏆 Top Selling Products</h3>
@@ -3454,7 +3467,7 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
     <script src="{{ url_for('static', filename='js/share.js') }}"></script>
 
     {% if g.is_super_admin or g.is_organization_admin %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/voice-ai.css') }}?v=13">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/voice-ai.css') }}?v=14">
     <!-- Voice AI Assistant -->
     <button class="voice-ai-btn" id="voice-ai-btn" title="Voice Assistant">
         <svg class="icon-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -3464,6 +3477,10 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
         <div class="voice-ai-header">
             <div class="voice-ai-status-dot" id="voice-ai-status-dot"></div>
             <span class="voice-ai-status-label" id="voice-ai-status-text">Ready</span>
+            <button class="voice-ai-pause" id="voice-ai-pause" title="Pause listening">
+                <svg class="pause-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+                <svg class="play-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="display:none"><path d="M8 5v14l11-7z"/></svg>
+            </button>
             <button class="voice-ai-close" id="voice-ai-close" title="Close">&times;</button>
         </div>
         <div class="voice-ai-content">
@@ -3481,7 +3498,7 @@ Beef Tacos, 250, 9.99, 14:35:00"></textarea>
             <div class="voice-ai-footer"><span>Powered by WONTECH</span></div>
         </div>
     </div>
-    <script src="{{ url_for('static', filename='js/voice-ai.js') }}?v=13"></script>
+    <script src="{{ url_for('static', filename='js/voice-ai.js') }}?v=14"></script>
     {% endif %}
 
     <script>

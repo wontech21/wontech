@@ -5,6 +5,9 @@ Flask web application for multi-tenant business management.
 Multi-Tenant SaaS Platform with Separate Database Architecture.
 """
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask, jsonify, request, g, session
 import sqlite3
 import os
@@ -28,6 +31,7 @@ from routes import (
     auth_bp, portal_bp, attendance_bp,
     employee_mgmt_bp, inventory_app_bp, analytics_app_bp,
     storefront_bp, menu_admin_bp, voice_bp,
+    delivery_bp,
 )
 from routes.schedule_routes import schedule_bp
 from routes.payroll_routes import payroll_bp
@@ -40,6 +44,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'firing-up-secret-key-CHANGE-ME-IN-PRODUCTION')
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['GOOGLE_MAPS_API_KEY'] = os.environ.get('GOOGLE_MAPS_API_KEY', '')
 
 # ---------------------------------------------------------------------------
 # Database initialization at startup
@@ -108,6 +113,7 @@ app.register_blueprint(analytics_app_bp)
 app.register_blueprint(storefront_bp)
 app.register_blueprint(menu_admin_bp)
 app.register_blueprint(voice_bp)
+app.register_blueprint(delivery_bp)
 
 # Register legacy route modules (old register_* pattern)
 register_crud_routes(app)

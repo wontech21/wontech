@@ -203,12 +203,25 @@ def _get_menu_tree(conn):
             group['modifiers'] = group_modifiers.get(gid, [])
             item_map[iid]['modifier_groups'].append(group)
 
-    # Calculate starting price for each item
+    # Fetch ingredient names linked through sizes → recipes → ingredients
+    cursor.execute("""
+        SELECT DISTINCT mis.menu_item_id, i.ingredient_name
+        FROM menu_item_sizes mis
+        JOIN recipes r ON r.product_id = mis.product_id
+        JOIN ingredients i ON i.id = r.ingredient_id
+        WHERE mis.product_id IS NOT NULL
+    """)
+    ingredient_map = {}
+    for row in cursor.fetchall():
+        ingredient_map.setdefault(row['menu_item_id'], []).append(row['ingredient_name'])
+
+    # Calculate starting price for each item and attach ingredients
     for item in item_map.values():
         if item['sizes']:
             item['starting_price'] = min(s['price'] for s in item['sizes'])
         else:
             item['starting_price'] = 0
+        item['ingredients'] = ingredient_map.get(item['id'], [])
 
     # Build category tree
     for cat in categories:

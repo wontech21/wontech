@@ -225,7 +225,7 @@ def dashboard_home():
 @login_required
 def dashboard_section(section):
     """Dashboard filtered to specific section (inventory, attendance, or pos)"""
-    if section not in ['inventory', 'attendance', 'pos', 'kitchen']:
+    if section not in ['inventory', 'attendance', 'pos', 'kitchen', 'delivery']:
         return redirect('/dashboard')
 
     if section == 'pos':
@@ -233,6 +233,9 @@ def dashboard_section(section):
 
     if section == 'kitchen':
         return render_template('kitchen.html')
+
+    if section == 'delivery':
+        return render_template('delivery.html')
 
     return render_template('dashboard.html', section=section)
 

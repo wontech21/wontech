@@ -798,6 +798,73 @@ img {
 
 
 /* ------------------------------------------------------------
+   6b. MENU SEARCH BAR
+   ------------------------------------------------------------ */
+
+.sf-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    max-width: 480px;
+    margin: 0 auto 1.5rem;
+}
+
+.sf-search__icon {
+    position: absolute;
+    left: 14px;
+    color: var(--sf-gray-400);
+    pointer-events: none;
+    flex-shrink: 0;
+}
+
+.sf-search__input {
+    width: 100%;
+    padding: 0.75rem 2.75rem 0.75rem 2.75rem;
+    font-size: var(--sf-text-base);
+    font-family: inherit;
+    color: var(--sf-gray-800);
+    background: var(--sf-white);
+    border: 1.5px solid var(--sf-gray-200);
+    border-radius: var(--sf-radius-full);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.sf-search__input::placeholder {
+    color: var(--sf-gray-400);
+}
+
+.sf-search__input:focus {
+    border-color: var(--sf-primary);
+    box-shadow: 0 0 0 3px var(--sf-primary-light);
+}
+
+.sf-search__clear {
+    position: absolute;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: 1.125rem;
+    line-height: 1;
+    color: var(--sf-gray-400);
+    background: var(--sf-gray-100);
+    border: none;
+    border-radius: var(--sf-radius-full);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.sf-search__clear:hover {
+    color: var(--sf-gray-700);
+    background: var(--sf-gray-200);
+}
+
+
+/* ------------------------------------------------------------
    7. CATEGORY NAVIGATION
    ------------------------------------------------------------ */
 

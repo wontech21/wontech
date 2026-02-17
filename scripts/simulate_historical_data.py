@@ -99,6 +99,25 @@ DOW_MULT = {
     6: 1.48,  # Sat (busiest)
 }
 
+# Hourly traffic weights — realistic pizzeria: lunch rush, afternoon lull, dinner peak
+HOURLY_WEIGHTS = {
+    10: 0.30,  # Opening — slow
+    11: 0.85,  # Lunch ramp-up
+    12: 1.40,  # Lunch peak
+    13: 1.20,  # Lunch tail
+    14: 0.55,  # Afternoon lull
+    15: 0.40,  # Afternoon lull
+    16: 0.60,  # Pre-dinner ramp
+    17: 1.10,  # Early dinner
+    18: 1.50,  # Dinner peak
+    19: 1.45,  # Dinner peak
+    20: 1.10,  # Dinner tail
+    21: 0.70,  # Late evening
+    22: 0.35,  # Closing — slow
+}
+_HOURS = list(HOURLY_WEIGHTS.keys())
+_HOUR_W = list(HOURLY_WEIGHTS.values())
+
 # ─── Shift templates by role ───
 SHIFT_TEMPLATES = {
     'Kitchen':        [('07:00', '15:00'), ('10:00', '18:00'), ('14:00', '22:00')],
@@ -155,6 +174,19 @@ def pick_product():
     return PRODUCTS[-1][:4]
 
 
+def pick_order_type(d):
+    """Weighted random order type based on date (online launches Jul 2025)."""
+    if d >= date(2025, 7, 1):
+        # Post-online launch
+        types   = ['dine_in', 'pickup', 'delivery', 'online']
+        weights = [0.30,       0.30,     0.22,       0.18]
+    else:
+        # Pre-online
+        types   = ['dine_in', 'pickup', 'delivery']
+        weights = [0.40,       0.35,     0.25]
+    return random.choices(types, weights=weights, k=1)[0]
+
+
 def generate_sales(conn):
     """Generate sales_history from 2025-01-01 to 2025-10-24."""
     print("Generating sales data...")
@@ -181,9 +213,9 @@ def generate_sales(conn):
         daily_items = int(base_items_per_day * growth * season * dow * random.uniform(0.85, 1.15))
         daily_items = max(daily_items, 50)
 
-        # Generate individual product sales
+        # Generate individual product sale times with realistic hourly distribution
         sale_times = sorted([
-            f"{random.randint(10, 22):02d}:{random.randint(0, 59):02d}:{random.randint(0, 59):02d}"
+            f"{random.choices(_HOURS, weights=_HOUR_W, k=1)[0]:02d}:{random.randint(0, 59):02d}:{random.randint(0, 59):02d}"
             for _ in range(min(daily_items, 600))
         ])
 
@@ -213,14 +245,15 @@ def generate_sales(conn):
                 sale_price if discount_pct else None,
                 discount_amt if discount_pct else None,
                 float(discount_pct) if discount_pct else None,
+                pick_order_type(d),
             ))
 
     cursor.executemany("""
         INSERT INTO sales_history
         (sale_date, product_id, product_name, quantity_sold, revenue, cost_of_goods,
          gross_profit, processed_date, notes, sale_time, original_price, sale_price,
-         discount_amount, discount_percent)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         discount_amount, discount_percent, order_type)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     """, rows)
 
     conn.commit()
@@ -520,6 +553,32 @@ def backdate_employees(conn):
     print(f"  Updated {len(hire_dates)} employee hire dates")
 
 
+def backfill_order_types(conn):
+    """Backfill NULL order_type in existing sales_history records."""
+    print("Backfilling order_type for existing records...")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, sale_date FROM sales_history WHERE order_type IS NULL")
+    rows = cursor.fetchall()
+    if not rows:
+        print("  No NULL order_type records found — skipping.")
+        return
+
+    updates = []
+    for row in rows:
+        sale_id = row[0]
+        sale_date_str = row[1]
+        try:
+            d = date.fromisoformat(sale_date_str)
+        except (ValueError, TypeError):
+            d = date(2025, 10, 1)  # fallback
+        updates.append((pick_order_type(d), sale_id))
+
+    cursor.executemany("UPDATE sales_history SET order_type = ? WHERE id = ?", updates)
+    conn.commit()
+    print(f"  Updated {len(updates)} records with order_type")
+
+
 def main():
     print("=" * 60)
     print("Firing Up — Historical Data Simulation")
@@ -535,6 +594,7 @@ def main():
         generate_invoices(conn)
         generate_attendance(conn)
         generate_payroll(conn)
+        backfill_order_types(conn)
 
         # Verify
         cursor = conn.cursor()

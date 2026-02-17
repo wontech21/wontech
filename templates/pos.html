@@ -1222,6 +1222,43 @@
             color: #1f2937;
         }
 
+        .tip-selection {
+            margin-bottom: 20px;
+        }
+
+        .tip-quick-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .tip-btn {
+            flex: 1;
+            padding: 10px 4px;
+            background: #e5e7eb;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .tip-btn:hover {
+            background: #ddd6fe;
+            color: #5b21b6;
+        }
+
+        .tip-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #5a67d8;
+        }
+
+        .tip-custom-input {
+            margin-top: 10px;
+        }
+
         .payment-methods {
             display: flex;
             flex-direction: column;
@@ -1701,6 +1738,204 @@
                 font-size: 13px;
             }
         }
+
+        /* ── Register Gate Overlay ── */
+        .register-gate {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 9998;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .register-gate.hidden { display: none; }
+        .register-gate-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            width: 90%;
+            max-width: 440px;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .register-gate-card h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        .register-gate-card p {
+            color: #6b7280;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .register-gate-input {
+            width: 100%;
+            padding: 16px;
+            font-size: 2em;
+            text-align: center;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            font-weight: 700;
+            background: #f9fafb;
+            color: #1f2937;
+            margin-bottom: 8px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .register-gate-input:focus { border-color: #667eea; }
+        .register-gate-error {
+            color: #dc2626;
+            font-size: 13px;
+            min-height: 24px;
+            margin-bottom: 8px;
+        }
+        .register-gate-btn {
+            width: 100%;
+            padding: 16px;
+            font-size: 1.1em;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102,126,234,0.25);
+            transition: opacity 0.2s;
+        }
+        .register-gate-btn:hover { opacity: 0.9; }
+        .register-gate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .register-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .register-picker-btn {
+            padding: 24px 12px;
+            font-size: 1.4em;
+            font-weight: 700;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #1f2937;
+        }
+        .register-picker-btn:hover {
+            border-color: #667eea;
+            background: #eef2ff;
+        }
+        .register-picker-btn span {
+            display: block;
+            font-size: 0.5em;
+            font-weight: 500;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        .register-change-link {
+            display: inline-block;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #6b7280;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .register-change-link:hover { color: #374151; }
+
+        /* ── Register Indicator (header badge) ── */
+        .register-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #166534;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .register-indicator:hover { background: #dcfce7; }
+        .register-indicator-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            flex-shrink: 0;
+        }
+
+        /* ── Close Register Modal ── */
+        .register-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .register-stat {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+        }
+        .register-stat-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .register-stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .register-stat.full-width {
+            grid-column: 1 / -1;
+        }
+        .register-close-input {
+            width: 100%;
+            padding: 14px;
+            font-size: 1.4em;
+            text-align: center;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-weight: 700;
+            background: #f9fafb;
+            color: #1f2937;
+            outline: none;
+            transition: border-color 0.2s;
+            margin-bottom: 8px;
+        }
+        .register-close-input:focus { border-color: #667eea; }
+        .register-close-notes {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            background: #f9fafb;
+            color: #1f2937;
+            outline: none;
+            resize: none;
+            margin-bottom: 16px;
+            font-family: inherit;
+        }
+        .register-close-notes:focus { border-color: #667eea; }
+        .register-variance {
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 16px;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        .register-variance.good { background: #f0fdf4; color: #166534; }
+        .register-variance.bad { background: #fef2f2; color: #dc2626; }
     </style>
 </head>
 <body>
@@ -1736,6 +1971,67 @@
         </div>
     </div>
 
+    <!-- Register Gate Overlay (two-step: pick register → open cash) -->
+    <div class="register-gate hidden" id="registerGate">
+        <div class="register-gate-card">
+            <!-- Step 1: Register Picker -->
+            <div id="registerPickerStep">
+                <h2>Select Register</h2>
+                <p>Which register is this terminal?</p>
+                <div class="register-picker-grid">
+                    <button class="register-picker-btn" onclick="pickRegister(1)">1<span>Register</span></button>
+                    <button class="register-picker-btn" onclick="pickRegister(2)">2<span>Register</span></button>
+                    <button class="register-picker-btn" onclick="pickRegister(3)">3<span>Register</span></button>
+                </div>
+            </div>
+            <!-- Step 2: Open Cash Drawer -->
+            <div id="registerCashStep" style="display:none;">
+                <h2 id="registerCashTitle">Open Register #1</h2>
+                <p>Count your drawer and enter the opening amount</p>
+                <div style="position:relative;">
+                    <span style="position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:2em;font-weight:700;color:#6b7280;">$</span>
+                    <input type="number" id="registerOpeningCash" class="register-gate-input" style="padding-left:40px;" step="0.01" min="0" value="200.00">
+                </div>
+                <div class="register-gate-error" id="registerGateError"></div>
+                <button class="register-gate-btn" id="registerOpenBtn" onclick="openRegisterSession()">Open Register</button>
+                <span class="register-change-link" onclick="showRegisterPicker()">Change register</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Close Register Modal -->
+    <div class="pos-modal-overlay" id="closeRegisterModal">
+        <div class="pos-modal" style="max-width: 480px;">
+            <div class="pos-modal-header">
+                <h2>Close Register</h2>
+                <button class="pos-modal-close" onclick="document.getElementById('closeRegisterModal').classList.remove('visible')">&times;</button>
+            </div>
+            <div class="pos-modal-body">
+                <!-- State A: Input Form -->
+                <div id="closeRegisterForm">
+                    <div class="register-stats-grid" id="registerStatsGrid"></div>
+                    <label style="font-size:13px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Closing Cash</label>
+                    <div style="position:relative;">
+                        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:1.4em;font-weight:700;color:#6b7280;">$</span>
+                        <input type="number" id="registerClosingCash" class="register-close-input" style="padding-left:36px;" step="0.01" min="0" placeholder="0.00">
+                    </div>
+                    <label style="font-size:13px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Notes (optional)</label>
+                    <textarea id="registerCloseNotes" class="register-close-notes" rows="2" placeholder="Any notes about this shift..."></textarea>
+                    <div style="display:flex;gap:12px;">
+                        <button onclick="document.getElementById('closeRegisterModal').classList.remove('visible')" style="flex:1;padding:14px;font-size:15px;font-weight:600;background:#f3f4f6;color:#374151;border:none;border-radius:12px;cursor:pointer;">Cancel</button>
+                        <button onclick="closeRegisterSession()" id="registerCloseBtn" style="flex:2;padding:14px;font-size:15px;font-weight:600;background:linear-gradient(135deg,#dc2626,#b91c1c);color:white;border:none;border-radius:12px;cursor:pointer;">Close Register</button>
+                    </div>
+                </div>
+                <!-- State B: Summary -->
+                <div id="closeRegisterSummary" style="display:none;">
+                    <div class="register-stats-grid" id="registerSummaryGrid"></div>
+                    <div class="register-variance" id="registerVariance"></div>
+                    <button onclick="registerDone()" style="width:100%;padding:14px;font-size:15px;font-weight:600;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;border:none;border-radius:12px;cursor:pointer;">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="pos-container">
         <!-- Left Side - Product Selection -->
         <div class="pos-main">
@@ -1747,6 +2043,10 @@
                     <div class="pos-employee-badge" id="employeeBadge" onclick="switchEmployee()" style="display:none;">
                         <span class="badge-avatar" id="badgeAvatar"></span>
                         <span id="badgeName"></span>
+                    </div>
+                    <div class="register-indicator" id="registerIndicator" onclick="showCloseRegisterModal()" style="display:none;">
+                        <span class="register-indicator-dot"></span>
+                        <span id="registerIndicatorLabel">Register</span>
                     </div>
                     <button class="pos-settings-btn" id="eightySixBtn" onclick="toggle86Mode()" style="border-color: transparent; background: #f1f3f4; color: #5f6368;">
                         <span>86</span>
@@ -1918,9 +2218,31 @@
                         <span>Delivery Fee</span>
                         <span id="paymentDeliveryFee">$0.00</span>
                     </div>
+                    <div class="payment-summary-row" id="paymentTipRow" style="display: none;">
+                        <span>Tip</span>
+                        <span id="paymentTipAmount">$0.00</span>
+                    </div>
                     <div class="payment-summary-row payment-total">
                         <span>Total</span>
                         <span id="paymentTotal">$0.00</span>
+                    </div>
+                </div>
+
+                <!-- Tip Selection -->
+                <div class="tip-selection" id="tipSelection">
+                    <div class="payment-method-title">Add Tip</div>
+                    <div class="tip-quick-buttons">
+                        <button class="tip-btn active" onclick="selectTip('none')">No Tip</button>
+                        <button class="tip-btn" onclick="selectTip(15)">15%</button>
+                        <button class="tip-btn" onclick="selectTip(18)">18%</button>
+                        <button class="tip-btn" onclick="selectTip(20)">20%</button>
+                        <button class="tip-btn" onclick="selectTip('custom')">Custom</button>
+                    </div>
+                    <div class="tip-custom-input" id="tipCustomInput" style="display: none;">
+                        <div class="cash-input-wrapper">
+                            <span class="cash-currency">$</span>
+                            <input type="number" id="tipCustomAmount" class="cash-input" step="0.01" min="0" placeholder="0.00" oninput="applyCustomTip()">
+                        </div>
                     </div>
                 </div>
 
@@ -2088,6 +2410,7 @@
         let orderNumber = 1;
         let lastCompletedOrderId = null;
         let registerSession = null;
+        let terminalRegisterNumber = parseInt(localStorage.getItem('posRegisterNumber')) || null;
 
         // POS Settings (persisted to localStorage)
         let posSettings = {
@@ -2176,6 +2499,9 @@
             if (posSettings.deliveryFeeType === 'fixed') {
                 deliveryFee = 0; // Will be set when delivery is selected
             }
+
+            // Load register session
+            await loadRegisterSession();
         }
 
         // Save settings to localStorage
@@ -2194,8 +2520,74 @@
 
         // ============== PAYMENT HANDLING ==============
 
+        // ============== TIP HANDLING ==============
+
+        function selectTip(value) {
+            // Update active button
+            document.querySelectorAll('.tip-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            const customInput = document.getElementById('tipCustomInput');
+
+            if (value === 'custom') {
+                customInput.style.display = 'block';
+                document.getElementById('tipCustomAmount').focus();
+                return;
+            }
+
+            customInput.style.display = 'none';
+            document.getElementById('tipCustomAmount').value = '';
+
+            if (value === 'none') {
+                pendingOrderData.tip = 0;
+            } else {
+                // Percentage of pre-tip total
+                pendingOrderData.tip = Math.round(pendingOrderData.baseTotal * (value / 100) * 100) / 100;
+            }
+
+            updateTipDisplay();
+        }
+
+        function applyCustomTip() {
+            const amount = parseFloat(document.getElementById('tipCustomAmount').value) || 0;
+            pendingOrderData.tip = Math.round(amount * 100) / 100;
+            updateTipDisplay();
+        }
+
+        function updateTipDisplay() {
+            const tip = pendingOrderData.tip || 0;
+            const newTotal = pendingOrderData.baseTotal + tip;
+            pendingOrderData.total = newTotal;
+
+            // Update summary rows
+            const tipRow = document.getElementById('paymentTipRow');
+            if (tip > 0) {
+                tipRow.style.display = 'flex';
+                document.getElementById('paymentTipAmount').textContent = `$${tip.toFixed(2)}`;
+            } else {
+                tipRow.style.display = 'none';
+            }
+
+            document.getElementById('paymentTotal').textContent = `$${newTotal.toFixed(2)}`;
+            document.getElementById('cardPayAmount').textContent = `$${newTotal.toFixed(2)}`;
+        }
+
         // Open payment modal
         function openPaymentModal() {
+            // Block orders without employee auth (admins exempt)
+            if (!isAdmin && (!posEmployee || !posEmployee.id)) {
+                document.getElementById('pinError').textContent = 'Sign in to place orders';
+                document.getElementById('employeeOverlay').classList.remove('hidden');
+                document.getElementById('employeePinField').value = '';
+                return;
+            }
+
+            // Block orders without open register
+            if (!registerSession) {
+                document.getElementById('registerGate').classList.remove('hidden');
+                return;
+            }
+
             const itemsTotal = orderItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
             const taxRate = posSettings.taxEnabled ? (posSettings.taxRate / 100) : 0;
 
@@ -2221,15 +2613,24 @@
                 taxEnabled: posSettings.taxEnabled,
                 taxDisplay: posSettings.taxDisplay,
                 deliveryFee,
+                baseTotal: total,
                 total,
+                tip: 0,
                 customerInfo: getCustomerInfo()
             };
 
             // Update payment summary
             document.getElementById('paymentSubtotal').textContent = `$${subtotal.toFixed(2)}`;
             document.getElementById('paymentTax').textContent = posSettings.taxEnabled ? `$${tax.toFixed(2)}` : '$0.00';
+            document.getElementById('paymentTipRow').style.display = 'none';
             document.getElementById('paymentTotal').textContent = `$${total.toFixed(2)}`;
             document.getElementById('cardPayAmount').textContent = `$${total.toFixed(2)}`;
+
+            // Reset tip UI
+            document.querySelectorAll('.tip-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector('.tip-btn').classList.add('active'); // "No Tip" is first
+            document.getElementById('tipCustomInput').style.display = 'none';
+            document.getElementById('tipCustomAmount').value = '';
 
             if (deliveryFee > 0) {
                 document.getElementById('paymentDeliveryRow').style.display = 'flex';
@@ -2505,7 +2906,7 @@
         // ============== ORDER COMPLETION ==============
 
         async function completeOrder(paymentMethod, paymentDetails) {
-            const { subtotal, tax, deliveryFee, total, customerInfo } = pendingOrderData;
+            const { subtotal, tax, deliveryFee, total, tip, customerInfo } = pendingOrderData;
 
             let serverOrder = null;
 
@@ -2527,12 +2928,14 @@
                         subtotal: subtotal,
                         taxAmount: tax,
                         deliveryFee: deliveryFee,
+                        tipAmount: tip || 0,
                         total: total,
                         customerName: customerInfo.name,
                         customerPhone: customerInfo.phone,
                         customerAddress: customerInfo.fullAddress,
                         deliveryDistance: customerInfo.deliveryDistance,
                         notes: customerInfo.instructions,
+                        registerSessionId: registerSession ? registerSession.id : null,
                         payment: {
                             method: paymentMethod,
                             details: paymentDetails
@@ -3638,12 +4041,25 @@
 
         // Admins bypass employee selection
         if (isAdmin) {
+            const adminFirst = '{{ g.user.first_name if g.user and g.user.first_name else "Admin" }}';
+            const adminLast = '{{ g.user.last_name if g.user and g.user.last_name else "" }}';
+            const adminInitials = (adminFirst[0] + (adminLast ? adminLast[0] : '')).toUpperCase();
             document.getElementById('employeeOverlay').classList.add('hidden');
             const badge = document.getElementById('employeeBadge');
-            document.getElementById('badgeAvatar').textContent = '{{ g.user.username[:2]|upper if g.user and g.user.username else "AD" }}';
-            document.getElementById('badgeName').textContent = '{{ g.user.username if g.user and g.user.username else "Admin" }}';
+            document.getElementById('badgeAvatar').textContent = adminInitials;
+            document.getElementById('badgeName').textContent = adminFirst;
             badge.style.display = 'inline-flex';
-            posEmployee = { id: null, firstName: '{{ g.user.username if g.user and g.user.username else "Admin" }}', lastName: '', position: 'Admin', canVoid: true };
+            posEmployee = { id: null, firstName: adminFirst, lastName: adminLast, position: 'Admin', canVoid: true };
+
+            // Try to resolve admin's employee record for order attribution
+            fetch('/api/pos/auth/admin-resolve')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.employeeId) {
+                        posEmployee.id = data.employeeId;
+                    }
+                })
+                .catch(() => {}); // Non-blocking — admin still works without employee record
         }
 
         function posAddDigit(d) {
@@ -3703,6 +4119,9 @@
 
             // Hide overlay
             document.getElementById('employeeOverlay').classList.add('hidden');
+
+            // Check for open register session
+            loadRegisterSession();
         }
 
         function switchEmployee() {
@@ -3713,8 +4132,272 @@
             document.getElementById('employeePinField').value = '';
             document.getElementById('pinError').textContent = '';
 
-            // Clear server session
+            // Clear server session but keep register — register persists across employee changes
             fetch('/api/pos/auth/logout', { method: 'POST' }).catch(() => {});
+        }
+
+        // ============== REGISTER MANAGEMENT (B6) ==============
+
+        async function loadRegisterSession() {
+            try {
+                const url = terminalRegisterNumber
+                    ? `/api/pos/register/current?registerNumber=${terminalRegisterNumber}`
+                    : '/api/pos/register/current';
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data.success && data.session) {
+                    registerSession = data.session;
+                    document.getElementById('registerGate').classList.add('hidden');
+                    document.getElementById('registerIndicator').style.display = 'inline-flex';
+                    document.getElementById('registerIndicatorLabel').textContent = `Register ${registerSession.registerNumber || terminalRegisterNumber || ''}`;
+                } else {
+                    registerSession = null;
+                    document.getElementById('registerIndicator').style.display = 'none';
+                    // Only show gate if employee is authenticated (or admin)
+                    if (posEmployee || isAdmin) {
+                        showRegisterGate();
+                    }
+                }
+            } catch (e) {
+                // On error, don't block — keep current state
+            }
+        }
+
+        function showRegisterGate() {
+            const gate = document.getElementById('registerGate');
+            gate.classList.remove('hidden');
+            if (terminalRegisterNumber) {
+                // Skip picker, show cash step
+                document.getElementById('registerPickerStep').style.display = 'none';
+                document.getElementById('registerCashStep').style.display = '';
+                document.getElementById('registerCashTitle').textContent = `Open Register #${terminalRegisterNumber}`;
+            } else {
+                // Show picker
+                document.getElementById('registerPickerStep').style.display = '';
+                document.getElementById('registerCashStep').style.display = 'none';
+            }
+        }
+
+        function pickRegister(num) {
+            terminalRegisterNumber = num;
+            localStorage.setItem('posRegisterNumber', num);
+            document.getElementById('registerPickerStep').style.display = 'none';
+            document.getElementById('registerCashStep').style.display = '';
+            document.getElementById('registerCashTitle').textContent = `Open Register #${num}`;
+        }
+
+        function showRegisterPicker() {
+            terminalRegisterNumber = null;
+            localStorage.removeItem('posRegisterNumber');
+            document.getElementById('registerPickerStep').style.display = '';
+            document.getElementById('registerCashStep').style.display = 'none';
+        }
+
+        async function openRegisterSession() {
+            const btn = document.getElementById('registerOpenBtn');
+            const errorEl = document.getElementById('registerGateError');
+            const cashInput = document.getElementById('registerOpeningCash');
+            const openingCash = parseFloat(cashInput.value) || 0;
+
+            if (!terminalRegisterNumber) {
+                errorEl.textContent = 'Select a register first';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Opening...';
+            errorEl.textContent = '';
+
+            try {
+                const body = { openingCash, registerNumber: terminalRegisterNumber };
+                if (posEmployee && posEmployee.id) {
+                    body.employeeId = posEmployee.id;
+                }
+
+                const res = await fetch('/api/pos/register/open', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    // Load full session data
+                    await loadRegisterSession();
+                    document.getElementById('registerGate').classList.add('hidden');
+                } else {
+                    errorEl.textContent = data.error || 'Failed to open register';
+                }
+            } catch (e) {
+                errorEl.textContent = 'Connection error — try again';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Open Register';
+            }
+        }
+
+        async function showCloseRegisterModal() {
+            const modal = document.getElementById('closeRegisterModal');
+            const form = document.getElementById('closeRegisterForm');
+            const summary = document.getElementById('closeRegisterSummary');
+
+            // Show form, hide summary
+            form.style.display = '';
+            summary.style.display = 'none';
+
+            // Fetch fresh stats for this register
+            try {
+                const url = terminalRegisterNumber
+                    ? `/api/pos/register/current?registerNumber=${terminalRegisterNumber}`
+                    : '/api/pos/register/current';
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data.success && data.session) {
+                    registerSession = data.session;
+                    const s = data.session;
+                    const openedTime = new Date(s.openedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+                    document.getElementById('registerStatsGrid').innerHTML = `
+                        <div class="register-stat">
+                            <div class="register-stat-label">Opened</div>
+                            <div class="register-stat-value">${openedTime}</div>
+                        </div>
+                        <div class="register-stat">
+                            <div class="register-stat-label">Orders</div>
+                            <div class="register-stat-value">${s.orderCount}</div>
+                        </div>
+                        <div class="register-stat">
+                            <div class="register-stat-label">Total Sales</div>
+                            <div class="register-stat-value">$${s.totalSales.toFixed(2)}</div>
+                        </div>
+                        <div class="register-stat">
+                            <div class="register-stat-label">Cash Sales</div>
+                            <div class="register-stat-value">$${s.cashSales.toFixed(2)}</div>
+                        </div>
+                        <div class="register-stat">
+                            <div class="register-stat-label">Card Sales</div>
+                            <div class="register-stat-value">$${s.cardSales.toFixed(2)}</div>
+                        </div>
+                        <div class="register-stat">
+                            <div class="register-stat-label">Tips</div>
+                            <div class="register-stat-value">$${s.tips.toFixed(2)}</div>
+                        </div>
+                        <div class="register-stat full-width">
+                            <div class="register-stat-label">Expected Cash</div>
+                            <div class="register-stat-value">$${s.expectedCash.toFixed(2)}</div>
+                        </div>
+                    `;
+
+                    document.getElementById('registerClosingCash').placeholder = s.expectedCash.toFixed(2);
+                    document.getElementById('registerClosingCash').value = '';
+                    document.getElementById('registerCloseNotes').value = '';
+                } else {
+                    // No session — shouldn't happen, but handle gracefully
+                    registerSession = null;
+                    document.getElementById('registerIndicator').style.display = 'none';
+                    document.getElementById('registerGate').classList.remove('hidden');
+                    return;
+                }
+            } catch (e) {
+                return; // Don't open modal on error
+            }
+
+            modal.classList.add('visible');
+        }
+
+        async function closeRegisterSession() {
+            const btn = document.getElementById('registerCloseBtn');
+            const closingCash = parseFloat(document.getElementById('registerClosingCash').value) || 0;
+            const notes = document.getElementById('registerCloseNotes').value.trim();
+
+            btn.disabled = true;
+            btn.textContent = 'Closing...';
+
+            try {
+                const body = { closingCash, notes };
+                if (terminalRegisterNumber) {
+                    body.registerNumber = terminalRegisterNumber;
+                }
+                if (posEmployee && posEmployee.id) {
+                    body.employeeId = posEmployee.id;
+                }
+
+                const res = await fetch('/api/pos/register/close', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    const sm = data.summary;
+                    const variance = sm.cashVariance;
+                    const isGood = Math.abs(variance) < 1;
+
+                    document.getElementById('registerSummaryGrid').innerHTML = `
+                        <div class="register-stat">
+                            <div class="register-stat-label">Orders</div>
+                            <div class="register-stat-value">${sm.orderCount}</div>
+                        </div>
+                        <div class="register-stat">
+                            <div class="register-stat-label">Total Sales</div>
+                            <div class="register-stat-value">$${sm.totalSales.toFixed(2)}</div>
+                        </div>
+                        <div class="register-stat">
+                            <div class="register-stat-label">Cash Sales</div>
+                            <div class="register-stat-value">$${sm.totalCashSales.toFixed(2)}</div>
+                        </div>
+                        <div class="register-stat">
+                            <div class="register-stat-label">Card Sales</div>
+                            <div class="register-stat-value">$${sm.totalCardSales.toFixed(2)}</div>
+                        </div>
+                        <div class="register-stat">
+                            <div class="register-stat-label">Tips</div>
+                            <div class="register-stat-value">$${sm.totalTips.toFixed(2)}</div>
+                        </div>
+                        <div class="register-stat">
+                            <div class="register-stat-label">Opening Cash</div>
+                            <div class="register-stat-value">$${sm.openingCash.toFixed(2)}</div>
+                        </div>
+                        <div class="register-stat">
+                            <div class="register-stat-label">Expected Cash</div>
+                            <div class="register-stat-value">$${sm.expectedCash.toFixed(2)}</div>
+                        </div>
+                        <div class="register-stat">
+                            <div class="register-stat-label">Closing Cash</div>
+                            <div class="register-stat-value">$${sm.closingCash.toFixed(2)}</div>
+                        </div>
+                    `;
+
+                    const varianceEl = document.getElementById('registerVariance');
+                    const sign = variance >= 0 ? '+' : '';
+                    varianceEl.textContent = `Variance: ${sign}$${variance.toFixed(2)}`;
+                    varianceEl.className = `register-variance ${isGood ? 'good' : 'bad'}`;
+
+                    // Show summary, hide form
+                    document.getElementById('closeRegisterForm').style.display = 'none';
+                    document.getElementById('closeRegisterSummary').style.display = '';
+
+                    // Clear register state
+                    registerSession = null;
+                    document.getElementById('registerIndicator').style.display = 'none';
+                } else {
+                    alert(data.error || 'Failed to close register');
+                }
+            } catch (e) {
+                alert('Connection error — try again');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Close Register';
+            }
+        }
+
+        function registerDone() {
+            document.getElementById('closeRegisterModal').classList.remove('visible');
+            // Show register gate — terminal remembers its number, so show cash step directly
+            showRegisterGate();
+            document.getElementById('registerOpeningCash').value = '200.00';
+            document.getElementById('registerGateError').textContent = '';
         }
 
         // ============== PRODUCT AVAILABILITY + 86 MODE (Phase 2) ==============
@@ -3880,6 +4563,25 @@
             } catch (e) {
                 hint.style.display = 'none';
             }
+        }
+
+        // Session recovery for non-admin employees
+        if (!isAdmin) {
+            fetch('/api/pos/auth/status')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.employee) {
+                        authenticateEmployee(
+                            data.employee.id,
+                            data.employee.firstName,
+                            data.employee.lastName,
+                            data.employee.position,
+                            data.employee.canVoid
+                        );
+                    }
+                    // If not valid, overlay stays visible (its default state)
+                })
+                .catch(() => {}); // On error, overlay stays visible
         }
 
         // Initialize

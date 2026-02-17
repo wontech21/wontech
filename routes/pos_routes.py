@@ -7,7 +7,10 @@ POS (Point of Sale) Routes
 
 from flask import Blueprint, jsonify, request, g, session, current_app
 import os
+import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from db_manager import get_org_db
 from sales_operations import record_sales_to_db
@@ -328,8 +331,9 @@ def create_order_core(cursor, data, source='pos', request_ip='POS'):
             delivery_distance, delivery_fee,
             subtotal, tax_rate, tax_amount, tip_amount,
             discount_amount, discount_reason, total, notes,
-            source, online_tracking_token, scheduled_for, customer_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            source, online_tracking_token, scheduled_for, customer_id,
+            register_session_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         order_number,
         data.get('orderType', 'dine_in'),
@@ -353,6 +357,7 @@ def create_order_core(cursor, data, source='pos', request_ip='POS'):
         tracking_token,
         data.get('scheduledFor'),
         data.get('customerId'),
+        data.get('registerSessionId'),
     ))
     order_id = cursor.lastrowid
 
@@ -398,9 +403,13 @@ def create_order_core(cursor, data, source='pos', request_ip='POS'):
             ))
 
     # Insert payment record
-    payment = data.get('payment', {})
+    payment = data.get('payment')
+    if not payment or not isinstance(payment, dict):
+        logger.warning('Order %s: No payment data provided, recording as cash', order_number)
+        payment = {'method': 'cash', 'details': {}}
+
     payment_method = payment.get('method', 'cash')
-    payment_details = payment.get('details', {})
+    payment_details = payment.get('details') or {}
 
     cursor.execute("""
         INSERT INTO order_payments (
@@ -453,6 +462,8 @@ def create_order_core(cursor, data, source='pos', request_ip='POS'):
 
     # Feed the sales pipeline — deduct ingredients + record in sales_history
     now = datetime.now()
+    sales_order_type = 'online' if source == 'online' else data.get('orderType', 'dine_in')
+
     sales_data = []
     for item in items:
         sales_data.append({
@@ -462,18 +473,30 @@ def create_order_core(cursor, data, source='pos', request_ip='POS'):
             'sale_time': now.strftime('%H:%M:%S')
         })
 
-    sales_result = record_sales_to_db(
-        cursor, sales_data, now.strftime('%Y-%m-%d'),
-        sale_time=now.strftime('%H:%M:%S'),
-        request_ip=request_ip
-    )
+    sales_applied = 0
+    try:
+        sales_result = record_sales_to_db(
+            cursor, sales_data, now.strftime('%Y-%m-%d'),
+            sale_time=now.strftime('%H:%M:%S'),
+            request_ip=request_ip,
+            order_type=sales_order_type
+        )
+        sales_applied = sales_result['applied_count']
+        if sales_applied < len(items):
+            logger.warning(
+                'Order %s: Only %d/%d items matched products for sales/inventory tracking',
+                order_number, sales_applied, len(items)
+            )
+    except Exception as e:
+        logger.error('Order %s: Sales pipeline failed — %s. Order saved but inventory not deducted.',
+                     order_number, str(e))
 
     return {
         'order_id': order_id,
         'order_number': order_number,
         'tracking_token': tracking_token,
         'customer_id': customer_id,
-        'sales_applied_count': sales_result['applied_count'],
+        'sales_applied_count': sales_applied,
     }
 
 
@@ -495,6 +518,12 @@ def create_order():
 
     # Use POS session employee, fall back to request body
     data['employeeId'] = session.get('pos_employee_id') or data.get('employeeId')
+
+    # Reject orders without employee_id — unless caller is admin
+    if not data['employeeId']:
+        is_admin = g.get('is_super_admin') or g.get('is_organization_admin')
+        if not is_admin:
+            return jsonify({'success': False, 'error': 'Employee authentication required'}), 403
 
     conn = None
     try:
@@ -731,6 +760,81 @@ def pos_employee_logout():
     session.pop('pos_employee_id', None)
     session.pop('pos_employee_name', None)
     return jsonify({'success': True})
+
+
+@pos_bp.route('/auth/status', methods=['GET'])
+@login_required
+@organization_required
+def pos_auth_status():
+    """Return current POS employee from session, re-validated against DB."""
+    emp_id = session.get('pos_employee_id')
+    if not emp_id:
+        return jsonify({'success': False, 'employee': None})
+
+    try:
+        conn = get_org_db()
+        cursor = conn.cursor()
+        _ensure_pos_can_void_column(cursor)
+        cursor.execute("""
+            SELECT id, first_name, last_name, position,
+                   COALESCE(pos_can_void, 0) as pos_can_void
+            FROM employees
+            WHERE id = ? AND status = 'active'
+        """, (emp_id,))
+        employee = cursor.fetchone()
+        conn.close()
+
+        if not employee:
+            # Employee deactivated mid-shift — clear stale session
+            session.pop('pos_employee_id', None)
+            session.pop('pos_employee_name', None)
+            return jsonify({'success': False, 'employee': None})
+
+        return jsonify({
+            'success': True,
+            'employee': {
+                'id': employee['id'],
+                'firstName': employee['first_name'],
+                'lastName': employee['last_name'],
+                'name': f"{employee['first_name']} {employee['last_name']}",
+                'position': employee['position'],
+                'canVoid': bool(employee['pos_can_void']),
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@pos_bp.route('/auth/admin-resolve', methods=['GET'])
+@login_required
+@organization_required
+def pos_admin_resolve():
+    """Look up admin's employee record and set POS session if found."""
+    if not (g.get('is_super_admin') or g.get('is_organization_admin')):
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+
+    user_id = g.user['id'] if g.user else None
+    if not user_id:
+        return jsonify({'success': True, 'employeeId': None})
+
+    try:
+        conn = get_org_db()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, first_name, last_name FROM employees
+            WHERE user_id = ? AND status = 'active'
+        """, (user_id,))
+        employee = cursor.fetchone()
+        conn.close()
+
+        if employee:
+            session['pos_employee_id'] = employee['id']
+            session['pos_employee_name'] = f"{employee['first_name']} {employee['last_name']}"
+            return jsonify({'success': True, 'employeeId': employee['id']})
+
+        return jsonify({'success': True, 'employeeId': None})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # ==========================================
@@ -1172,7 +1276,7 @@ def update_order_status(order_id):
     new_status = data.get('status')
 
     valid_statuses = ['new', 'confirmed', 'preparing', 'ready',
-                      'picked_up', 'delivered', 'served', 'closed', 'voided']
+                      'picked_up', 'out_for_delivery', 'delivered', 'served', 'closed', 'voided']
     if new_status not in valid_statuses:
         return jsonify({'success': False, 'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}), 400
 
@@ -1313,33 +1417,31 @@ def open_register():
     """Start a register session with opening cash count."""
     data = request.get_json()
     opening_cash = data.get('openingCash', 0)
+    register_number = data.get('registerNumber', 1)
     employee_id = session.get('pos_employee_id') or data.get('employeeId')
-
-    if not employee_id:
-        return jsonify({'success': False, 'error': 'No employee authenticated'}), 400
 
     try:
         conn = get_org_db()
         cursor = conn.cursor()
 
-        # Check for already-open session
+        # Check for already-open session on this register number
         cursor.execute("""
             SELECT id FROM register_sessions
-            WHERE employee_id = ? AND closed_at IS NULL
-        """, (employee_id,))
+            WHERE register_number = ? AND closed_at IS NULL
+        """, (register_number,))
         if cursor.fetchone():
             conn.close()
-            return jsonify({'success': False, 'error': 'Register already open for this employee'}), 400
+            return jsonify({'success': False, 'error': f'Register {register_number} is already open'}), 400
 
         cursor.execute("""
-            INSERT INTO register_sessions (employee_id, opening_cash)
-            VALUES (?, ?)
-        """, (employee_id, opening_cash))
+            INSERT INTO register_sessions (employee_id, opening_cash, register_number, opened_by)
+            VALUES (?, ?, ?, ?)
+        """, (employee_id or 0, opening_cash, register_number, employee_id))
         session_id = cursor.lastrowid
         conn.commit()
         conn.close()
 
-        return jsonify({'success': True, 'sessionId': session_id})
+        return jsonify({'success': True, 'sessionId': session_id, 'registerNumber': register_number})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -1352,23 +1454,32 @@ def close_register():
     data = request.get_json()
     closing_cash = data.get('closingCash', 0)
     notes = data.get('notes', '')
+    register_number = data.get('registerNumber')
     employee_id = session.get('pos_employee_id') or data.get('employeeId')
 
     try:
         conn = get_org_db()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT id, opened_at, opening_cash FROM register_sessions
-            WHERE employee_id = ? AND closed_at IS NULL
-            ORDER BY id DESC LIMIT 1
-        """, (employee_id,))
+        if register_number:
+            cursor.execute("""
+                SELECT id, opened_at, opening_cash FROM register_sessions
+                WHERE register_number = ? AND closed_at IS NULL
+                ORDER BY id DESC LIMIT 1
+            """, (register_number,))
+        else:
+            # Fallback: find any open session (compat)
+            cursor.execute("""
+                SELECT id, opened_at, opening_cash FROM register_sessions
+                WHERE closed_at IS NULL
+                ORDER BY id DESC LIMIT 1
+            """)
         reg = cursor.fetchone()
         if not reg:
             conn.close()
             return jsonify({'success': False, 'error': 'No open register session found'}), 404
 
-        # Calculate expected totals from orders during this session
+        # Calculate expected totals from orders linked to this session (FK-based)
         cursor.execute("""
             SELECT
                 COUNT(DISTINCT o.id) as order_count,
@@ -1379,8 +1490,8 @@ def close_register():
                 COALESCE(SUM(CASE WHEN op.status = 'refunded' THEN op.refund_amount ELSE 0 END), 0) as total_refunds
             FROM orders o
             LEFT JOIN order_payments op ON op.order_id = o.id
-            WHERE o.created_at >= ? AND o.status != 'voided'
-        """, (reg['opened_at'],))
+            WHERE o.register_session_id = ? AND o.status != 'voided'
+        """, (reg['id'],))
         totals = cursor.fetchone()
 
         expected_cash = reg['opening_cash'] + totals['total_cash_sales'] - totals['total_refunds']
@@ -1398,14 +1509,15 @@ def close_register():
                 total_tips = ?,
                 total_refunds = ?,
                 order_count = ?,
-                notes = ?
+                notes = ?,
+                closed_by = ?
             WHERE id = ?
         """, (
             closing_cash, expected_cash, cash_variance,
             totals['total_sales'], totals['total_cash_sales'],
             totals['total_card_sales'], totals['total_tips'],
             totals['total_refunds'], totals['order_count'],
-            notes, reg['id']
+            notes, employee_id, reg['id']
         ))
         conn.commit()
         conn.close()
@@ -1434,53 +1546,95 @@ def close_register():
 @login_required
 @organization_required
 def current_register():
-    """Get active register session with running totals."""
+    """Get active register session(s) with running totals.
+
+    Query params:
+        registerNumber: specific register to query. Without it, returns all open sessions.
+    """
+    register_number = request.args.get('registerNumber', type=int)
+
     try:
         conn = get_org_db()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT * FROM register_sessions
-            WHERE closed_at IS NULL
-            ORDER BY opened_at DESC LIMIT 1
-        """)
-        reg = cursor.fetchone()
-        if not reg:
+        if register_number:
+            # Single register lookup
+            cursor.execute("""
+                SELECT * FROM register_sessions
+                WHERE register_number = ? AND closed_at IS NULL
+                ORDER BY id DESC LIMIT 1
+            """, (register_number,))
+            reg = cursor.fetchone()
+            if not reg:
+                conn.close()
+                return jsonify({'success': True, 'session': None})
+
+            totals = _register_running_totals(cursor, reg['id'])
             conn.close()
-            return jsonify({'success': True, 'session': None})
 
-        # Running totals since session opened
-        cursor.execute("""
-            SELECT
-                COUNT(DISTINCT o.id) as order_count,
-                COALESCE(SUM(o.total), 0) as total_sales,
-                COALESCE(SUM(CASE WHEN op.payment_method = 'cash' THEN op.amount ELSE 0 END), 0) as cash_sales,
-                COALESCE(SUM(CASE WHEN op.payment_method != 'cash' THEN op.amount ELSE 0 END), 0) as card_sales,
-                COALESCE(SUM(op.tip_amount), 0) as tips
-            FROM orders o
-            LEFT JOIN order_payments op ON op.order_id = o.id
-            WHERE o.created_at >= ? AND o.status != 'voided'
-        """, (reg['opened_at'],))
-        totals = cursor.fetchone()
-        conn.close()
+            return jsonify({
+                'success': True,
+                'session': _format_session(reg, totals)
+            })
+        else:
+            # All open sessions (for settings page overview)
+            cursor.execute("""
+                SELECT * FROM register_sessions
+                WHERE closed_at IS NULL
+                ORDER BY register_number
+            """)
+            regs = cursor.fetchall()
+            if not regs:
+                conn.close()
+                return jsonify({'success': True, 'session': None, 'sessions': []})
 
-        return jsonify({
-            'success': True,
-            'session': {
-                'id': reg['id'],
-                'employeeId': reg['employee_id'],
-                'openedAt': reg['opened_at'],
-                'openingCash': reg['opening_cash'],
-                'orderCount': totals['order_count'],
-                'totalSales': round(totals['total_sales'], 2),
-                'cashSales': round(totals['cash_sales'], 2),
-                'cardSales': round(totals['card_sales'], 2),
-                'tips': round(totals['tips'], 2),
-                'expectedCash': round(reg['opening_cash'] + totals['cash_sales'], 2)
-            }
-        })
+            sessions = []
+            for reg in regs:
+                totals = _register_running_totals(cursor, reg['id'])
+                sessions.append(_format_session(reg, totals))
+            conn.close()
+
+            # Compat: 'session' returns first open session
+            return jsonify({
+                'success': True,
+                'session': sessions[0] if sessions else None,
+                'sessions': sessions
+            })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def _register_running_totals(cursor, session_id):
+    """Calculate running totals for a register session using FK."""
+    cursor.execute("""
+        SELECT
+            COUNT(DISTINCT o.id) as order_count,
+            COALESCE(SUM(o.total), 0) as total_sales,
+            COALESCE(SUM(CASE WHEN op.payment_method = 'cash' THEN op.amount ELSE 0 END), 0) as cash_sales,
+            COALESCE(SUM(CASE WHEN op.payment_method != 'cash' THEN op.amount ELSE 0 END), 0) as card_sales,
+            COALESCE(SUM(op.tip_amount), 0) as tips
+        FROM orders o
+        LEFT JOIN order_payments op ON op.order_id = o.id
+        WHERE o.register_session_id = ? AND o.status != 'voided'
+    """, (session_id,))
+    return cursor.fetchone()
+
+
+def _format_session(reg, totals):
+    """Format a register session row + totals into JSON-safe dict."""
+    return {
+        'id': reg['id'],
+        'registerNumber': reg['register_number'],
+        'employeeId': reg['employee_id'],
+        'openedAt': reg['opened_at'],
+        'openingCash': reg['opening_cash'],
+        'orderCount': totals['order_count'],
+        'totalSales': round(totals['total_sales'], 2),
+        'cashSales': round(totals['cash_sales'], 2),
+        'cardSales': round(totals['card_sales'], 2),
+        'tips': round(totals['tips'], 2),
+        'expectedCash': round(reg['opening_cash'] + totals['cash_sales'], 2)
+    }
 
 
 # ==========================================
@@ -1771,6 +1925,49 @@ def create_or_update_customer():
         conn.commit()
         conn.close()
         return jsonify({'success': True, 'customerId': customer_id})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@pos_bp.route('/tips/summary', methods=['GET'])
+@login_required
+@organization_required
+def tips_summary():
+    """Get tip totals per employee for a date range."""
+    start = request.args.get('start', datetime.now().strftime('%Y-%m-%d'))
+    end = request.args.get('end', start)
+
+    try:
+        conn = get_org_db()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT o.employee_id, e.first_name, e.last_name,
+                   COUNT(o.id) as order_count,
+                   COALESCE(SUM(o.tip_amount), 0) as total_tips
+            FROM orders o
+            JOIN employees e ON o.employee_id = e.id
+            WHERE DATE(o.created_at) >= ? AND DATE(o.created_at) <= ?
+              AND o.status != 'voided' AND o.tip_amount > 0
+            GROUP BY o.employee_id
+            ORDER BY total_tips DESC
+        """, (start, end))
+
+        rows = cursor.fetchall()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'start': start,
+            'end': end,
+            'tips': [{
+                'employeeId': r['employee_id'],
+                'firstName': r['first_name'],
+                'lastName': r['last_name'],
+                'orderCount': r['order_count'],
+                'totalTips': round(r['total_tips'], 2)
+            } for r in rows]
+        })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 

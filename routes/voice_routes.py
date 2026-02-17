@@ -40,14 +40,16 @@ VOICE_TOOLS = [
                         "sales_summary",
                         "sales_overview",
                         "product_sales_details",
-                        "time_comparison"
+                        "time_comparison",
+                        "sales_by_order_type"
                     ]
                 },
                 "date": {"type": "string", "description": "Single date YYYY-MM-DD (for orders_by_date)."},
                 "status": {"type": "string", "description": "Order status filter.", "enum": ["new", "confirmed", "preparing", "ready", "picked_up", "delivered", "served", "closed", "voided"]},
                 "date_from": {"type": "string", "description": "Start date YYYY-MM-DD."},
                 "date_to": {"type": "string", "description": "End date YYYY-MM-DD."},
-                "product_name": {"type": "string", "description": "Product name for product_sales_details."}
+                "product_name": {"type": "string", "description": "Product name for product_sales_details."},
+                "order_type": {"type": "string", "description": "Filter by order type.", "enum": ["dine_in", "pickup", "delivery", "online"]}
             },
             "required": ["query_type"]
         }
@@ -360,6 +362,54 @@ VOICE_TOOLS = [
             "required": ["sql"]
         }
     },
+    {
+        "type": "function",
+        "name": "create_visualization",
+        "description": (
+            "Render a chart/graph in the user's dashboard. Call this AFTER fetching data "
+            "to visualize insights. You must compute the values yourself from the data you received. "
+            "Use this for: trends over time (line), comparisons (bar), breakdowns (doughnut), "
+            "or any analytical insight that benefits from visual representation. "
+            "ALWAYS prefer this over letting raw data display as a table."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "chart_type": {
+                    "type": "string",
+                    "enum": ["line", "bar", "horizontal_bar", "doughnut"],
+                    "description": "line=trends over time, bar=comparisons, horizontal_bar=rankings, doughnut=proportional breakdown"
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Chart title describing the insight (e.g. 'Labor Cost % by Month')"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "X-axis labels (dates, categories, names)"
+                },
+                "datasets": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "label": {"type": "string"},
+                            "values": {"type": "array", "items": {"type": "number"}}
+                        },
+                        "required": ["label", "values"]
+                    },
+                    "description": "One or more data series. Each has a label and values array matching labels length."
+                },
+                "format": {
+                    "type": "string",
+                    "enum": ["currency", "percent", "number"],
+                    "description": "How to format values in tooltips/axis. currency=$X, percent=X%, number=X"
+                }
+            },
+            "required": ["chart_type", "title", "labels", "datasets"]
+        }
+    },
 ]
 
 
@@ -392,7 +442,8 @@ def _get_db_schema():
             lines.append(f"{table}({cols})")
         conn.close()
         return '\n'.join(lines)
-    except Exception:
+    except Exception as e:
+        print(f'[Voice] Schema error: {e}')
         return ''
 
 
@@ -436,11 +487,43 @@ def _build_system_instructions(org_name, business_type='restaurant'):
     base = (
         f"You are a concise business assistant for {org_name} ({business_type}). "
         f"Today is {today}. "
-        "Use tools to fetch real data, then summarize in 2-3 sentences with dollar amounts and round numbers. "
-        "For complex analytics, use run_sql_query (SQLite, always include LIMIT). "
-        "For payroll, always specify month and year. "
-        "If a query returns empty, try adjacent months. "
-        "Read-only access — you cannot make changes. "
+        "Fetch real data with tools, summarize in 2-3 sentences. "
+        "For analytics, use run_sql_query (SQLite). Always include LIMIT. "
+        "Read-only access. Call tools immediately — never narrate before calling. "
+        "Only speak AFTER you have the final result."
+
+        "\n\nBUSINESS CONTEXT: "
+        "This is a local restaurant. Typical monthly revenue is thousands to low tens of thousands of dollars, NOT hundreds of thousands or millions. "
+        "If your query returns revenue/profit above $100,000 for a single month, something is wrong — recheck your SQL. "
+        "Common mistakes: counting the same sale multiple times via bad JOINs, summing line-item prices instead of order totals, forgetting GROUP BY."
+
+        "\n\nFINANCIAL DEFINITIONS: "
+        "sales_history has ONE ROW PER PRODUCT SOLD (not per transaction). Columns: revenue, cost_of_goods, gross_profit, quantity_sold. "
+        "Revenue = SUM(revenue) from sales_history. COGS = SUM(cost_of_goods). Gross Profit = SUM(gross_profit). "
+        "These columns already exist — do NOT try to compute profit from other tables. "
+        "Labor Cost = SUM(gross_pay) from payroll_history. "
+        "NEVER report revenue AS profit. They are different columns. "
+        "CRITICAL: When aggregating sales_history, do NOT join it to other tables unless absolutely necessary — "
+        "joins multiply rows and inflate totals. Aggregate sales_history alone first, then join summaries if needed."
+
+        "\n\nTABLE RELATIONSHIPS: "
+        "sales_history: one row per product per sale. revenue/cost_of_goods/gross_profit are per-line amounts. SUM them directly. "
+        "orders + order_items: POS orders. order_items has item-level detail. Do NOT double-count by joining orders to sales_history — they are separate systems. "
+        "invoices + invoice_line_items: purchase invoices from suppliers. JOIN on invoice_line_items.invoice_id = invoices.id. "
+        "products: product catalog with prices. NOT a sales record — don't sum product prices to get revenue. "
+        "payroll_history: one row per employee per pay period. gross_pay is total compensation. "
+
+        "\n\nSQLite rules: "
+        "date('now'), date('now','-6 months'), strftime('%Y-%m', col). "
+        "NO: DATEADD, DATEDIFF, NOW(), GETDATE(), DATE_FORMAT, EXTRACT, INTERVAL. "
+        "Use || for concat, 1/0 for booleans, ROUND(x,2). "
+        "Dates are TEXT 'YYYY-MM-DD'. Use >= and < for ranges. "
+        "Product names have variants (e.g. 'Cheese Pizza - Large (16\")') — "
+        "ALWAYS use LIKE '%keyword%', never exact match. "
+        "Cross-table: NEVER join payroll_history to sales_history directly. "
+        "Aggregate each table separately into subqueries, then join results. "
+        "\nFor visualizations, call create_visualization after computing values. "
+        "Chart types: line=trends, bar=comparisons, horizontal_bar=rankings, doughnut=breakdowns."
     )
 
     if date_ranges:
@@ -474,6 +557,12 @@ def create_voice_session():
     org_name = g.organization.get('organization_name', 'your business')
 
     try:
+        instructions = _build_system_instructions(org_name)
+        import logging
+        logging.basicConfig(filename='/tmp/voice_debug.log', level=logging.INFO, force=True)
+        logging.info(f'Session instructions length: {len(instructions)} chars')
+        logging.info(f'Schema included: {"DATABASE SCHEMA" in instructions}')
+        logging.info(f'Instructions:\n{instructions[:500]}...')
         resp = http_requests.post(
             'https://api.openai.com/v1/realtime/sessions',
             headers={
@@ -484,13 +573,13 @@ def create_voice_session():
                 'model': 'gpt-realtime',
                 'voice': 'verse',
                 'modalities': ['audio', 'text'],
-                'instructions': _build_system_instructions(org_name),
+                'instructions': instructions,
                 'tools': VOICE_TOOLS,
                 'turn_detection': {
                     'type': 'server_vad',
-                    'threshold': 0.5,
+                    'threshold': 0.7,
                     'prefix_padding_ms': 300,
-                    'silence_duration_ms': 700,
+                    'silence_duration_ms': 1000,
                 },
             },
             timeout=10,
@@ -538,8 +627,10 @@ def run_voice_query():
     if not (g.get('is_super_admin') or g.get('is_organization_admin')):
         return jsonify({'success': False, 'error': 'Admin access required'}), 403
 
+    import logging
     data = request.get_json()
     sql = (data.get('sql') or '').strip()
+    logging.info(f'Voice SQL: {sql}')
 
     if not sql:
         return jsonify({'success': False, 'error': 'No SQL query provided'}), 400
@@ -576,7 +667,8 @@ def run_voice_query():
         })
 
     except sqlite3.OperationalError as e:
-        return jsonify({'success': False, 'error': f'SQL error: {str(e)}'}), 400
+        logging.error(f'Voice SQL error: {e} | SQL: {sql}')
+        return jsonify({'success': False, 'error': f'SQL error: {str(e)}', 'sql': sql}), 400
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:

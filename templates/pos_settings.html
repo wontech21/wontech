@@ -917,12 +917,16 @@
 
         // ============== REGISTER MANAGEMENT ==============
 
+        let registerSessions = [];
+
         async function loadRegisterStatus() {
             try {
                 const res = await fetch('/api/pos/register/current');
                 const data = await res.json();
-                registerSession = data.success ? data.session : null;
+                registerSessions = (data.success && data.sessions) ? data.sessions : [];
+                registerSession = (data.success && data.session) ? data.session : null;
             } catch (e) {
+                registerSessions = [];
                 registerSession = null;
             }
             try {
@@ -935,23 +939,14 @@
         function renderRegisterTab() {
             const container = document.getElementById('registerContent');
             const permissionsHtml = isAdmin ? renderPermissionsSection() : '';
-            if (!registerSession) {
-                container.innerHTML =
-                    '<div class="settings-section" style="text-align:center;">' +
-                        '<div style="font-size:48px; margin-bottom:12px;">💵</div>' +
-                        '<div style="font-size:16px; font-weight:600; margin-bottom:8px;">No Register Open</div>' +
-                        '<div style="font-size:13px; color:#6b7280; margin-bottom:16px;">Count your drawer and enter the opening amount to start.</div>' +
-                        '<div style="display:flex; gap:8px; justify-content:center; align-items:center; margin-bottom:12px;">' +
-                            '<label style="font-weight:600;">Opening Cash: $</label>' +
-                            '<input type="number" id="openingCashInput" class="settings-input" value="200" min="0" step="0.01" style="width:100px;">' +
-                        '</div>' +
-                        '<button class="settings-save-btn" onclick="openRegister()">Open Register</button>' +
-                    '</div>' + permissionsHtml;
-            } else {
-                var s = registerSession;
-                container.innerHTML =
-                    '<div class="settings-section">' +
-                        '<div class="settings-section-title">Register Open</div>' +
+
+            // Open registers section
+            var openHtml = '';
+            if (registerSessions.length > 0) {
+                openHtml = registerSessions.map(function(s) {
+                    var regNum = s.registerNumber || '?';
+                    return '<div class="settings-section">' +
+                        '<div class="settings-section-title">Register #' + regNum + ' — Open</div>' +
                         '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">' +
                             '<div style="background:#f8f9fa; padding:12px; border-radius:8px; text-align:center;">' +
                                 '<div style="font-size:11px; color:#6b7280;">Opened</div>' +
@@ -979,18 +974,38 @@
                             '</div>' +
                         '</div>' +
                         '<hr style="border:none; border-top:1px solid #e5e7eb; margin:16px 0;">' +
-                        '<div style="font-weight:600; margin-bottom:8px;">Close Register</div>' +
+                        '<div style="font-weight:600; margin-bottom:8px;">Close Register #' + regNum + '</div>' +
                         '<div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">' +
                             '<label style="font-size:13px;">Closing Cash: $</label>' +
-                            '<input type="number" id="closingCashInput" class="settings-input" value="" min="0" step="0.01" style="width:100px;" placeholder="' + s.expectedCash.toFixed(2) + '">' +
+                            '<input type="number" id="closingCashInput_' + regNum + '" class="settings-input" value="" min="0" step="0.01" style="width:100px;" placeholder="' + s.expectedCash.toFixed(2) + '">' +
                         '</div>' +
                         '<div style="margin-bottom:12px;">' +
                             '<label style="font-size:13px;">Notes</label>' +
-                            '<input type="text" id="closeRegisterNotes" class="settings-input" placeholder="Optional shift notes" style="width:100%;">' +
+                            '<input type="text" id="closeRegisterNotes_' + regNum + '" class="settings-input" placeholder="Optional shift notes" style="width:100%;">' +
                         '</div>' +
-                        '<button class="settings-save-btn" style="background:#dc2626;" onclick="closeRegister()">Close Register</button>' +
-                    '</div>' + permissionsHtml;
+                        '<button class="settings-save-btn" style="background:#dc2626;" onclick="closeRegister(' + regNum + ')">Close Register #' + regNum + '</button>' +
+                    '</div>';
+                }).join('');
             }
+
+            // Open new register section
+            var openNewHtml =
+                '<div class="settings-section" style="text-align:center;">' +
+                    '<div style="font-size:48px; margin-bottom:12px;">💵</div>' +
+                    '<div style="font-size:16px; font-weight:600; margin-bottom:8px;">Open a Register</div>' +
+                    '<div style="font-size:13px; color:#6b7280; margin-bottom:16px;">Count your drawer and enter the opening amount to start.</div>' +
+                    '<div style="display:flex; gap:8px; justify-content:center; align-items:center; margin-bottom:8px;">' +
+                        '<label style="font-weight:600;">Register #</label>' +
+                        '<input type="number" id="openRegisterNumber" class="settings-input" value="" min="1" max="99" step="1" style="width:70px;" placeholder="1">' +
+                    '</div>' +
+                    '<div style="display:flex; gap:8px; justify-content:center; align-items:center; margin-bottom:12px;">' +
+                        '<label style="font-weight:600;">Opening Cash: $</label>' +
+                        '<input type="number" id="openingCashInput" class="settings-input" value="200" min="0" step="0.01" style="width:100px;">' +
+                    '</div>' +
+                    '<button class="settings-save-btn" onclick="openRegister()">Open Register</button>' +
+                '</div>';
+
+            container.innerHTML = openHtml + openNewHtml + permissionsHtml;
         }
 
         function renderPermissionsSection() {
@@ -1034,11 +1049,12 @@
 
         async function openRegister() {
             var openingCash = parseFloat(document.getElementById('openingCashInput').value) || 0;
+            var registerNumber = parseInt(document.getElementById('openRegisterNumber').value) || 1;
             try {
                 var res = await fetch('/api/pos/register/open', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ openingCash: openingCash })
+                    body: JSON.stringify({ openingCash: openingCash, registerNumber: registerNumber })
                 });
                 var data = await res.json();
                 if (data.success) {
@@ -1052,15 +1068,15 @@
             }
         }
 
-        async function closeRegister() {
-            var closingCash = parseFloat(document.getElementById('closingCashInput').value);
+        async function closeRegister(registerNumber) {
+            var closingCash = parseFloat(document.getElementById('closingCashInput_' + registerNumber).value);
             if (isNaN(closingCash)) { alert('Enter closing cash amount'); return; }
-            var notes = document.getElementById('closeRegisterNotes').value;
+            var notes = document.getElementById('closeRegisterNotes_' + registerNumber).value;
             try {
                 var res = await fetch('/api/pos/register/close', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ closingCash: closingCash, notes: notes })
+                    body: JSON.stringify({ closingCash: closingCash, notes: notes, registerNumber: registerNumber })
                 });
                 var data = await res.json();
                 if (data.success) {
@@ -1068,30 +1084,11 @@
                     var variance = s.cashVariance;
                     var varianceLabel = variance >= 0 ? '+$' + variance.toFixed(2) : '-$' + Math.abs(variance).toFixed(2);
                     var varianceColor = Math.abs(variance) < 1 ? '#059669' : '#dc2626';
-                    document.getElementById('registerContent').innerHTML =
-                        '<div class="settings-section" style="text-align:center;">' +
-                            '<div style="font-size:48px; margin-bottom:12px;">&#x2705;</div>' +
-                            '<div style="font-size:16px; font-weight:600; margin-bottom:16px;">Register Closed</div>' +
-                            '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; max-width:400px; margin:0 auto 16px;">' +
-                                '<div style="background:#f8f9fa; padding:12px; border-radius:8px;">' +
-                                    '<div style="font-size:11px; color:#6b7280;">Total Sales</div>' +
-                                    '<div style="font-weight:600;">$' + s.totalSales.toFixed(2) + '</div>' +
-                                '</div>' +
-                                '<div style="background:#f8f9fa; padding:12px; border-radius:8px;">' +
-                                    '<div style="font-size:11px; color:#6b7280;">Orders</div>' +
-                                    '<div style="font-weight:600;">' + s.orderCount + '</div>' +
-                                '</div>' +
-                                '<div style="background:#f8f9fa; padding:12px; border-radius:8px;">' +
-                                    '<div style="font-size:11px; color:#6b7280;">Expected Cash</div>' +
-                                    '<div style="font-weight:600;">$' + s.expectedCash.toFixed(2) + '</div>' +
-                                '</div>' +
-                                '<div style="background:#f8f9fa; padding:12px; border-radius:8px;">' +
-                                    '<div style="font-size:11px; color:#6b7280;">Variance</div>' +
-                                    '<div style="font-weight:600;color:' + varianceColor + ';">' + varianceLabel + '</div>' +
-                                '</div>' +
-                            '</div>' +
-                            '<button class="settings-save-btn" onclick="location.reload()">Open New Register</button>' +
-                        '</div>';
+                    // Refresh to show updated state
+                    await loadRegisterStatus();
+                    renderRegisterTab();
+                    // Show summary alert
+                    alert('Register #' + registerNumber + ' closed.\nTotal Sales: $' + s.totalSales.toFixed(2) + '\nOrders: ' + s.orderCount + '\nVariance: ' + varianceLabel);
                 } else {
                     alert(data.error);
                 }

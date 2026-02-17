@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Dispatch</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #1a1a2e;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #e0e0e0;
+        }
+
+        /* ---- Header ---- */
+        .del-header {
+            background: #16213e;
+            padding: 14px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #0f3460;
+        }
+        .del-header-left { display: flex; align-items: center; gap: 16px; }
+        .del-title { font-size: 22px; font-weight: 700; color: #e94560; }
+        .del-back {
+            color: #8892b0; text-decoration: none; font-size: 14px;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .del-back:hover { color: #ccd6f6; }
+        .del-stats { display: flex; gap: 24px; font-size: 14px; }
+        .del-stat { display: flex; align-items: center; gap: 6px; }
+        .del-stat .count { font-size: 20px; font-weight: 700; }
+        .del-stat.waiting .count { color: #f59e0b; }
+        .del-stat.active .count { color: #10b981; }
+        .del-stat.completed .count { color: #3b82f6; }
+
+        /* ---- Three-panel layout ---- */
+        .del-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr 300px;
+            height: calc(100vh - 58px);
+        }
+
+        .del-panel {
+            overflow-y: auto;
+            border-right: 1px solid rgba(255,255,255,0.06);
+        }
+        .del-panel:last-child { border-right: none; }
+        .del-panel-header {
+            padding: 14px 16px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #ccd6f6;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            background: rgba(22,33,62,0.5);
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* ---- Order Queue (left panel) ---- */
+        .order-card {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            cursor: pointer;
+            transition: background 0.15s;
+            border-left: 4px solid transparent;
+        }
+        .order-card:hover { background: rgba(255,255,255,0.03); }
+        .order-card.selected { background: rgba(59,130,246,0.1); }
+        .order-card.priority-high { border-left-color: #ef4444; }
+        .order-card.priority-medium { border-left-color: #f59e0b; }
+        .order-card.priority-low { border-left-color: #10b981; }
+        .order-card.status-out { border-left-color: #3b82f6; opacity: 0.7; }
+
+        .order-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .order-num { font-weight: 700; font-size: 15px; }
+        .order-wait {
+            font-size: 12px; font-weight: 600; padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .wait-high { background: rgba(239,68,68,0.2); color: #ef4444; }
+        .wait-medium { background: rgba(245,158,11,0.2); color: #f59e0b; }
+        .wait-low { background: rgba(16,185,129,0.2); color: #10b981; }
+
+        .order-customer { font-size: 13px; color: #a8b2d1; margin-bottom: 4px; }
+        .order-address { font-size: 12px; color: #64748b; margin-bottom: 4px; }
+        .order-meta {
+            display: flex; gap: 12px; font-size: 12px; color: #64748b;
+        }
+        .order-status-badge {
+            font-size: 11px; font-weight: 600; padding: 2px 6px;
+            border-radius: 4px; text-transform: uppercase;
+        }
+        .badge-ready { background: rgba(16,185,129,0.2); color: #10b981; }
+        .badge-out { background: rgba(59,130,246,0.2); color: #3b82f6; }
+        .badge-delivered { background: rgba(139,92,246,0.2); color: #a78bfa; }
+        .badge-preparing { background: rgba(245,158,11,0.2); color: #f59e0b; }
+
+        /* ---- Map (center panel) ---- */
+        .del-map-container { position: relative; height: 100%; }
+        #deliveryMap { width: 100%; height: 100%; }
+        .map-overlay {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 10px; z-index: 10;
+        }
+
+        /* ---- Buttons ---- */
+        .btn {
+            padding: 8px 18px; border: none; border-radius: 8px; cursor: pointer;
+            font-size: 13px; font-weight: 600; transition: all 0.15s;
+        }
+        .btn-primary { background: #e94560; color: #fff; }
+        .btn-primary:hover { background: #d63851; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: #ccd6f6; }
+        .btn-secondary:hover { background: rgba(255,255,255,0.15); }
+        .btn-success { background: #10b981; color: #fff; }
+        .btn-success:hover { background: #059669; }
+        .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+        /* ---- Drivers (right panel) ---- */
+        .driver-card {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .driver-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+        .driver-info { font-size: 12px; color: #64748b; }
+        .driver-status {
+            display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px;
+            border-radius: 10px; margin-top: 4px;
+        }
+        .driver-available { background: rgba(16,185,129,0.2); color: #10b981; }
+        .driver-on-route { background: rgba(59,130,246,0.2); color: #3b82f6; }
+
+        /* ---- Route cards ---- */
+        .route-card {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.02);
+        }
+        .route-card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 8px;
+        }
+        .route-label { font-weight: 600; font-size: 14px; }
+        .route-driver { font-size: 12px; color: #a8b2d1; }
+        .route-stops { list-style: none; padding: 0; margin: 8px 0; }
+        .route-stop {
+            padding: 6px 0 6px 20px;
+            font-size: 13px;
+            position: relative;
+            color: #a8b2d1;
+        }
+        .route-stop::before {
+            content: attr(data-num);
+            position: absolute; left: 0; top: 6px;
+            width: 16px; height: 16px; border-radius: 50%;
+            background: #e94560; color: #fff;
+            font-size: 10px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .route-stop.delivered { color: #64748b; text-decoration: line-through; }
+        .route-stop.delivered::before { background: #10b981; }
+        .route-eta { font-size: 12px; color: #64748b; }
+        .route-actions { display: flex; gap: 8px; margin-top: 8px; }
+
+        /* ---- Proposed route (pre-dispatch) ---- */
+        .proposed-route {
+            border: 1px dashed rgba(233,69,96,0.4);
+            border-radius: 8px;
+            margin: 10px 16px;
+            padding: 14px;
+            background: rgba(233,69,96,0.05);
+        }
+        .proposed-route .route-label { color: #e94560; }
+
+        /* ---- Route hover/tap highlight ---- */
+        .proposed-route, .route-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .proposed-route:hover, .route-card:hover,
+        .proposed-route.route-highlight, .route-card.route-highlight {
+            box-shadow: 0 0 0 1px rgba(233,69,96,0.5), 0 4px 16px rgba(0,0,0,0.3);
+            transform: translateY(-1px);
+        }
+        .route-card:hover, .route-card.route-highlight {
+            box-shadow: 0 0 0 1px rgba(59,130,246,0.5), 0 4px 16px rgba(0,0,0,0.3);
+        }
+        .route-dimmed {
+            opacity: 0.3 !important;
+            transform: scale(0.98);
+        }
+
+        /* ---- Empty state ---- */
+        .empty-state {
+            padding: 40px 20px;
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+        }
+        .empty-state-icon { font-size: 40px; margin-bottom: 12px; display: block; }
+
+        /* ---- Map placeholder (no API key) ---- */
+        .map-placeholder {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; background: #0f1729; color: #64748b; gap: 12px;
+        }
+        .map-placeholder-icon { font-size: 60px; }
+
+        /* ---- Loading spinner ---- */
+        .spinner {
+            width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: #e94560; border-radius: 50%;
+            animation: spin 0.6s linear infinite; display: inline-block;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 1024px) {
+            .del-layout {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 400px auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="del-header">
+    <div class="del-header-left">
+        <a href="/dashboard" class="del-back">&larr; Dashboard</a>
+        <span class="del-title">Delivery Dispatch</span>
+    </div>
+    <div class="del-stats">
+        <div class="del-stat waiting">
+            <span class="count" id="statWaiting">0</span>
+            <span>Waiting</span>
+        </div>
+        <div class="del-stat active">
+            <span class="count" id="statActiveRoutes">0</span>
+            <span>Active Routes</span>
+        </div>
+        <div class="del-stat completed">
+            <span class="count" id="statCompleted">0</span>
+            <span>Delivered Today</span>
+        </div>
+    </div>
+</div>
+
+<div class="del-layout">
+
+    <!-- LEFT: Order Queue -->
+    <div class="del-panel" id="queuePanel">
+        <div class="del-panel-header">
+            <span>Order Queue</span>
+            <button class="btn btn-primary btn-sm" id="btnBuildRoutes" onclick="buildRoutes()">
+                Auto-Build Routes
+            </button>
+        </div>
+        <div id="orderQueue">
+            <div class="empty-state">
+                <span class="empty-state-icon">&#128666;</span>
+                Loading orders...
+            </div>
+        </div>
+    </div>
+
+    <!-- CENTER: Map -->
+    <div class="del-panel del-map-container">
+        <div id="deliveryMap"></div>
+    </div>
+
+    <!-- RIGHT: Drivers & Routes -->
+    <div class="del-panel" id="driversPanel">
+        <div class="del-panel-header">
+            <span>Drivers & Routes</span>
+        </div>
+        <div id="availableDrivers"></div>
+        <div class="del-panel-header" style="margin-top: 4px;">
+            <span>Active Routes</span>
+        </div>
+        <div id="activeRoutes"></div>
+    </div>
+
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+//  State
+// ---------------------------------------------------------------------------
+let allOrders = [];
+let allDrivers = [];
+let allRoutes = [];
+let proposedRoutes = [];
+let selectedOrderId = null;
+
+let map = null;
+let markers = [];
+let routeRenderers = [];   // [{renderer, markers, type, idx}]
+let storeMarker = null;
+let storeCoords = null;
+let mapsLoaded = false;
+let highlightedRoute = null; // {type: 'proposed'|'active', idx: number}
+let preHighlightView = null; // {center, zoom} to restore on clearHighlight
+
+const REFRESH_INTERVAL = 30000;
+const GOOGLE_MAPS_KEY = '{{ config.get("GOOGLE_MAPS_API_KEY", "") }}';
+
+// ---------------------------------------------------------------------------
+//  Data Fetching
+// ---------------------------------------------------------------------------
+async function loadQueue() {
+    try {
+        const res = await fetch('/api/delivery/queue');
+        const data = await res.json();
+        if (data.success) {
+            allOrders = data.orders || [];
+            if (data.store_coords && !storeCoords) {
+                storeCoords = data.store_coords;
+                if (mapsLoaded && map) {
+                    map.setCenter({ lat: storeCoords[0], lng: storeCoords[1] });
+                    map.setZoom(13);
+                    placeStoreMarker(storeCoords[0], storeCoords[1]);
+                }
+            }
+            renderQueue();
+            updateStats();
+        }
+    } catch (err) { console.error('Queue load error:', err); }
+}
+
+async function loadDrivers() {
+    try {
+        const res = await fetch('/api/delivery/drivers');
+        const data = await res.json();
+        if (data.success) {
+            allDrivers = data.drivers || [];
+            renderDrivers();
+        }
+    } catch (err) { console.error('Drivers load error:', err); }
+}
+
+async function loadRoutes() {
+    try {
+        const res = await fetch('/api/delivery/routes');
+        const data = await res.json();
+        if (data.success) {
+            allRoutes = data.routes || [];
+            renderRoutes();
+            updateStats();
+            drawActiveRoutes();
+        }
+    } catch (err) { console.error('Routes load error:', err); }
+}
+
+function refreshAll() {
+    loadQueue();
+    loadDrivers();
+    loadRoutes();
+}
+
+// ---------------------------------------------------------------------------
+//  Rendering — Order Queue
+// ---------------------------------------------------------------------------
+function renderQueue() {
+    const el = document.getElementById('orderQueue');
+
+    // Separate by status
+    const waiting = allOrders.filter(o => o.status === 'ready' && !o.driver_id);
+    const pending = allOrders.filter(o => ['confirmed','preparing'].includes(o.status) && !o.driver_id);
+    const out = allOrders.filter(o => o.status === 'out_for_delivery');
+
+    if (!waiting.length && !pending.length && !out.length) {
+        el.innerHTML = '<div class="empty-state"><span class="empty-state-icon">&#9989;</span>No delivery orders right now</div>';
+        return;
+    }
+
+    let html = '';
+
+    // Ready orders first (dispatchable)
+    waiting.forEach(o => { html += orderCardHTML(o); });
+    // Preparing/confirmed (not yet ready)
+    pending.forEach(o => { html += orderCardHTML(o); });
+    // Out for delivery
+    out.forEach(o => { html += orderCardHTML(o); });
+
+    el.innerHTML = html;
+
+    // Place pins on map
+    if (mapsLoaded) placeOrderPins();
+}
+
+function formatTime(dtStr) {
+    if (!dtStr) return '';
+    try {
+        const d = new Date(dtStr.replace(' ', 'T'));
+        return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    } catch { return ''; }
+}
+
+function orderCardHTML(o) {
+    const mins = o.minutes_waiting || 0;
+    let priorityClass = 'priority-low';
+    let waitClass = 'wait-low';
+
+    if (o.is_scheduled) {
+        const untilDue = o.minutes_until_due || 0;
+        if (untilDue <= 10) { priorityClass = 'priority-high'; waitClass = 'wait-high'; }
+        else if (untilDue <= 20) { priorityClass = 'priority-medium'; waitClass = 'wait-medium'; }
+    } else {
+        if (mins > 30) { priorityClass = 'priority-high'; waitClass = 'wait-high'; }
+        else if (mins > 20) { priorityClass = 'priority-medium'; waitClass = 'wait-medium'; }
+    }
+
+    if (o.status === 'out_for_delivery') priorityClass = 'status-out';
+
+    let statusBadge = '';
+    if (o.status === 'ready') statusBadge = '<span class="order-status-badge badge-ready">Ready</span>';
+    else if (o.status === 'out_for_delivery') statusBadge = '<span class="order-status-badge badge-out">Out</span>';
+    else if (o.status === 'delivered') statusBadge = '<span class="order-status-badge badge-delivered">Delivered</span>';
+    else if (o.status === 'preparing') statusBadge = '<span class="order-status-badge badge-preparing">Preparing</span>';
+    else statusBadge = `<span class="order-status-badge" style="background:rgba(255,255,255,0.1);color:#8892b0;">${o.status}</span>`;
+
+    const selected = o.id === selectedOrderId ? ' selected' : '';
+
+    // Scheduled badge
+    let scheduledTag = '';
+    if (o.is_scheduled && o.scheduled_for) {
+        const untilDue = o.minutes_until_due || 0;
+        const timeStr = formatTime(o.scheduled_for);
+        const urgencyColor = untilDue <= 10 ? '#ef4444' : untilDue <= 20 ? '#f59e0b' : '#a78bfa';
+        scheduledTag = `<span style="background:${urgencyColor};color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:4px;">@ ${timeStr}</span>`;
+    }
+
+    // Wait display: for scheduled orders show time until due
+    let waitDisplay = `${Math.round(mins)}m`;
+    if (o.is_scheduled && o.minutes_until_due !== undefined) {
+        const untilDue = Math.round(o.minutes_until_due);
+        waitDisplay = untilDue > 0 ? `in ${untilDue}m` : `${Math.abs(untilDue)}m late`;
+    }
+
+    return `
+        <div class="order-card ${priorityClass}${selected}" onclick="selectOrder(${o.id})" data-order-id="${o.id}">
+            <div class="order-card-top">
+                <span class="order-num">#${o.order_number || o.id} ${scheduledTag}</span>
+                <span class="order-wait ${waitClass}">${waitDisplay}</span>
+            </div>
+            <div class="order-customer">${o.customer_name || 'Walk-in'} ${statusBadge}</div>
+            <div class="order-address">${o.customer_address || 'No address'}</div>
+            <div class="order-meta">
+                <span>$${(o.total || 0).toFixed(2)}</span>
+                <span>${(o.delivery_distance || 0).toFixed(1)} mi</span>
+                <span>Priority: ${o.priority_score || 0}</span>
+            </div>
+        </div>
+    `;
+}
+
+function selectOrder(orderId) {
+    selectedOrderId = orderId === selectedOrderId ? null : orderId;
+    renderQueue();
+    if (mapsLoaded && selectedOrderId) {
+        const order = allOrders.find(o => o.id === selectedOrderId);
+        if (order && order.lat && order.lng) {
+            map.panTo({ lat: order.lat, lng: order.lng });
+            map.setZoom(15);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+//  Rendering — Drivers
+// ---------------------------------------------------------------------------
+function renderDrivers() {
+    const el = document.getElementById('availableDrivers');
+    if (!allDrivers.length) {
+        el.innerHTML = '<div class="empty-state"><span class="empty-state-icon">&#128100;</span>No drivers clocked in</div>';
+        return;
+    }
+    const available = allDrivers.filter(d => !d.is_dispatched);
+    const dispatched = allDrivers.filter(d => d.is_dispatched);
+    let html = '';
+    available.forEach(d => {
+        html += `
+            <div class="driver-card">
+                <div class="driver-name">${d.first_name} ${d.last_name}</div>
+                <div class="driver-info">${d.position || 'Driver'} &middot; ${d.phone || ''}</div>
+                <span class="driver-status driver-available">Available</span>
+            </div>
+        `;
+    });
+    dispatched.forEach(d => {
+        html += `
+            <div class="driver-card" style="opacity:0.75;">
+                <div class="driver-name">${d.first_name} ${d.last_name}</div>
+                <div class="driver-info">${d.position || 'Driver'} &middot; ${d.phone || ''}</div>
+                <span class="driver-status driver-on-route">On Route #${d.active_route_id}</span>
+            </div>
+        `;
+    });
+    if (!available.length && dispatched.length) {
+        html = '<div style="padding:10px 16px;font-size:12px;color:#64748b;">All drivers dispatched</div>' + html;
+    }
+    el.innerHTML = html;
+}
+
+// ---------------------------------------------------------------------------
+//  Rendering — Routes
+// ---------------------------------------------------------------------------
+function renderRoutes() {
+    const el = document.getElementById('activeRoutes');
+
+    // Proposed routes first
+    let html = '';
+    proposedRoutes.forEach((r, idx) => {
+        html += proposedRouteHTML(r, idx);
+    });
+
+    // Active routes
+    const active = allRoutes.filter(r => r.status === 'active');
+    active.forEach(r => { html += activeRouteHTML(r); });
+
+    // Completed (collapsed)
+    const completed = allRoutes.filter(r => r.status === 'completed');
+    if (completed.length) {
+        html += `<div class="del-panel-header" style="margin-top:4px;"><span>Completed (${completed.length})</span></div>`;
+        completed.slice(0, 5).forEach(r => { html += completedRouteHTML(r); });
+    }
+
+    if (!html) {
+        html = '<div class="empty-state"><span class="empty-state-icon">&#128739;</span>No routes yet today</div>';
+    }
+
+    el.innerHTML = html;
+}
+
+function proposedRouteHTML(r, idx) {
+    const driverName = `${r.driver.first_name} ${r.driver.last_name}`;
+    const activeCount = allRoutes.filter(r => r.status === 'active').length;
+    const color = ROUTE_COLORS[(activeCount + idx) % ROUTE_COLORS.length];
+    let stopsHtml = '';
+    r.stops.forEach((s, i) => {
+        stopsHtml += `<li class="route-stop" data-num="${i+1}">${s.customer_name || '#'+s.order_number} &mdash; ${s.address || 'No address'}</li>`;
+    });
+    return `
+        <div class="proposed-route" data-route-type="proposed" data-route-idx="${idx}"
+             onmouseenter="highlightRoute('proposed',${idx})" onmouseleave="clearHighlight()"
+             ontouchstart="toggleHighlight('proposed',${idx})"
+             style="border-color:${color}40;">
+            <div class="route-card-header">
+                <span class="route-label" style="color:${color};"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};margin-right:6px;"></span>Route ${idx+1}</span>
+            </div>
+            <div class="route-driver">${driverName} &middot; ${r.order_count} stops &middot; ~${Math.round(r.estimated_duration_min || 0)}min</div>
+            <ul class="route-stops">${stopsHtml}</ul>
+            <div class="route-actions" style="text-align:right;">
+                <button class="btn btn-success btn-sm" onclick="event.stopPropagation();dispatchRoute(${idx})">Dispatch</button>
+            </div>
+        </div>
+    `;
+}
+
+function activeRouteHTML(r) {
+    // Find this route's color index among active routes
+    const activeRoutes = allRoutes.filter(rt => rt.status === 'active');
+    const activeIdx = activeRoutes.findIndex(rt => rt.id === r.id);
+    const color = ROUTE_COLORS[(activeIdx >= 0 ? activeIdx : 0) % ROUTE_COLORS.length];
+    let stopsHtml = '';
+    (r.stops || []).forEach((s, i) => {
+        const cls = s.status === 'delivered' ? 'delivered' : '';
+        stopsHtml += `
+            <li class="route-stop ${cls}" data-num="${i+1}">
+                ${s.customer_name || '#'+s.order_number} &mdash; ${s.address || ''}
+            </li>
+        `;
+    });
+    return `
+        <div class="route-card" data-route-type="active" data-route-idx="${r.id}"
+             onmouseenter="highlightRoute('active',${r.id})" onmouseleave="clearHighlight()"
+             ontouchstart="toggleHighlight('active',${r.id})">
+            <div class="route-card-header">
+                <span class="route-label" style="color:${color};"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};margin-right:6px;"></span>Route #${r.id} — Active</span>
+                <span class="route-eta">~${Math.round(r.estimated_duration_min || 0)}min</span>
+            </div>
+            <div class="route-driver">${r.driver_name || 'Driver #'+r.driver_id}</div>
+            <ul class="route-stops">${stopsHtml}</ul>
+            <div class="route-actions" style="text-align:right;">
+                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();completeRoute(${r.id})">Complete Route</button>
+            </div>
+        </div>
+    `;
+}
+
+function completedRouteHTML(r) {
+    const dur = r.actual_duration_min ? `${Math.round(r.actual_duration_min)}min` : '-';
+    return `
+        <div class="route-card" style="opacity:0.6;">
+            <div class="route-card-header">
+                <span class="route-label">Route #${r.id}</span>
+                <span class="route-eta">${dur}</span>
+            </div>
+            <div class="route-driver">${r.driver_name || 'Driver'} &middot; ${(r.stops||[]).length} stops &middot; Completed</div>
+        </div>
+    `;
+}
+
+// ---------------------------------------------------------------------------
+//  Stats
+// ---------------------------------------------------------------------------
+function updateStats() {
+    const waiting = allOrders.filter(o => o.status === 'ready' && !o.driver_id).length;
+    const activeRoutes = allRoutes.filter(r => r.status === 'active').length;
+    const completedRoutes = allRoutes.filter(r => r.status === 'completed').length;
+
+    document.getElementById('statWaiting').textContent = waiting;
+    document.getElementById('statActiveRoutes').textContent = activeRoutes;
+    document.getElementById('statCompleted').textContent = completedRoutes;
+}
+
+// ---------------------------------------------------------------------------
+//  Actions
+// ---------------------------------------------------------------------------
+async function buildRoutes() {
+    const btn = document.getElementById('btnBuildRoutes');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+    try {
+        const res = await fetch('/api/delivery/routes/build', { method: 'POST', headers: {'Content-Type': 'application/json'} });
+        const data = await res.json();
+        if (data.success) {
+            proposedRoutes = data.routes || [];
+            storeCoords = data.store_coords;
+            if (data.message && !proposedRoutes.length) {
+                alert(data.message);
+            }
+            renderRoutes();
+            if (mapsLoaded) { drawProposedRoutes(); setTimeout(fitAllRoutes, 500); }
+        }
+    } catch (err) {
+        console.error('Build routes error:', err);
+    }
+    btn.disabled = false;
+    btn.textContent = 'Auto-Build Routes';
+}
+
+async function dispatchRoute(idx) {
+    const route = proposedRoutes[idx];
+    if (!route) return;
+    if (!confirm(`Dispatch ${route.driver.first_name} ${route.driver.last_name} with ${route.order_count} deliveries?`)) return;
+
+    try {
+        const res = await fetch('/api/delivery/routes', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                driver_id: route.driver.id,
+                stops: route.stops,
+                estimated_duration_min: route.estimated_duration_min,
+            }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            proposedRoutes.splice(idx, 1);
+            refreshAll();
+        } else {
+            alert(data.error || 'Dispatch failed');
+        }
+    } catch (err) {
+        console.error('Dispatch error:', err);
+    }
+}
+
+function dismissProposed(idx) {
+    proposedRoutes.splice(idx, 1);
+    renderRoutes();
+    if (mapsLoaded) clearRouteRenderers();
+}
+
+async function completeRoute(routeId) {
+    if (!confirm('Complete route? All orders marked delivered, driver returns to pool.')) return;
+    try {
+        const res = await fetch(`/api/delivery/routes/${routeId}/complete`, { method: 'POST', headers: {'Content-Type': 'application/json'} });
+        const data = await res.json();
+        if (data.success) {
+            refreshAll();
+        }
+    } catch (err) { console.error('Complete route error:', err); }
+}
+
+// ---------------------------------------------------------------------------
+//  Google Maps
+// ---------------------------------------------------------------------------
+function initMap() {
+    mapsLoaded = true;
+
+    // Default center (will update when store coords available)
+    const center = storeCoords ? { lat: storeCoords[0], lng: storeCoords[1] } : { lat: 40.7128, lng: -74.0060 };
+
+    map = new google.maps.Map(document.getElementById('deliveryMap'), {
+        center: center,
+        zoom: 13,
+        styles: [
+            { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
+            { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a2e' }] },
+            { elementType: 'labels.text.fill', stylers: [{ color: '#8892b0' }] },
+            { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2c3e6b' }] },
+            { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1a1a2e' }] },
+            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f1729' }] },
+            { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+        ],
+        disableDefaultUI: true,
+        zoomControl: true,
+    });
+
+    if (storeCoords) {
+        placeStoreMarker(storeCoords[0], storeCoords[1]);
+    } else {
+        // No store address set — fall back to browser geolocation
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                map.setCenter(loc);
+                map.setZoom(13);
+                placeStoreMarker(loc.lat, loc.lng);
+                storeCoords = [loc.lat, loc.lng];
+            });
+        }
+    }
+
+    // Place any order pins that loaded before the map was ready
+    if (allOrders.length) placeOrderPins();
+    if (allRoutes.length) drawActiveRoutes();
+}
+
+function placeStoreMarker(lat, lng) {
+    if (storeMarker) storeMarker.setMap(null);
+    storeMarker = new google.maps.Marker({
+        position: { lat, lng },
+        map: map,
+        title: 'Store',
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 12,
+            fillColor: '#e94560',
+            fillOpacity: 1,
+            strokeColor: '#fff',
+            strokeWeight: 2,
+        },
+        zIndex: 100,
+    });
+}
+
+let activeInfoWindow = null;
+
+function placeOrderPins() {
+    // Clear existing markers
+    markers.forEach(m => m.setMap(null));
+    markers = [];
+    if (activeInfoWindow) { activeInfoWindow.close(); activeInfoWindow = null; }
+
+    const bounds = new google.maps.LatLngBounds();
+    if (storeCoords) bounds.extend({ lat: storeCoords[0], lng: storeCoords[1] });
+
+    allOrders.forEach(o => {
+        if (!o.lat || !o.lng) return;
+        const pos = { lat: o.lat, lng: o.lng };
+        bounds.extend(pos);
+
+        const isSelected = o.id === selectedOrderId;
+        const mins = Math.round(o.minutes_waiting || 0);
+        const color = o.status === 'out_for_delivery' ? '#3b82f6' :
+                      o.status === 'delivered' ? '#10b981' :
+                      mins > 30 ? '#ef4444' :
+                      mins > 20 ? '#f59e0b' : '#10b981';
+
+        const statusLabel = o.status === 'out_for_delivery' ? 'Out for Delivery' :
+                            o.status === 'ready' ? 'Ready' :
+                            o.status === 'preparing' ? 'Preparing' :
+                            o.status === 'confirmed' ? 'Confirmed' : o.status;
+
+        const marker = new google.maps.Marker({
+            position: pos,
+            map: map,
+            title: `#${o.order_number}`,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: isSelected ? 10 : 7,
+                fillColor: color,
+                fillOpacity: isSelected ? 1 : 0.8,
+                strokeColor: '#fff',
+                strokeWeight: isSelected ? 2 : 1,
+            },
+        });
+
+        let scheduledInfo = '';
+        if (o.is_scheduled && o.scheduled_for) {
+            const timeStr = formatTime(o.scheduled_for);
+            const untilDue = Math.round(o.minutes_until_due || 0);
+            const dueLabel = untilDue > 0 ? `in ${untilDue}m` : `${Math.abs(untilDue)}m late`;
+            scheduledInfo = `<div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:4px;">Scheduled: ${timeStr} (${dueLabel})</div>`;
+        }
+
+        const infoContent = `
+            <div style="font-family:-apple-system,sans-serif;color:#1a1a2e;min-width:180px;">
+                <div style="font-weight:700;font-size:14px;margin-bottom:4px;">#${o.order_number || o.id}</div>
+                ${scheduledInfo}
+                <div style="font-size:13px;margin-bottom:2px;">${o.customer_name || 'Walk-in'}</div>
+                <div style="font-size:12px;color:#64748b;margin-bottom:6px;">${o.customer_address || ''}</div>
+                <div style="display:flex;gap:8px;font-size:12px;align-items:center;">
+                    <span style="background:${color};color:#fff;padding:1px 6px;border-radius:4px;font-weight:600;">${statusLabel}</span>
+                    <span>${mins}m waiting</span>
+                    <span>$${(o.total || 0).toFixed(2)}</span>
+                </div>
+                ${o.delivery_distance ? '<div style="font-size:11px;color:#64748b;margin-top:4px;">' + o.delivery_distance.toFixed(1) + ' mi away</div>' : ''}
+            </div>
+        `;
+        const infoWindow = new google.maps.InfoWindow({ content: infoContent });
+
+        marker.addListener('mouseover', () => {
+            if (activeInfoWindow) activeInfoWindow.close();
+            infoWindow.open(map, marker);
+            activeInfoWindow = infoWindow;
+        });
+        marker.addListener('mouseout', () => {
+            infoWindow.close();
+            activeInfoWindow = null;
+        });
+        marker.addListener('click', () => {
+            if (activeInfoWindow) activeInfoWindow.close();
+            infoWindow.open(map, marker);
+            activeInfoWindow = infoWindow;
+            selectOrder(o.id);
+        });
+
+        markers.push(marker);
+    });
+
+    if (markers.length > 0) {
+        map.fitBounds(bounds, 60);
+    }
+}
+
+function clearRouteRenderers() {
+    routeRenderers.forEach(r => {
+        r.renderer.setMap(null);
+        (r.markers || []).forEach(m => m.setMap(null));
+    });
+    routeRenderers = [];
+}
+
+const ROUTE_COLORS = ['#e94560', '#3b82f6', '#f59e0b', '#10b981', '#a78bfa'];
+
+function fitAllRoutes() {
+    if (!mapsLoaded || !map) return;
+    const bounds = new google.maps.LatLngBounds();
+    if (storeCoords) bounds.extend({ lat: storeCoords[0], lng: storeCoords[1] });
+    // Use driving path bounds from each route renderer (covers full road shape)
+    routeRenderers.forEach(entry => {
+        if (entry.bounds) {
+            bounds.union(entry.bounds);
+        }
+    });
+    // Fallback: include stop coordinates if no route bounds yet
+    if (bounds.isEmpty() || !routeRenderers.some(e => e.bounds)) {
+        proposedRoutes.forEach(r => {
+            (r.stops || []).forEach(s => { if (s.lat && s.lng) bounds.extend({ lat: s.lat, lng: s.lng }); });
+        });
+        allRoutes.filter(r => r.status === 'active').forEach(r => {
+            (r.stops || []).forEach(s => { if (s.lat && s.lng) bounds.extend({ lat: s.lat, lng: s.lng }); });
+        });
+    }
+    if (!bounds.isEmpty()) map.fitBounds(bounds, 50);
+}
+
+function drawProposedRoutes() {
+    // Only clear proposed renderers (keep active ones)
+    routeRenderers = routeRenderers.filter(entry => {
+        if (entry.type === 'proposed') {
+            entry.renderer.setMap(null);
+            (entry.markers || []).forEach(m => m.setMap(null));
+            return false;
+        }
+        return true;
+    });
+    if (!storeCoords) return;
+
+    // Offset color index past active routes so colors don't collide
+    const activeColorCount = routeRenderers.filter(e => e.type === 'active').length;
+
+    proposedRoutes.forEach((route, idx) => {
+        const waypoints = route.stops
+            .filter(s => s.lat && s.lng)
+            .map(s => ({ location: new google.maps.LatLng(s.lat, s.lng), stopover: true }));
+
+        if (!waypoints.length) return;
+
+        const color = ROUTE_COLORS[(activeColorCount + idx) % ROUTE_COLORS.length];
+        const directionsService = new google.maps.DirectionsService();
+        const renderer = new google.maps.DirectionsRenderer({
+            map: map,
+            suppressMarkers: true,
+            polylineOptions: { strokeColor: color, strokeWeight: 4, strokeOpacity: 0.7 },
+        });
+
+        const entry = { renderer, markers: [], type: 'proposed', idx, color, bounds: null };
+        routeRenderers.push(entry);
+
+        const origin = new google.maps.LatLng(storeCoords[0], storeCoords[1]);
+
+        directionsService.route({
+            origin: origin,
+            destination: origin,
+            waypoints: waypoints,
+            optimizeWaypoints: true,
+            travelMode: google.maps.TravelMode.DRIVING,
+        }, (result, status) => {
+            if (status === 'OK') {
+                renderer.setDirections(result);
+                // Capture the full driving route bounds (includes road curves)
+                if (result.routes && result.routes[0]) {
+                    entry.bounds = result.routes[0].bounds;
+                }
+                route.stops.forEach((s, i) => {
+                    if (!s.lat || !s.lng) return;
+                    const m = new google.maps.Marker({
+                        position: { lat: s.lat, lng: s.lng },
+                        map: map,
+                        label: { text: String(i + 1), color: '#fff', fontWeight: '700', fontSize: '11px' },
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE, scale: 14,
+                            fillColor: color, fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2,
+                        },
+                    });
+                    // Info window on route stop markers (they sit on top of order pins)
+                    const order = allOrders.find(o => o.id === s.order_id);
+                    if (order) {
+                        const mins = Math.round(order.minutes_waiting || 0);
+                        const pinColor = order.status === 'out_for_delivery' ? '#3b82f6' :
+                                         mins > 30 ? '#ef4444' : mins > 20 ? '#f59e0b' : '#10b981';
+                        const statusLabel = order.status === 'out_for_delivery' ? 'Out for Delivery' :
+                                            order.status === 'ready' ? 'Ready' :
+                                            order.status === 'preparing' ? 'Preparing' :
+                                            order.status === 'confirmed' ? 'Confirmed' : order.status;
+                        let schedHtml = '';
+                        if (order.is_scheduled && order.scheduled_for) {
+                            const untilDue = Math.round(order.minutes_until_due || 0);
+                            const dueLabel = untilDue > 0 ? `in ${untilDue}m` : `${Math.abs(untilDue)}m late`;
+                            schedHtml = `<div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:4px;">Scheduled: ${formatTime(order.scheduled_for)} (${dueLabel})</div>`;
+                        }
+                        const iw = new google.maps.InfoWindow({ content: `
+                            <div style="font-family:-apple-system,sans-serif;color:#1a1a2e;min-width:180px;">
+                                <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Stop ${i+1} — #${order.order_number || order.id}</div>
+                                ${schedHtml}
+                                <div style="font-size:13px;margin-bottom:2px;">${order.customer_name || 'Walk-in'}</div>
+                                <div style="font-size:12px;color:#64748b;margin-bottom:6px;">${order.customer_address || ''}</div>
+                                <div style="display:flex;gap:8px;font-size:12px;align-items:center;">
+                                    <span style="background:${pinColor};color:#fff;padding:1px 6px;border-radius:4px;font-weight:600;">${statusLabel}</span>
+                                    <span>${mins}m waiting</span>
+                                    <span>$${(order.total || 0).toFixed(2)}</span>
+                                </div>
+                                ${order.delivery_distance ? '<div style="font-size:11px;color:#64748b;margin-top:4px;">' + order.delivery_distance.toFixed(1) + ' mi away</div>' : ''}
+                                <div style="font-size:11px;color:${color};font-weight:600;margin-top:4px;">${route.driver.first_name}'s Route</div>
+                            </div>
+                        `});
+                        m.addListener('mouseover', () => { if (activeInfoWindow) activeInfoWindow.close(); iw.open(map, m); activeInfoWindow = iw; });
+                        m.addListener('mouseout', () => { iw.close(); activeInfoWindow = null; });
+                        m.addListener('click', () => { if (activeInfoWindow) activeInfoWindow.close(); iw.open(map, m); activeInfoWindow = iw; selectOrder(order.id); });
+                    }
+                    entry.markers.push(m);
+                });
+            }
+        });
+    });
+}
+
+function drawActiveRoutes() {
+    if (!mapsLoaded || !storeCoords) return;
+
+    // Clear previous active route renderers (keep proposed ones)
+    routeRenderers = routeRenderers.filter(entry => {
+        if (entry.type === 'active') {
+            entry.renderer.setMap(null);
+            (entry.markers || []).forEach(m => m.setMap(null));
+            return false;
+        }
+        return true;
+    });
+
+    const active = allRoutes.filter(r => r.status === 'active');
+    active.forEach((r, i) => {
+        const waypoints = (r.stops || [])
+            .filter(s => s.lat && s.lng)
+            .map(s => ({ location: new google.maps.LatLng(s.lat, s.lng), stopover: true }));
+
+        if (!waypoints.length) return;
+
+        const color = ROUTE_COLORS[i % ROUTE_COLORS.length];
+        const directionsService = new google.maps.DirectionsService();
+        const renderer = new google.maps.DirectionsRenderer({
+            map: map,
+            suppressMarkers: true,
+            polylineOptions: { strokeColor: color, strokeWeight: 4, strokeOpacity: 0.35 },
+        });
+
+        const entry = { renderer, markers: [], type: 'active', idx: r.id, color, bounds: null };
+        routeRenderers.push(entry);
+
+        const origin = new google.maps.LatLng(storeCoords[0], storeCoords[1]);
+        directionsService.route({
+            origin: origin,
+            destination: origin,
+            waypoints: waypoints,
+            optimizeWaypoints: false,
+            travelMode: google.maps.TravelMode.DRIVING,
+        }, (result, status) => {
+            if (status === 'OK') {
+                renderer.setDirections(result);
+                if (result.routes && result.routes[0]) {
+                    entry.bounds = result.routes[0].bounds;
+                }
+                // Add numbered stop markers (semi-transparent to match)
+                r.stops.forEach((s, si) => {
+                    if (!s.lat || !s.lng) return;
+                    const m = new google.maps.Marker({
+                        position: { lat: s.lat, lng: s.lng },
+                        map: map,
+                        label: { text: String(si + 1), color: '#fff', fontWeight: '700', fontSize: '11px' },
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE, scale: 12,
+                            fillColor: color, fillOpacity: 0.5, strokeColor: '#fff', strokeWeight: 1,
+                        },
+                    });
+                    entry.markers.push(m);
+                });
+            }
+        });
+    });
+}
+
+// ---------------------------------------------------------------------------
+//  Route highlight on hover / tap
+// ---------------------------------------------------------------------------
+let _highlightZoomTimer = null;
+
+function highlightRoute(type, idx) {
+    highlightedRoute = { type, idx };
+
+    // Highlight map routes
+    routeRenderers.forEach(entry => {
+        const isMatch = entry.type === type && entry.idx === idx;
+        entry.renderer.setOptions({
+            polylineOptions: {
+                strokeColor: entry.color,
+                strokeWeight: isMatch ? 7 : 2,
+                strokeOpacity: isMatch ? 1 : 0.2,
+            },
+        });
+        if (entry.renderer.getDirections()) {
+            entry.renderer.setDirections(entry.renderer.getDirections());
+        }
+        entry.markers.forEach(m => {
+            const icon = m.getIcon();
+            if (icon) {
+                icon.fillOpacity = isMatch ? 1 : 0.2;
+                icon.scale = isMatch ? 16 : 10;
+                m.setIcon(icon);
+            }
+        });
+    });
+
+    // Highlight route cards
+    document.querySelectorAll('.proposed-route, .route-card').forEach(el => {
+        const elType = el.dataset.routeType;
+        const elIdx = parseInt(el.dataset.routeIdx);
+        if (!elType) return;
+        if (elType === type && elIdx === idx) {
+            el.classList.add('route-highlight');
+            el.classList.remove('route-dimmed');
+        } else {
+            el.classList.remove('route-highlight');
+            el.classList.add('route-dimmed');
+        }
+    });
+
+    // Highlight matching order cards in the queue
+    let orderIds = [];
+    if (type === 'proposed' && proposedRoutes[idx]) {
+        orderIds = proposedRoutes[idx].stops.map(s => s.order_id);
+    } else if (type === 'active') {
+        const route = allRoutes.find(r => r.id === idx);
+        if (route) orderIds = (route.stops || []).map(s => s.order_id);
+    }
+    document.querySelectorAll('.order-card').forEach(el => {
+        const orderId = parseInt(el.dataset.orderId);
+        if (orderIds.includes(orderId)) {
+            el.classList.add('selected');
+        } else {
+            el.classList.remove('selected');
+            el.style.opacity = '0.3';
+        }
+    });
+
+    // Debounced zoom to highlighted route — uses full driving path bounds
+    clearTimeout(_highlightZoomTimer);
+    _highlightZoomTimer = setTimeout(() => {
+        if (!highlightedRoute || highlightedRoute.type !== type || highlightedRoute.idx !== idx) return;
+        if (!mapsLoaded || !map) return;
+
+        // Find the matching route renderer's driving bounds
+        const entry = routeRenderers.find(e => e.type === type && e.idx === idx);
+        if (entry && entry.bounds) {
+            // Use the full Directions API route bounds (covers every road curve)
+            map.fitBounds(entry.bounds, 60);
+        } else {
+            // Fallback: use stop coordinates
+            const bounds = new google.maps.LatLngBounds();
+            if (storeCoords) bounds.extend({ lat: storeCoords[0], lng: storeCoords[1] });
+            let stops = [];
+            if (type === 'proposed' && proposedRoutes[idx]) {
+                stops = proposedRoutes[idx].stops;
+            } else if (type === 'active') {
+                const route = allRoutes.find(r => r.id === idx);
+                if (route) stops = route.stops || [];
+            }
+            stops.forEach(s => {
+                if (s.lat && s.lng) bounds.extend({ lat: s.lat, lng: s.lng });
+            });
+            if (!bounds.isEmpty()) map.fitBounds(bounds, 60);
+        }
+    }, 150);
+}
+
+function clearHighlight() {
+    highlightedRoute = null;
+    clearTimeout(_highlightZoomTimer);
+
+    // Zoom back to show all routes
+    _highlightZoomTimer = setTimeout(() => {
+        if (!highlightedRoute) fitAllRoutes();
+    }, 150);
+
+    // Restore map routes
+    routeRenderers.forEach(entry => {
+        const defaultWeight = entry.type === 'proposed' ? 4 : 4;
+        const defaultOpacity = entry.type === 'proposed' ? 0.7 : 0.6;
+        entry.renderer.setOptions({
+            polylineOptions: {
+                strokeColor: entry.color,
+                strokeWeight: defaultWeight,
+                strokeOpacity: defaultOpacity,
+            },
+        });
+        if (entry.renderer.getDirections()) {
+            entry.renderer.setDirections(entry.renderer.getDirections());
+        }
+        entry.markers.forEach(m => {
+            const icon = m.getIcon();
+            if (icon) {
+                icon.fillOpacity = 1;
+                icon.scale = 14;
+                m.setIcon(icon);
+            }
+        });
+    });
+
+    // Restore route cards
+    document.querySelectorAll('.proposed-route, .route-card').forEach(el => {
+        el.classList.remove('route-highlight', 'route-dimmed');
+    });
+
+    // Restore order cards
+    document.querySelectorAll('.order-card').forEach(el => {
+        el.classList.remove('selected');
+        el.style.opacity = '';
+    });
+}
+
+function toggleHighlight(type, idx) {
+    // For touch: tap to highlight, tap again to clear
+    if (highlightedRoute && highlightedRoute.type === type && highlightedRoute.idx === idx) {
+        clearHighlight();
+    } else {
+        highlightRoute(type, idx);
+    }
+}
+
+// Map placeholder when no API key
+function showMapPlaceholder() {
+    document.getElementById('deliveryMap').innerHTML = `
+        <div class="map-placeholder">
+            <span class="map-placeholder-icon">&#128506;</span>
+            <div style="font-size:16px;font-weight:600;">Map Unavailable</div>
+            <div>Add GOOGLE_MAPS_API_KEY to .env to enable route mapping</div>
+            <div style="font-size:12px;margin-top:8px;">Dispatch still works without maps &mdash; routes are calculated server-side</div>
+        </div>
+    `;
+}
+
+// ---------------------------------------------------------------------------
+//  Init
+// ---------------------------------------------------------------------------
+(function() {
+    // Load data immediately
+    refreshAll();
+
+    // Auto-refresh
+    setInterval(refreshAll, REFRESH_INTERVAL);
+
+    // Load Google Maps if key available
+    if (GOOGLE_MAPS_KEY) {
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&callback=initMap`;
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+    } else {
+        showMapPlaceholder();
+    }
+})();
+</script>
+
+</body>
+</html>

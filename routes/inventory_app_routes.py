@@ -427,12 +427,24 @@ def get_recent_invoices():
         query += " AND invoice_date <= ?"
         params.append(date_to)
 
+    # Get total count (separate query, no LIMIT)
+    count_query = "SELECT COUNT(*) as total_count FROM invoices WHERE 1=1"
+    count_params = []
+    if date_from:
+        count_query += " AND invoice_date >= ?"
+        count_params.append(date_from)
+    if date_to:
+        count_query += " AND invoice_date <= ?"
+        count_params.append(date_to)
+    cursor.execute(count_query, count_params)
+    total_count = cursor.fetchone()['total_count']
+
     query += " ORDER BY invoice_date DESC LIMIT 100"
 
     cursor.execute(query, params)
     invoices = [dict(row) for row in cursor.fetchall()]
     conn.close()
-    return jsonify(invoices)
+    return jsonify({'invoices': invoices, 'total_count': total_count})
 
 @inventory_app_bp.route('/api/invoices/<invoice_number>')
 @login_required

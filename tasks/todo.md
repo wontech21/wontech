@@ -44,14 +44,39 @@
 
 ## Track B — POS Build
 
-- [ ] **B1. POS Phase 1 — Order Persistence + Sales Recording**
-- [ ] **B2. POS Phase 2 — Inventory Deduction on Sale**
-- [ ] **B3. POS Phase 3 — Employee Assignment + POS Auth**
-- [ ] **B4. POS Phase 4 — Order Lifecycle + Status Tracking**
-- [ ] **B5. POS Phase 5 — Tips → Payroll Pipeline**
-- [ ] **B6. POS Phase 6 — Register Management + Settlement**
-- [ ] **B7. POS Phase 7 — Receipt System**
-- [ ] **B8. POS Phase 8 — Customer Profiles + History**
+- [x] **B1. POS Phase 1 — Order Persistence + Sales Recording**
+  - [x] `create_order_core()` atomic pipeline: orders → order_items → order_payments → sales_history → inventory deduction → audit_log → customer profile
+  - [x] Frontend `completeOrder()` POSTs to `/api/pos/orders` with localStorage fallback
+  - [x] Payment null-safety: log when payment data missing, default to cash
+  - [x] Sales pipeline error handling: try/except with logging, log partial product matches
+  - [x] End-to-end verified: 7 tables populated correctly (2026-02-16)
+- [x] **B2. POS Phase 2 — Inventory Deduction on Sale**
+  - [x] `record_sales_to_db()` deducts ingredients via recipe lookup
+  - [x] Verified: ingredient quantities decrease correctly after order
+- [x] **B3. POS Phase 3 — Employee Assignment + POS Auth**
+  - [x] POS employee auth endpoints exist (`/api/pos/auth/login`, `/api/pos/auth/logout`)
+  - [x] `create_order()` uses `session.get('pos_employee_id')` with fallback to request body
+  - [x] Employee overlay blocks non-admins on page load; `openPaymentModal()` gates orders; backend returns 403 without employee_id (admins exempt)
+- [x] **B4. POS Phase 4 — Order Lifecycle + Status Tracking**
+  - [x] Status transitions (confirmed → preparing → ready → closed)
+  - [x] Void with inventory reversal
+  - [x] Order history list with date/status filters
+- [x] **B5. POS Phase 5 — Tips → Payroll Pipeline**
+  - [x] `tip_amount` columns exist in orders and order_payments tables
+  - [x] Tip UI in payment flow (15%, 18%, 20% quick buttons + custom input)
+  - [x] `/tips/summary` aggregation endpoint; payroll pulls POS tips via `calculate_hours_and_tips_for_period/week()` for employees with `receives_tips`
+- [x] **B6. POS Phase 6 — Register Management + Settlement**
+  - [x] Endpoints: open/close/current register session
+  - [x] Terminal-based model: register_number, opened_by/closed_by, orders linked via register_session_id FK
+  - [x] POS frontend: register picker (1/2/3), cash gate, indicator, persists across employee switches
+  - [x] Settings page: open/close any register by number, multi-register overview
+- [ ] **B7. POS Phase 7 — Receipt System** (built, untested)
+  - [x] Receipt generation, email, and SMS endpoints exist
+  - [ ] Frontend receipt stubs not wired to backend
+- [x] **B8. POS Phase 8 — Customer Profiles + History**
+  - [x] Auto-create/update customer on order (when phone provided)
+  - [x] Customer lookup endpoint exists
+  - [x] Verified: customer profile created with order totals
 
 ## Track C — Housekeeping
 

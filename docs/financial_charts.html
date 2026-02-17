@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WONTECH Financial Model</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0f; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 40px 24px; }
+  h1 { text-align: center; font-size: 28px; font-weight: 600; color: #fff; margin-bottom: 8px; letter-spacing: -0.5px; }
+  .subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 40px; }
+  .selector { text-align: center; margin-bottom: 40px; }
+  .selector label { color: #aaa; font-size: 14px; margin-right: 12px; }
+  .selector select { background: #1a1a2e; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 10px 16px; font-size: 15px; cursor: pointer; outline: none; }
+  .selector select:hover { border-color: #555; }
+  .charts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1400px; margin: 0 auto 60px; }
+  .chart-card { background: #12121f; border: 1px solid #1e1e35; border-radius: 16px; padding: 28px 20px; text-align: center; }
+  .chart-card h3 { font-size: 15px; font-weight: 600; color: #ccc; margin-bottom: 4px; letter-spacing: -0.3px; }
+  .chart-card .total { font-size: 13px; color: #666; margin-bottom: 16px; }
+  .chart-container { position: relative; width: 100%; max-width: 320px; margin: 0 auto; }
+  .tables-section { max-width: 1400px; margin: 0 auto; }
+  .tables-section h2 { font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 20px; letter-spacing: -0.3px; }
+  .tables-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .table-wrap { background: #12121f; border: 1px solid #1e1e35; border-radius: 16px; padding: 20px; overflow-x: auto; }
+  .table-wrap h3 { font-size: 14px; color: #aaa; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+  th { background: #1a1a2e; color: #888; font-weight: 500; padding: 8px 10px; text-align: right; border-bottom: 1px solid #2a2a40; position: sticky; top: 0; }
+  th:first-child { text-align: left; }
+  td { padding: 7px 10px; text-align: right; border-bottom: 1px solid #1a1a2e; }
+  td:first-child { text-align: left; color: #aaa; }
+  tr:hover td { background: #1a1a2e; }
+  tr.highlight td { background: #1a1a30; color: #fff; font-weight: 600; }
+  .paycheck { color: #4ade80; }
+  .weekly { color: #60a5fa; }
+  .retained { color: #a78bfa; }
+  @media (max-width: 1000px) {
+    .charts-grid { grid-template-columns: 1fr; max-width: 400px; }
+    .tables-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>WONTECH Financial Model</h1>
+<p class="subtitle">$6,000/client/month &middot; 19% people &middot; 27.3% corp tax &middot; 2026 brackets</p>
+
+<div class="selector">
+  <label for="clientSelect">Show charts at:</label>
+  <select id="clientSelect" onchange="updateCharts()">
+    <option value="10">10 Clients — $60K/mo</option>
+    <option value="25">25 Clients — $150K/mo</option>
+    <option value="50">50 Clients — $300K/mo</option>
+    <option value="100" selected>100 Clients — $600K/mo</option>
+    <option value="150">150 Clients — $900K/mo</option>
+    <option value="250">250 Clients — $1.5M/mo</option>
+    <option value="1000">1000 Clients — $6M/mo</option>
+    <option value="2500">2500 Clients — $15M/mo</option>
+    <option value="10000">10000 Clients — $60M/mo</option>
+  </select>
+</div>
+
+<div class="charts-grid">
+  <div class="chart-card">
+    <h3>Revenue Breakdown</h3>
+    <div class="total" id="expenseTotal"></div>
+    <div class="chart-container"><canvas id="expenseChart"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <h3>Business Taxes</h3>
+    <div class="total" id="bizTaxTotal"></div>
+    <div class="chart-container"><canvas id="bizTaxChart"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <h3>Exec Salary Taxes</h3>
+    <div class="total" id="salTaxTotal"></div>
+    <div class="chart-container"><canvas id="salTaxChart"></canvas></div>
+  </div>
+</div>
+
+<div class="tables-section">
+  <h2>P&L Projections</h2>
+  <div class="tables-grid">
+    <div class="table-wrap">
+      <h3>Monthly</h3>
+      <table id="monthlyTable"></table>
+    </div>
+    <div class="table-wrap">
+      <h3>Annual</h3>
+      <table id="annualTable"></table>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = [
+  {c:1,rev:6000,infra:1278,people:1140,office:0,pretax:3582,exec:0,paycheck:0,weekly:0,expansion:1194,retained:1736},
+  {c:2,rev:12000,infra:1288,people:2280,office:0,pretax:8432,exec:0,paycheck:0,weekly:0,expansion:2811,retained:4087},
+  {c:3,rev:18000,infra:2524,people:3420,office:0,pretax:12056,exec:0,paycheck:0,weekly:0,expansion:4019,retained:5843},
+  {c:4,rev:24000,infra:2534,people:4560,office:0,pretax:16906,exec:12500,paycheck:8857,weekly:2044,expansion:1150,retained:1672},
+  {c:5,rev:30000,infra:3772,people:5700,office:100,pretax:20428,exec:12500,paycheck:8857,weekly:2044,expansion:2324,retained:3379},
+  {c:6,rev:36000,infra:3782,people:6840,office:100,pretax:25278,exec:12500,paycheck:8857,weekly:2044,expansion:3941,retained:5730},
+  {c:7,rev:42000,infra:5018,people:7980,office:100,pretax:28902,exec:12500,paycheck:8857,weekly:2044,expansion:5149,retained:7486},
+  {c:8,rev:48000,infra:5028,people:9120,office:100,pretax:33752,exec:12500,paycheck:8857,weekly:2044,expansion:6766,retained:9837},
+  {c:9,rev:54000,infra:6265,people:10260,office:100,pretax:37375,exec:12500,paycheck:8857,weekly:2044,expansion:7973,retained:11593},
+  {c:10,rev:60000,infra:6275,people:11400,office:450,pretax:41875,exec:12500,paycheck:8857,weekly:2044,expansion:9473,retained:13774},
+  {c:15,rev:90000,infra:10010,people:17100,office:450,pretax:62440,exec:26250,paycheck:17402,weekly:4016,expansion:11618,retained:16893},
+  {c:25,rev:150000,infra:16205,people:28500,office:12500,pretax:92795,exec:26250,paycheck:17402,weekly:4016,expansion:21737,retained:31605},
+  {c:35,rev:210000,infra:22540,people:39900,office:12500,pretax:135060,exec:26250,paycheck:17402,weekly:4016,expansion:35826,retained:52090},
+  {c:50,rev:300000,infra:31347,people:57000,office:12500,pretax:199153,exec:41667,paycheck:26290,weekly:6067,expansion:51976,retained:75573},
+  {c:100,rev:600000,infra:63370,people:114000,office:25000,pretax:397630,exec:72083,paycheck:43478,weekly:10033,expansion:107849,retained:156813},
+  {c:150,rev:900000,infra:94825,people:171000,office:35000,pretax:599175,exec:72083,paycheck:43478,weekly:10033,expansion:175030,retained:254495},
+  {c:200,rev:1200000,infra:126200,people:228000,office:45000,pretax:800800,exec:72083,paycheck:43478,weekly:10033,expansion:242240,retained:352216},
+  {c:250,rev:1500000,infra:157575,people:285000,office:55000,pretax:1002425,exec:72083,paycheck:43478,weekly:10033,expansion:309447,retained:449937},
+  {c:300,rev:1800000,infra:189050,people:342000,office:65000,pretax:1203950,exec:72083,paycheck:43478,weekly:10033,expansion:376623,retained:547609},
+  {c:1000,rev:6000000,infra:627500,people:1140000,office:200000,pretax:4032500,exec:72083,paycheck:43478,weekly:10033,expansion:1319472,retained:1918513},
+  {c:2500,rev:15000000,infra:1568750,people:2850000,office:500000,pretax:10081250,exec:72083,paycheck:43478,weekly:10033,expansion:3336653,retained:4850162},
+  {c:10000,rev:60000000,infra:6275000,people:11400000,office:2000000,pretax:40325000,exec:72083,paycheck:43478,weekly:10033,expansion:13417904,retained:19508299}
+];
+
+// Exec salary tax breakdown by annual tier
+// Computed from 2025 federal brackets, MA 5% flat, FICA (SS $176,100 cap + Medicare + Additional)
+const EXEC_TAX_TIERS = {
+  0:     {federal:0,ma:0,ss:0,medicare:0,addMedicare:0},
+  12500: {federal:25247,ma:7280,ss:9300,medicare:2175,addMedicare:0},           // $150K/yr
+  26250: {federal:72711,ma:15530,ss:10918,medicare:4568,addMedicare:1035},       // $315K/yr
+  41667: {federal:138912,ma:24780,ss:10918,medicare:7250,addMedicare:2700},      // $500K/yr
+  72083: {federal:271520,ma:43030,ss:10918,medicare:12543,addMedicare:5985}      // $865K/yr
+};
+
+// Employer FICA by exec tier (annual)
+const EMPLOYER_FICA = {
+  0: 0,
+  12500: 11475,   // $150K: SS 6.2% full + Med 1.45%
+  26250: 15486,   // $315K: SS capped + Med 1.45%
+  41667: 18168,   // $500K: SS capped + Med 1.45%
+  72083: 23461    // $865K: SS capped + Med 1.45%
+};
+
+function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+
+let charts = {};
+
+function getExecData(row) {
+  const tier = EXEC_TAX_TIERS[row.exec] || EXEC_TAX_TIERS[0];
+  const empFica = (EMPLOYER_FICA[row.exec] || 0) / 12;
+  const corpTaxable = row.pretax - row.exec - empFica;
+  const afterExpansion = corpTaxable - row.expansion;
+  const maCorp = afterExpansion * 0.08;
+  const fedCorp = (afterExpansion - maCorp) * 0.21;
+  return { tier, empFica, maCorp, fedCorp, corpTaxable, afterExpansion };
+}
+
+function updateCharts() {
+  const sel = parseInt(document.getElementById('clientSelect').value);
+  const row = DATA.find(d => d.c === sel);
+  if (!row) return;
+
+  const { tier, empFica, maCorp, fedCorp } = getExecData(row);
+  const totalCorpTax = maCorp + fedCorp;
+  const execGross = row.exec + empFica;
+
+  // PIE 1: Revenue breakdown (business expenses)
+  const slices1 = [
+    { label: 'Infrastructure', val: row.infra, color: '#ef4444' },
+    { label: 'Staff (19%)', val: row.people, color: '#f97316' },
+    { label: 'Office', val: row.office, color: '#eab308' },
+    { label: 'Exec Compensation', val: execGross, color: '#22d3ee' },
+    { label: 'Expansion (⅓)', val: row.expansion, color: '#06b6d4' },
+    { label: 'Corporate Tax', val: totalCorpTax, color: '#a855f7' },
+    { label: 'Retained Earnings', val: row.retained, color: '#4ade80' }
+  ].filter(s => s.val > 0);
+
+  document.getElementById('expenseTotal').textContent = fmt(row.rev) + '/mo revenue';
+  renderPie('expenseChart', slices1);
+
+  // PIE 2: Business taxes
+  const slices2 = [
+    { label: 'Federal Corp Tax (21%)', val: fedCorp, color: '#ef4444' },
+    { label: 'MA Corp Tax (8%)', val: maCorp, color: '#f97316' },
+    { label: 'Employer SS', val: Math.min(row.exec * 12, 176100) * 0.062 / 12, color: '#3b82f6' },
+    { label: 'Employer Medicare', val: row.exec * 0.0145, color: '#8b5cf6' }
+  ].filter(s => s.val > 0);
+
+  const bizTaxSum = slices2.reduce((a, s) => a + s.val, 0);
+  document.getElementById('bizTaxTotal').textContent = fmt(bizTaxSum) + '/mo total business taxes';
+  renderPie('bizTaxChart', slices2);
+
+  // PIE 3: Exec salary taxes
+  const annualSal = row.exec * 12;
+  const taxSlices = [
+    { label: 'Federal Income Tax', val: tier.federal / 12, color: '#ef4444' },
+    { label: 'MA State Tax (5%)', val: tier.ma / 12, color: '#f97316' },
+    { label: 'Social Security', val: tier.ss / 12, color: '#3b82f6' },
+    { label: 'Medicare', val: tier.medicare / 12, color: '#8b5cf6' },
+    { label: 'Additional Medicare', val: tier.addMedicare / 12, color: '#ec4899' }
+  ].filter(s => s.val > 0);
+
+  const salTaxSum = taxSlices.reduce((a, s) => a + s.val, 0);
+  const takeHome = row.exec - salTaxSum;
+  const slices3 = [...taxSlices, { label: 'Take-Home Pay', val: takeHome, color: '#4ade80' }].filter(s => s.val > 0);
+  document.getElementById('salTaxTotal').textContent = row.exec > 0
+    ? fmt(row.exec) + '/mo gross → ' + fmt(takeHome) + '/mo net'
+    : 'No exec salary at this tier';
+  renderPie('salTaxChart', slices3);
+}
+
+function renderPie(canvasId, slices) {
+  if (charts[canvasId]) charts[canvasId].destroy();
+  if (slices.length === 0) { return; }
+
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  charts[canvasId] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: slices.map(s => s.label),
+      datasets: [{
+        data: slices.map(s => Math.round(s.val)),
+        backgroundColor: slices.map(s => s.color),
+        borderColor: '#12121f',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '45%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#aaa', font: { size: 11 }, padding: 12, usePointStyle: true, pointStyleWidth: 8 }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              const pct = ((ctx.raw / total) * 100).toFixed(1);
+              return ctx.label + ': ' + fmt(ctx.raw) + ' (' + pct + '%)';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function buildTables() {
+  const cols = ['Clients','Revenue','Infra','People','Office','Pre-Tax','Exec Sal','Paycheck','Weekly','Expand ⅓','Retained'];
+
+  function makeTable(multiplier) {
+    let html = '<thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>';
+    DATA.forEach(row => {
+      const m = multiplier;
+      const highlight = [10, 50, 100, 300].includes(row.c) ? ' class="highlight"' : '';
+      html += `<tr${highlight}>`;
+      html += `<td>${row.c}</td>`;
+      html += `<td>${fmt(row.rev * m)}</td>`;
+      html += `<td>${fmt(row.infra * m)}</td>`;
+      html += `<td>${fmt(row.people * m)}</td>`;
+      html += `<td>${fmt(row.office * m)}</td>`;
+      html += `<td>${fmt(row.pretax * m)}</td>`;
+      html += `<td>${fmt(row.exec * m)}</td>`;
+      html += `<td class="paycheck">${fmt(row.paycheck * m)}</td>`;
+      html += `<td class="weekly">${m === 1 ? fmt(row.weekly) : '—'}</td>`;
+      html += `<td style="color:#06b6d4">${fmt(row.expansion * m)}</td>`;
+      html += `<td class="retained">${fmt(row.retained * m)}</td>`;
+      html += '</tr>';
+    });
+    html += '</tbody>';
+    return html;
+  }
+
+  document.getElementById('monthlyTable').innerHTML = makeTable(1);
+  document.getElementById('annualTable').innerHTML = makeTable(12);
+}
+
+buildTables();
+updateCharts();
+</script>
+</body>
+</html>

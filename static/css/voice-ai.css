@@ -125,10 +125,10 @@
     margin-left: 10px;
 }
 
+.voice-ai-pause,
 .voice-ai-close {
     position: absolute;
     top: 24px;
-    right: 24px;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -143,10 +143,28 @@
     transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 
+.voice-ai-close { right: 24px; }
+.voice-ai-pause { right: 68px; display: none; }
+
+.voice-ai-panel.open .voice-ai-pause { display: flex; }
+
+.voice-ai-pause:hover,
 .voice-ai-close:hover {
     background: rgba(255, 255, 255, 0.12);
     color: rgba(255, 255, 255, 0.85);
     border-color: rgba(255, 255, 255, 0.2);
+}
+
+.voice-ai-pause.paused {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #f59e0b;
+}
+
+.voice-ai-pause.paused:hover {
+    background: rgba(245, 158, 11, 0.25);
+    border-color: rgba(245, 158, 11, 0.5);
+    color: #fbbf24;
 }
 
 /* --- Content area (centered column) --- */
@@ -284,7 +302,7 @@
 }
 
 .voice-ai-data:empty {
-    display: none;
+    padding: 0;
 }
 
 /* --- Stat cards (key-value metrics) --- */
@@ -460,6 +478,33 @@
     align-self: center;
 }
 
+/* --- Chart containers --- */
+.voice-chart-container {
+    width: 100%;
+    position: relative;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    padding: 16px 12px 12px;
+    margin-bottom: 12px;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: dataSlideIn 0.4s ease-out forwards;
+}
+
+.voice-chart-container canvas {
+    display: block;
+}
+
+.voice-chart-title {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8em;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 10px;
+    letter-spacing: 0.03em;
+}
+
 /* --- Animations --- */
 @keyframes dataSlideIn {
     from { opacity: 0; transform: translateY(10px); }
@@ -528,11 +573,20 @@
         right: 16px;
     }
 
+    .voice-ai-pause {
+        top: 16px;
+        right: 60px;
+    }
+
     .voice-ai-header {
         padding: 16px 16px 0;
     }
 
     .voice-ai-ai .text {
         font-size: 16px;
+    }
+
+    .voice-chart-container {
+        padding: 12px 8px 8px;
     }
 }

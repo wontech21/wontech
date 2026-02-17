@@ -129,6 +129,21 @@ def register_analytics_routes(app, get_db_connection=None, INVENTORY_DB=None):
             highest_transaction = cursor.fetchone()
             highest_transaction = dict(highest_transaction) if highest_transaction else None
 
+            # Sales breakdown by order type
+            cursor.execute(f"""
+                SELECT
+                    COALESCE(order_type, 'dine_in') as order_type,
+                    COUNT(*) as num_sales,
+                    SUM(revenue) as revenue,
+                    SUM(gross_profit) as profit
+                FROM sales_history
+                {where_clause}
+                GROUP BY COALESCE(order_type, 'dine_in')
+                ORDER BY revenue DESC
+            """, params)
+
+            sales_by_order_type = [dict(row) for row in cursor.fetchall()]
+
             conn.close()
 
             return jsonify({
@@ -137,8 +152,48 @@ def register_analytics_routes(app, get_db_connection=None, INVENTORY_DB=None):
                 'top_products': top_products,
                 'sales_by_hour': sales_by_hour,
                 'sales_by_date': sales_by_date,
-                'highest_transaction': highest_transaction
+                'highest_transaction': highest_transaction,
+                'sales_by_order_type': sales_by_order_type
             })
+
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/analytics/sales-by-order-type')
+    def get_sales_by_order_type():
+        """Standalone order-type breakdown with date filters (used by voice AI)."""
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+
+        try:
+            conn = get_org_db()
+            cursor = conn.cursor()
+
+            where_clause = "WHERE 1=1"
+            params = []
+            if start_date:
+                where_clause += " AND sale_date >= ?"
+                params.append(start_date)
+            if end_date:
+                where_clause += " AND sale_date <= ?"
+                params.append(end_date)
+
+            cursor.execute(f"""
+                SELECT
+                    COALESCE(order_type, 'dine_in') as order_type,
+                    COUNT(*) as num_sales,
+                    SUM(revenue) as revenue,
+                    SUM(gross_profit) as profit
+                FROM sales_history
+                {where_clause}
+                GROUP BY COALESCE(order_type, 'dine_in')
+                ORDER BY revenue DESC
+            """, params)
+
+            rows = [dict(r) for r in cursor.fetchall()]
+            conn.close()
+
+            return jsonify({'success': True, 'sales_by_order_type': rows})
 
         except Exception as e:
             return jsonify({'success': False, 'error': str(e)}), 500
@@ -157,9 +212,9 @@ def register_analytics_routes(app, get_db_connection=None, INVENTORY_DB=None):
             conn = get_org_db()
             cursor = conn.cursor()
 
-            # Build query
-            where_clause = "WHERE product_name = ?"
-            params = [product_name]
+            # Build query — use LIKE for partial matching (e.g. "Pizza" matches all pizza variants)
+            where_clause = "WHERE LOWER(product_name) LIKE LOWER(?)"
+            params = [f'%{product_name}%']
 
             if start_date:
                 where_clause += " AND sale_date >= ?"

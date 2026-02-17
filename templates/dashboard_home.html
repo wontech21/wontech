@@ -298,11 +298,11 @@
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="statInvoices">-</div>
-                        <div class="stat-label">Invoices</div>
+                        <div class="stat-label">Invoices (All Time)</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="statRevenue">-</div>
-                        <div class="stat-label">Revenue (MTD)</div>
+                        <div class="stat-label" id="statRevenueLabel">Revenue</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="statCategories">-</div>
@@ -338,11 +338,11 @@
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="statHoursMonth">-</div>
-                        <div class="stat-label">Hours (MTD)</div>
+                        <div class="stat-label" id="statHoursLabel">Hours</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="statAttendance">-</div>
-                        <div class="stat-label">Records</div>
+                        <div class="stat-label">Records (All Time)</div>
                     </div>
                 </div>
             </div>
@@ -370,7 +370,7 @@
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="statPosOrders">-</div>
-                        <div class="stat-label">Orders</div>
+                        <div class="stat-label">Orders Today</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="statPosAvg">-</div>
@@ -378,7 +378,43 @@
                     </div>
                     <div class="stat-item">
                         <div class="stat-value" id="statPosItems">-</div>
-                        <div class="stat-label">Items Sold</div>
+                        <div class="stat-label">Items Today</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delivery Dispatch Card -->
+            <div class="section-card" onclick="window.location.href='/dashboard/delivery'">
+                <span class="section-icon">&#128663;</span>
+                <h2 class="section-title">Delivery Dispatch</h2>
+                <p class="section-description">
+                    Route optimization and driver dispatch for delivery orders. Real-time tracking and management.
+                </p>
+
+                <ul class="feature-list">
+                    <li>Auto Route Building</li>
+                    <li>Driver Dispatch</li>
+                    <li>Priority Scoring</li>
+                    <li>Live Map Tracking</li>
+                    <li>Delivery Status Updates</li>
+                </ul>
+
+                <div class="section-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="statDelWaiting">-</div>
+                        <div class="stat-label">Waiting</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statDelDrivers">-</div>
+                        <div class="stat-label">Drivers Active</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statDelAvg">-</div>
+                        <div class="stat-label">Avg Delivery</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statDelRoutes">-</div>
+                        <div class="stat-label">Routes Today</div>
                     </div>
                 </div>
             </div>
@@ -422,37 +458,45 @@
     </div>
 
     <script>
-        // Load stats for inventory section
+        // Load stats for inventory section (each stat independent so one failure doesn't block others)
         async function loadInventoryStats() {
+            // Products count
             try {
-                // Products count
                 const productsRes = await fetch('/api/products/list');
                 const products = await productsRes.json();
                 document.getElementById('statProducts').textContent = Array.isArray(products) ? products.length : 0;
+            } catch (err) { console.error('Error loading products stat:', err); }
 
-                // Categories count
+            // Categories count
+            try {
                 const categoriesRes = await fetch('/api/categories/all');
                 const categories = await categoriesRes.json();
                 document.getElementById('statCategories').textContent = Array.isArray(categories) ? categories.length : 0;
+            } catch (err) { console.error('Error loading categories stat:', err); }
 
-                // Invoices count
+            // Invoices total count
+            try {
                 const invoicesRes = await fetch('/api/invoices/recent');
-                const invoices = await invoicesRes.json();
-                const invoicesArray = Array.isArray(invoices) ? invoices : [];
-                document.getElementById('statInvoices').textContent = invoicesArray.length;
+                const invoicesData = await invoicesRes.json();
+                const count = invoicesData.total_count != null ? invoicesData.total_count : (Array.isArray(invoicesData) ? invoicesData.length : 0);
+                document.getElementById('statInvoices').textContent = count;
+            } catch (err) { console.error('Error loading invoices stat:', err); }
 
-                // Calculate MTD revenue
-                const now = new Date();
-                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-                const mtdInvoices = invoicesArray.filter(inv => {
-                    const invDate = new Date(inv.invoice_date);
-                    return invDate >= monthStart;
-                });
-                const revenue = mtdInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
-                document.getElementById('statRevenue').textContent = '$' + revenue.toFixed(0);
-
+            // Revenue (this month) from actual sales
+            try {
+                const monthName = new Date().toLocaleString('default', { month: 'short' });
+                document.getElementById('statRevenueLabel').textContent = 'Revenue (' + monthName + ')';
+                const salesRes = await fetch('/api/analytics/time-comparison');
+                const salesData = await salesRes.json();
+                if (salesData.success && salesData.this_month) {
+                    const revenue = salesData.this_month.revenue || 0;
+                    document.getElementById('statRevenue').textContent = '$' + Math.round(revenue).toLocaleString();
+                } else {
+                    document.getElementById('statRevenue').textContent = '$0';
+                }
             } catch (err) {
-                console.error('Error loading inventory stats:', err);
+                console.error('Error loading revenue stat:', err);
+                document.getElementById('statRevenue').textContent = '$0';
             }
         }
 
@@ -471,12 +515,14 @@
                 const allRecords = attendanceData.attendance || [];
                 document.getElementById('statAttendance').textContent = allRecords.length;
 
-                // Active now (clocked in)
-                const activeNow = allRecords.filter(r => r.status === 'clocked_in').length;
+                // Active now (clocked in but not yet clocked out)
+                const activeNow = allRecords.filter(r => !r.clock_out).length;
                 document.getElementById('statActive').textContent = activeNow;
 
-                // Hours MTD
+                // Hours this month
                 const now = new Date();
+                const monthName = now.toLocaleString('default', { month: 'short' });
+                document.getElementById('statHoursLabel').textContent = 'Hours (' + monthName + ')';
                 const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
                 const mtdRecords = allRecords.filter(r => {
                     const clockIn = new Date(r.clock_in);
@@ -510,16 +556,70 @@
             }
         }
 
+        // Load stats for POS section
+        async function loadPosStats() {
+            try {
+                const res = await fetch('/api/pos/orders');
+                const data = await res.json();
+                if (data.success) {
+                    const orders = data.orders || [];
+                    const totalSales = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+                    const totalItems = orders.reduce((sum, o) => sum + (o.item_count || 0), 0);
+                    const avgOrder = orders.length > 0 ? totalSales / orders.length : 0;
+
+                    document.getElementById('statPosToday').textContent = '$' + Math.round(totalSales).toLocaleString();
+                    document.getElementById('statPosOrders').textContent = orders.length;
+                    document.getElementById('statPosAvg').textContent = '$' + avgOrder.toFixed(2);
+                    document.getElementById('statPosItems').textContent = totalItems;
+                }
+            } catch (err) {
+                console.error('Error loading POS stats:', err);
+            }
+        }
+
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
                 window.location.href = '/logout';
             }
         }
 
+        // Load stats for delivery section
+        async function loadDeliveryStats() {
+            try {
+                const queueRes = await fetch('/api/delivery/queue');
+                const queueData = await queueRes.json();
+                if (queueData.success) {
+                    const waiting = (queueData.orders || []).filter(o => o.status === 'ready' && !o.driver_id).length;
+                    document.getElementById('statDelWaiting').textContent = waiting;
+                }
+            } catch (err) { console.error('Error loading delivery queue stats:', err); }
+
+            try {
+                const routesRes = await fetch('/api/delivery/routes');
+                const routesData = await routesRes.json();
+                if (routesData.success) {
+                    const routes = routesData.routes || [];
+                    const active = routes.filter(r => r.status === 'active').length;
+                    document.getElementById('statDelDrivers').textContent = active;
+                    document.getElementById('statDelRoutes').textContent = routes.length;
+
+                    const completed = routes.filter(r => r.status === 'completed' && r.actual_duration_min);
+                    if (completed.length) {
+                        const avg = completed.reduce((s, r) => s + r.actual_duration_min, 0) / completed.length;
+                        document.getElementById('statDelAvg').textContent = Math.round(avg) + 'm';
+                    } else {
+                        document.getElementById('statDelAvg').textContent = '-';
+                    }
+                }
+            } catch (err) { console.error('Error loading delivery routes stats:', err); }
+        }
+
         // Load all stats
         loadInventoryStats();
         loadAttendanceStats();
         loadKitchenStats();
+        loadPosStats();
+        loadDeliveryStats();
     </script>
 
     {% if g.is_super_admin or g.is_organization_admin %}
@@ -550,6 +650,7 @@
             <div class="voice-ai-footer"><span>Powered by WONTECH</span></div>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="{{ url_for('static', filename='js/voice-ai.js') }}?v=13"></script>
     {% endif %}
 </body>

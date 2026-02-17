@@ -14,9 +14,50 @@
     let dc = null;           // DataChannel
     let localStream = null;  // MediaStream from mic
     let audioEl = null;      // <audio> for remote playback
+    let voiceAudioCtx = null; // AudioContext for speech bandpass filter
 
     // DOM refs (set in init)
-    let btnMic, panel, statusDot, statusText, transcript, aiResponse, btnClose, waveform, dataEl;
+    let btnMic, panel, statusDot, statusText, transcript, aiResponse, btnClose, btnPause, waveform, dataEl;
+    let paused = false;
+
+    // Tracks whether user started a new turn — used to clear stale viz
+    let newUserTurn = false;
+
+    // Tracks in-flight function calls — prevents response.done from
+    // flipping to LISTENING while we're still awaiting fetch results.
+    let activeFunctionCalls = 0;
+
+    // Tracks the active response lifecycle. response.create must not be sent
+    // while a response is still in progress — OpenAI rejects it.
+    // responseDone resolves when response.done fires for the current response.
+    let responseDone = Promise.resolve();
+    let resolveResponseDone = null;
+
+    // Browser speech recognition for real-time transcript display
+    let recognition = null;
+
+    // Chart.js state
+    let activeCharts = [];
+    const CHART_COLORS = [
+        'rgba(99, 102, 241, 0.85)',   // indigo
+        'rgba(16, 185, 129, 0.85)',   // emerald
+        'rgba(245, 158, 11, 0.85)',   // amber
+        'rgba(239, 68, 68, 0.85)',    // red
+        'rgba(139, 92, 246, 0.85)',   // violet
+        'rgba(6, 182, 212, 0.85)',    // cyan
+        'rgba(236, 72, 153, 0.85)',   // pink
+        'rgba(251, 191, 36, 0.85)',   // yellow
+    ];
+    const CHART_COLORS_FILL = [
+        'rgba(99, 102, 241, 0.15)',
+        'rgba(16, 185, 129, 0.15)',
+        'rgba(245, 158, 11, 0.15)',
+        'rgba(239, 68, 68, 0.15)',
+        'rgba(139, 92, 246, 0.15)',
+        'rgba(6, 182, 212, 0.15)',
+        'rgba(236, 72, 153, 0.15)',
+        'rgba(251, 191, 36, 0.15)',
+    ];
 
     // -----------------------------------------------------------------------
     // Pretty header names — backend keys → polished display labels
@@ -109,6 +150,7 @@
             sales_overview:       a => `/api/analytics/sales-overview?${dateParams(a, 'start_date', 'end_date') || `start_date=${todayStr()}&end_date=${todayStr()}`}`,
             product_sales_details:a => `/api/analytics/product-details?product_name=${encodeURIComponent(a.product_name || '')}&${dateParams(a, 'start_date', 'end_date')}`,
             time_comparison:      a => `/api/analytics/time-comparison?${dateParams(a, 'start_date', 'end_date')}`,
+            sales_by_order_type:  a => `/api/analytics/sales-by-order-type?${dateParams(a, 'start_date', 'end_date')}`,
         },
         query_inventory: {
             summary:              () => `/api/inventory/summary`,
@@ -196,6 +238,7 @@
         transcript  = document.getElementById('voice-ai-transcript');
         aiResponse  = document.getElementById('voice-ai-response');
         btnClose    = document.getElementById('voice-ai-close');
+        btnPause    = document.getElementById('voice-ai-pause');
         waveform    = document.getElementById('voice-ai-waveform');
         dataEl      = document.getElementById('voice-ai-data');
 
@@ -203,6 +246,7 @@
 
         btnMic.addEventListener('click', toggleVoice);
         btnClose.addEventListener('click', stopVoice);
+        if (btnPause) btnPause.addEventListener('click', togglePause);
 
         // Escape key to close
         document.addEventListener('keydown', (e) => {
@@ -256,9 +300,31 @@
                 audioEl.srcObject = e.streams[0];
             };
 
-            // 3. Get microphone and add track to peer connection
-            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            pc.addTrack(localStream.getTracks()[0], localStream);
+            // 3. Get microphone with noise filtering constraints
+            localStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                }
+            });
+
+            // 3b. Apply bandpass filter to isolate human speech frequencies (80Hz–3kHz)
+            const audioCtx = new AudioContext();
+            const source = audioCtx.createMediaStreamSource(localStream);
+            const highpass = audioCtx.createBiquadFilter();
+            highpass.type = 'highpass';
+            highpass.frequency.value = 80;
+            highpass.Q.value = 0.7;
+            const lowpass = audioCtx.createBiquadFilter();
+            lowpass.type = 'lowpass';
+            lowpass.frequency.value = 3000;
+            lowpass.Q.value = 0.7;
+            const dest = audioCtx.createMediaStreamDestination();
+            source.connect(highpass).connect(lowpass).connect(dest);
+            voiceAudioCtx = audioCtx;
+
+            pc.addTrack(dest.stream.getTracks()[0], dest.stream);
 
             // 4. Create data channel for events
             dc = pc.createDataChannel('oai-events');
@@ -269,13 +335,14 @@
                     session: {
                         turn_detection: {
                             type: 'server_vad',
-                            threshold: 0.5,
+                            threshold: 0.7,
                             prefix_padding_ms: 300,
-                            silence_duration_ms: 700,
+                            silence_duration_ms: 1000,
                         },
                     }
                 }));
                 setState(State.LISTENING);
+                startRecognition();
             };
             dc.onmessage = handleDataChannelMessage;
             dc.onerror = (e) => {
@@ -321,10 +388,12 @@
     // Reset connection but keep panel open (for showing errors)
     // -----------------------------------------------------------------------
     function resetConnection() {
+        stopRecognition();
         if (localStream) {
             localStream.getTracks().forEach(t => t.stop());
             localStream = null;
         }
+        if (voiceAudioCtx) { voiceAudioCtx.close(); voiceAudioCtx = null; }
         if (dc) { dc.close(); dc = null; }
         if (pc) { pc.close(); pc = null; }
         if (audioEl) audioEl.srcObject = null;
@@ -332,9 +401,47 @@
     }
 
     // -----------------------------------------------------------------------
+    // Browser SpeechRecognition — live transcript while user speaks
+    // -----------------------------------------------------------------------
+    function startRecognition() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) return;
+        recognition = new SR();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+        recognition.onresult = (e) => {
+            // Only update while user is actively speaking, not during AI playback
+            if (state !== State.LISTENING && state !== State.THINKING) return;
+            let text = '';
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+                text += e.results[i][0].transcript;
+            }
+            if (text) transcript.textContent = text;
+        };
+        // SpeechRecognition stops on its own sometimes — restart if session active
+        recognition.onend = () => {
+            if (state !== State.IDLE) {
+                try { recognition.start(); } catch {}
+            }
+        };
+        recognition.onerror = () => {}; // no-speech / aborted are normal
+        try { recognition.start(); } catch {}
+    }
+
+    function stopRecognition() {
+        if (recognition) {
+            try { recognition.abort(); } catch {}
+            recognition = null;
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Stop — tear down everything
     // -----------------------------------------------------------------------
     function stopVoice() {
+        stopRecognition();
+        destroyActiveCharts();
         if (localStream) {
             localStream.getTracks().forEach(t => t.stop());
             localStream = null;
@@ -352,7 +459,47 @@
         }
         panel.classList.remove('open');
         document.body.style.overflow = '';
+        setPaused(false);
         setState(State.IDLE);
+    }
+
+    // -----------------------------------------------------------------------
+    // Pause / Resume — mute mic + silence playback for reading time
+    // -----------------------------------------------------------------------
+    function togglePause() {
+        setPaused(!paused);
+    }
+
+    function setPaused(val) {
+        paused = val;
+        // Mute/unmute mic track
+        if (localStream) {
+            localStream.getTracks().forEach(t => { t.enabled = !paused; });
+        }
+        // Mute/unmute AI audio playback
+        if (audioEl) {
+            audioEl.muted = paused;
+        }
+        // Stop browser speech recognition while paused
+        if (paused) {
+            stopRecognition();
+        } else if (state !== State.IDLE) {
+            startRecognition();
+        }
+        // Visual state
+        if (btnPause) {
+            btnPause.classList.toggle('paused', paused);
+            btnPause.title = paused ? 'Resume listening' : 'Pause listening';
+            btnPause.querySelector('.pause-icon').style.display = paused ? 'none' : '';
+            btnPause.querySelector('.play-icon').style.display = paused ? '' : 'none';
+        }
+        // Update status text when paused (restore on resume)
+        if (paused) {
+            statusText.textContent = 'Paused';
+            waveform.classList.remove('active');
+        } else if (state !== State.IDLE) {
+            setState(state); // refresh status text + waveform
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -367,13 +514,19 @@
         }
 
         switch (msg.type) {
-            // User started speaking — clear text only, NOT data viz.
-            // Data viz is cleared by renderData() when new data arrives.
-            // This prevents echo/feedback from speaker triggering VAD
-            // and wiping freshly rendered visuals.
+            // User started speaking — flag new turn, clear text only.
+            // Viz is NOT cleared here because speaker echo/feedback can
+            // trigger VAD and wipe freshly rendered charts.
             case 'input_audio_buffer.speech_started':
+                newUserTurn = true;
                 transcript.textContent = '';
                 aiResponse.textContent = '';
+                // Clear old viz when user speaks. Guard: only if LISTENING
+                // (not SPEAKING), so speaker echo doesn't wipe fresh charts.
+                if (state === State.LISTENING) {
+                    destroyActiveCharts();
+                    dataEl.innerHTML = '';
+                }
                 break;
 
             // User's speech transcribed
@@ -385,6 +538,7 @@
 
             // Model started generating a response
             case 'response.created':
+                responseDone = new Promise(r => { resolveResponseDone = r; });
                 setState(State.THINKING);
                 break;
 
@@ -393,16 +547,31 @@
                 if (state !== State.SPEAKING) setState(State.SPEAKING);
                 break;
 
-            // Text delta from model (transcript of what it's saying)
+            // Text delta from model — first real text in a new turn
+            // clears stale viz. Echo rarely produces transcript text,
+            // and create_visualization resets the flag before this fires,
+            // so charts survive the spoken summary that follows them.
             case 'response.audio_transcript.delta':
                 if (msg.delta) {
+                    if (newUserTurn) {
+                        destroyActiveCharts();
+                        dataEl.innerHTML = '';
+                        newUserTurn = false;
+                    }
                     aiResponse.textContent += msg.delta;
                 }
                 break;
 
-            // Response fully done
+            // Response fully done — resolve the promise so queued response.create
+            // calls can proceed. Only go to LISTENING if no function calls in flight.
             case 'response.done':
-                if (state !== State.IDLE) setState(State.LISTENING);
+                if (resolveResponseDone) {
+                    resolveResponseDone();
+                    resolveResponseDone = null;
+                }
+                if (state !== State.IDLE && activeFunctionCalls === 0) {
+                    setState(State.LISTENING);
+                }
                 break;
 
             // Model wants to call a function
@@ -422,59 +591,81 @@
     // Function call handler — route lookup table → fetch → return result
     // -----------------------------------------------------------------------
     async function handleFunctionCall(callId, functionName, argsStr) {
+        activeFunctionCalls++;
         setState(State.THINKING);
 
-        let args = {};
-        try { args = JSON.parse(argsStr || '{}'); } catch { args = {}; }
-
-        let result;
         try {
-            if (functionName === 'run_sql_query') {
-                // SQL query — POST to our backend
-                const resp = await fetch('/api/voice/query', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sql: args.sql }),
-                });
-                result = await resp.json();
-            } else {
-                const toolRoutes = ROUTES[functionName];
-                if (!toolRoutes) {
-                    result = { error: `Unknown tool: ${functionName}` };
+            let args = {};
+            try { args = JSON.parse(argsStr || '{}'); } catch { args = {}; }
+
+            // create_visualization — AI-driven chart rendering, no API call needed
+            if (functionName === 'create_visualization') {
+                destroyActiveCharts();
+                dataEl.innerHTML = '';
+                renderVisualization(args);
+                newUserTurn = false; // chart is from THIS turn — don't let speech clear it
+                await responseDone; // wait for current response to finish
+                if (dc && dc.readyState === 'open') {
+                    dc.send(JSON.stringify({
+                        type: 'conversation.item.create',
+                        item: {
+                            type: 'function_call_output',
+                            call_id: callId,
+                            output: JSON.stringify({ success: true, rendered: args.chart_type, title: args.title })
+                        }
+                    }));
+                    dc.send(JSON.stringify({ type: 'response.create' }));
+                }
+                return;
+            }
+
+            let result;
+            try {
+                if (functionName === 'run_sql_query') {
+                    console.log('Voice SQL:', args.sql);
+                    const resp = await fetch('/api/voice/query', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sql: args.sql }),
+                    });
+                    result = await resp.json();
+                    if (!result.success) console.warn('Voice SQL error:', result.error);
                 } else {
-                    const urlBuilder = toolRoutes[args.query_type];
-                    if (!urlBuilder) {
-                        result = { error: `Unknown query_type "${args.query_type}" for ${functionName}` };
+                    const toolRoutes = ROUTES[functionName];
+                    if (!toolRoutes) {
+                        result = { error: `Unknown tool: ${functionName}` };
                     } else {
-                        const url = urlBuilder(args);
-                        const resp = await fetch(url);
-                        result = await resp.json();
+                        const urlBuilder = toolRoutes[args.query_type];
+                        if (!urlBuilder) {
+                            result = { error: `Unknown query_type "${args.query_type}" for ${functionName}` };
+                        } else {
+                            const url = urlBuilder(args);
+                            const resp = await fetch(url);
+                            result = await resp.json();
+                        }
                     }
                 }
+            } catch (err) {
+                result = { error: err.message };
             }
-        } catch (err) {
-            result = { error: err.message };
-        }
 
-        // Render data visualization
-        renderData(result, functionName, args.query_type);
+            const trimmed = truncateResult(result);
+            autoVisualize(result, functionName, args.query_type);
 
-        // Truncate result to prevent oversized data channel messages.
-        // Large arrays (e.g. 1000+ sales records) would choke the Realtime API.
-        const trimmed = truncateResult(result);
-
-        // Send function result back to OpenAI via data channel
-        if (dc && dc.readyState === 'open') {
-            dc.send(JSON.stringify({
-                type: 'conversation.item.create',
-                item: {
-                    type: 'function_call_output',
-                    call_id: callId,
-                    output: JSON.stringify(trimmed)
-                }
-            }));
-            // Trigger model to continue responding with the data
-            dc.send(JSON.stringify({ type: 'response.create' }));
+            await responseDone; // wait for current response to finish
+            if (dc && dc.readyState === 'open') {
+                dc.send(JSON.stringify({
+                    type: 'conversation.item.create',
+                    item: {
+                        type: 'function_call_output',
+                        call_id: callId,
+                        output: JSON.stringify(trimmed)
+                    }
+                }));
+                dc.send(JSON.stringify({ type: 'response.create' }));
+            }
+        } finally {
+            activeFunctionCalls--;
         }
     }
 
@@ -515,14 +706,551 @@
     }
 
     // -----------------------------------------------------------------------
+    // Chart utilities & renderers
+    // -----------------------------------------------------------------------
+    function destroyActiveCharts() {
+        activeCharts.forEach(c => { try { c.destroy(); } catch {} });
+        activeCharts = [];
+    }
+
+    function createChartContainer(height) {
+        const wrap = document.createElement('div');
+        wrap.className = 'voice-chart-container';
+        // Inner div is the actual Chart.js container — NO padding, position:relative
+        const inner = document.createElement('div');
+        inner.style.cssText = 'position:relative;width:100%;height:' + (height || 280) + 'px;';
+        const canvas = document.createElement('canvas');
+        canvas.style.display = 'block';
+        inner.appendChild(canvas);
+        wrap.appendChild(inner);
+        return { wrap, canvas };
+    }
+
+    /** Create a Chart.js instance. Uses setTimeout to guarantee the
+     *  browser has computed layout before Chart.js reads dimensions. */
+    function initChart(canvas, config) {
+        setTimeout(() => {
+            if (!canvas.isConnected) return;
+            try {
+                const parent = canvas.parentElement;
+                // If parent has no dimensions yet, set explicit fallbacks
+                if (!parent || parent.clientWidth < 1) {
+                    canvas.width = 350;
+                    canvas.height = 280;
+                }
+                const ctx = canvas.getContext('2d');
+                const chart = new Chart(ctx, config);
+                activeCharts.push(chart);
+            } catch (e) {
+                console.error('Voice AI chart error:', e);
+            }
+        }, 60);
+    }
+
+    function darkChartOptions(overrides) {
+        return Object.assign({
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 600, easing: 'easeOutQuart' },
+            plugins: {
+                legend: {
+                    display: false,
+                    labels: { color: 'rgba(255,255,255,0.6)', font: { size: 12 } }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15,15,20,0.9)',
+                    titleColor: 'rgba(255,255,255,0.8)',
+                    bodyColor: 'rgba(255,255,255,0.7)',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderWidth: 1,
+                    cornerRadius: 10,
+                    padding: 10,
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: 'rgba(255,255,255,0.45)', font: { size: 11 } },
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    border: { color: 'rgba(255,255,255,0.08)' },
+                },
+                y: {
+                    ticks: { color: 'rgba(255,255,255,0.45)', font: { size: 11 } },
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    border: { color: 'rgba(255,255,255,0.08)' },
+                }
+            }
+        }, overrides || {});
+    }
+
+    function formatChartValue(val, fmt) {
+        if (fmt === 'currency') return '$' + (typeof val === 'number' ? val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : val);
+        if (fmt === 'percent') return (typeof val === 'number' ? val.toFixed(1) : val) + '%';
+        return typeof val === 'number' ? val.toLocaleString('en-US') : val;
+    }
+
+    function tooltipCallback(fmt) {
+        return {
+            callbacks: {
+                label: function(ctx) {
+                    const lbl = ctx.dataset.label || '';
+                    return lbl + ': ' + formatChartValue(ctx.parsed.y ?? ctx.parsed ?? ctx.raw, fmt);
+                }
+            }
+        };
+    }
+
+    function tickCallback(fmt) {
+        return function(value) { return formatChartValue(value, fmt); };
+    }
+
+    // --- Dispatch from create_visualization args ---
+    function renderVisualization(args) {
+        const { chart_type, title, labels, format } = args;
+        // Normalize: AI may send datasets, data, or values in various shapes
+        let datasets = args.datasets;
+        if (!datasets && args.data) datasets = args.data;
+        if (!datasets && args.values) datasets = [{ label: title || 'Value', values: args.values }];
+        if (!Array.isArray(datasets)) datasets = [];
+        // If AI sent flat numbers instead of {label, values} objects, wrap them
+        if (datasets.length && typeof datasets[0] === 'number') {
+            datasets = [{ label: title || 'Value', values: datasets }];
+        }
+        console.log('Voice viz:', { chart_type, title, labels, datasets, format });
+        if (!labels || !datasets.length) {
+            console.warn('Voice viz: missing labels or datasets', args);
+            return;
+        }
+        if (title) {
+            const titleEl = document.createElement('div');
+            titleEl.className = 'voice-chart-title';
+            titleEl.textContent = title;
+            dataEl.appendChild(titleEl);
+        }
+        switch (chart_type) {
+            case 'line':            renderLineChart(labels, datasets, format); break;
+            case 'bar':             renderBarChart(labels, datasets, format); break;
+            case 'horizontal_bar':  renderHorizontalBarChart(labels, datasets, format); break;
+            case 'doughnut':        renderDoughnutChart(labels, datasets, format); break;
+            default:                renderBarChart(labels, datasets, format);
+        }
+    }
+
+    function renderLineChart(labels, datasets, fmt) {
+        const { wrap, canvas } = createChartContainer(280);
+        dataEl.appendChild(wrap);
+        const opts = darkChartOptions();
+        opts.plugins.tooltip = Object.assign(opts.plugins.tooltip || {}, tooltipCallback(fmt));
+        if (fmt) opts.scales.y.ticks.callback = tickCallback(fmt);
+        initChart(canvas, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: datasets.map((ds, i) => ({
+                    label: ds.label,
+                    data: ds.values,
+                    borderColor: CHART_COLORS[i % CHART_COLORS.length],
+                    backgroundColor: CHART_COLORS_FILL[i % CHART_COLORS_FILL.length],
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    borderWidth: 2.5,
+                }))
+            },
+            options: Object.assign(opts, {
+                plugins: Object.assign(opts.plugins, {
+                    legend: { display: datasets.length > 1, labels: { color: 'rgba(255,255,255,0.6)', font: { size: 12 }, usePointStyle: true, pointStyle: 'circle' } }
+                })
+            })
+        });
+    }
+
+    function renderBarChart(labels, datasets, fmt) {
+        const { wrap, canvas } = createChartContainer(280);
+        dataEl.appendChild(wrap);
+        const opts = darkChartOptions();
+        opts.plugins.tooltip = Object.assign(opts.plugins.tooltip || {}, tooltipCallback(fmt));
+        if (fmt) opts.scales.y.ticks.callback = tickCallback(fmt);
+        initChart(canvas, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: datasets.map((ds, i) => ({
+                    label: ds.label,
+                    data: ds.values,
+                    backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    maxBarThickness: 48,
+                }))
+            },
+            options: Object.assign(opts, {
+                plugins: Object.assign(opts.plugins, {
+                    legend: { display: datasets.length > 1, labels: { color: 'rgba(255,255,255,0.6)', font: { size: 12 } } }
+                })
+            })
+        });
+    }
+
+    function renderHorizontalBarChart(labels, datasets, fmt) {
+        const barH = 32;
+        const height = Math.max(200, labels.length * barH + 60);
+        const { wrap, canvas } = createChartContainer(height);
+        dataEl.appendChild(wrap);
+        const opts = darkChartOptions();
+        opts.indexAxis = 'y';
+        opts.plugins.tooltip = Object.assign(opts.plugins.tooltip || {}, tooltipCallback(fmt));
+        if (fmt) opts.scales.x.ticks.callback = tickCallback(fmt);
+        initChart(canvas, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: datasets.map((ds, i) => ({
+                    label: ds.label,
+                    data: ds.values,
+                    backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    maxBarThickness: 28,
+                }))
+            },
+            options: opts
+        });
+    }
+
+    function renderDoughnutChart(labels, datasets, fmt) {
+        const { wrap, canvas } = createChartContainer(300);
+        dataEl.appendChild(wrap);
+        // Doughnut uses a flat array of values from the first dataset
+        const values = datasets[0] ? datasets[0].values : [];
+        const colors = labels.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
+        initChart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: 'rgba(10,10,15,0.95)',
+                    borderWidth: 3,
+                    hoverOffset: 8,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 600, easing: 'easeOutQuart' },
+                cutout: '55%',
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'right',
+                        labels: {
+                            color: 'rgba(255,255,255,0.6)',
+                            font: { size: 12 },
+                            padding: 14,
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,15,20,0.9)',
+                        titleColor: 'rgba(255,255,255,0.8)',
+                        bodyColor: 'rgba(255,255,255,0.7)',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        cornerRadius: 10,
+                        padding: 10,
+                        callbacks: {
+                            label: function(ctx) {
+                                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                const pct = total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0;
+                                const valStr = fmt ? formatChartValue(ctx.raw, fmt) : ctx.raw.toLocaleString('en-US');
+                                return ` ${ctx.label}: ${valStr} (${pct}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // -----------------------------------------------------------------------
+    // Auto-visualization — intelligent chart for every quantitative response
+    // -----------------------------------------------------------------------
+
+    /** Infer value format from a column/key name */
+    function detectFormat(colName) {
+        if (!colName) return null;
+        const c = colName.toLowerCase();
+        if (/price|cost|spend|revenue|total|subtotal|amount|pay|wage|salary|profit|margin|value|balance|tip|discount|budget/.test(c)) return 'currency';
+        if (/percent|pct|rate|ratio|growth|change|margin_pct|variance/.test(c)) return 'percent';
+        return null;
+    }
+
+    /** Classify columns in a row-based dataset by sampling values */
+    function classifyColumns(rows) {
+        if (!rows || rows.length === 0) return {};
+        const sample = rows.slice(0, Math.min(rows.length, 10));
+        const cols = Object.keys(sample[0]);
+        const result = {};
+        for (const col of cols) {
+            const lower = col.toLowerCase();
+            // Date detection: name-based + value-based
+            if (/date|month|week|period|day|year|quarter/.test(lower)) {
+                result[col] = 'date';
+                continue;
+            }
+            // Sample values
+            const vals = sample.map(r => r[col]).filter(v => v != null);
+            const allNumeric = vals.length > 0 && vals.every(v => typeof v === 'number' || (typeof v === 'string' && !isNaN(parseFloat(v)) && /^[\d,.$%-]+$/.test(v.trim())));
+            // Check if string values look like dates
+            const looksLikeDate = vals.length > 0 && vals.every(v => typeof v === 'string' && /^\d{4}[-/]\d{2}([-/]\d{2})?$/.test(v.trim()));
+            if (looksLikeDate) {
+                result[col] = 'date';
+            } else if (allNumeric) {
+                result[col] = 'numeric';
+            } else {
+                result[col] = 'categorical';
+            }
+        }
+        return result;
+    }
+
+    /** Pick the best chart type given labels, datasets, and column analysis */
+    function pickChartType(labels, datasets, analysis) {
+        const n = labels.length;
+        const dsCount = datasets.length;
+        // Time-series → line
+        if (analysis.hasDateAxis) return 'line';
+        // Few categories + single metric → doughnut
+        if (n >= 2 && n <= 8 && dsCount === 1) return 'doughnut';
+        // Many items → horizontal bar for readability
+        if (n > 10) return 'horizontal_bar';
+        // Sorted descending data → horizontal bar (ranking feel)
+        if (dsCount === 1 && n > 5) {
+            const vals = datasets[0].values;
+            let descending = true;
+            for (let i = 1; i < vals.length; i++) {
+                if (vals[i] > vals[i - 1]) { descending = false; break; }
+            }
+            if (descending) return 'horizontal_bar';
+        }
+        // Default
+        return 'bar';
+    }
+
+    /** Generate a human-readable chart title */
+    function generateTitle(toolName, queryType, columns) {
+        const TITLES = {
+            'query_sales:sales_overview': 'Sales Overview',
+            'query_sales:sales_by_order_type': 'Sales by Order Type',
+            'query_sales:time_comparison': 'Revenue Comparison',
+            'query_sales:product_sales_details': 'Product Sales',
+            'query_sales:sales_summary': 'Sales Summary',
+            'query_suppliers:vendor_spend': 'Vendor Spend',
+            'query_suppliers:category_spending': 'Spending by Category',
+            'query_suppliers:supplier_performance': 'Supplier Performance',
+            'query_invoices:invoice_activity': 'Invoice Activity',
+            'query_analytics:usage_forecast': 'Usage Forecast',
+            'query_analytics:price_trends': 'Price Trends',
+            'query_analytics:menu_engineering': 'Menu Engineering',
+            'query_analytics:recipe_cost_trajectory': 'Recipe Cost Trend',
+            'query_analytics:seasonal_patterns': 'Seasonal Patterns',
+            'query_analytics:inventory_value': 'Inventory Value',
+            'query_inventory:summary': 'Inventory Summary',
+            'query_payroll:summary': 'Payroll Summary',
+        };
+        const key = `${toolName}:${queryType}`;
+        if (TITLES[key]) return TITLES[key];
+        // Fallback: prettify the query type or first numeric column
+        if (queryType) return prettifyHeader(queryType);
+        if (columns && columns.length > 0) return prettifyHeader(columns[0]);
+        return 'Overview';
+    }
+
+    /**
+     * Core data extractor — normalize any API response shape into
+     * { labels[], datasets[{label, values[]}], format, chartType }
+     * Returns null if data is not chartable.
+     */
+    function extractChartData(result, toolName, queryType) {
+        if (!result || result.error) return null;
+
+        // --- Shape 1: {labels[], values[]} — vendor_spend, category_spending, sales_by_order_type ---
+        if (Array.isArray(result.labels) && Array.isArray(result.values) && result.labels.length > 0) {
+            if (!result.values.every(v => typeof v === 'number')) return null;
+            const fmt = detectFormat(queryType) || 'currency';
+            const ds = [{ label: generateTitle(toolName, queryType), values: result.values }];
+            return {
+                labels: result.labels,
+                datasets: ds,
+                format: fmt,
+                chartType: pickChartType(result.labels, ds, { hasDateAxis: false }),
+            };
+        }
+
+        // --- Shape 2: {labels[], datasets[{label, data[]}]} — invoice_activity, usage_forecast ---
+        if (Array.isArray(result.labels) && Array.isArray(result.datasets) && result.datasets.length > 0) {
+            const ds = result.datasets
+                .filter(d => Array.isArray(d.data) && d.data.length > 0)
+                .map(d => ({ label: d.label || 'Value', values: d.data }));
+            if (ds.length === 0) return null;
+            const hasDate = /date|month|week|period|day|year/i.test(result.labels[0] || '');
+            const fmt = detectFormat(ds[0].label) || 'currency';
+            return {
+                labels: result.labels,
+                datasets: ds,
+                format: fmt,
+                chartType: pickChartType(result.labels, ds, { hasDateAxis: hasDate || ds.length > 1 }),
+            };
+        }
+
+        // --- Shape 3: sales_overview — {sales_by_date[], top_products[], sales_by_order_type[]} ---
+        if (queryType === 'sales_overview') {
+            // Prefer sales_by_date for line chart
+            if (Array.isArray(result.sales_by_date) && result.sales_by_date.length >= 2) {
+                const labels = result.sales_by_date.map(r => r.date || r.period || '');
+                const ds = [{ label: 'Revenue', values: result.sales_by_date.map(r => r.revenue || r.total || 0) }];
+                return { labels, datasets: ds, format: 'currency', chartType: 'line' };
+            }
+            // Fallback: sales_by_order_type
+            if (Array.isArray(result.sales_by_order_type) && result.sales_by_order_type.length >= 2) {
+                const labels = result.sales_by_order_type.map(r => r.order_type || r.type || '');
+                const ds = [{ label: 'Sales', values: result.sales_by_order_type.map(r => r.revenue || r.total || r.count || 0) }];
+                return { labels, datasets: ds, format: 'currency', chartType: 'doughnut' };
+            }
+            return null;
+        }
+
+        // --- Shape 4: time_comparison — {today:{}, this_week:{}, this_month:{}} ---
+        if (queryType === 'time_comparison' || (result.today && result.this_week && result.this_month)) {
+            const periods = [];
+            const values = [];
+            for (const [key, obj] of Object.entries(result)) {
+                if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+                    const val = obj.revenue || obj.total || obj.sales || obj.amount;
+                    if (typeof val === 'number') {
+                        periods.push(prettifyHeader(key));
+                        values.push(val);
+                    }
+                }
+            }
+            if (periods.length >= 2) {
+                return {
+                    labels: periods,
+                    datasets: [{ label: 'Revenue', values }],
+                    format: 'currency',
+                    chartType: 'bar',
+                };
+            }
+            return null;
+        }
+
+        // --- Shape 5: {columns[], rows[{col:val}]} — run_sql_query ---
+        if (Array.isArray(result.columns) && Array.isArray(result.rows) && result.rows.length >= 2 && result.columns.length >= 2) {
+            const classified = classifyColumns(result.rows);
+            // Find label column (date > categorical > first)
+            let labelCol = result.columns.find(c => classified[c] === 'date');
+            if (!labelCol) labelCol = result.columns.find(c => classified[c] === 'categorical');
+            if (!labelCol) labelCol = result.columns[0];
+            // Find numeric columns
+            const numCols = result.columns.filter(c => c !== labelCol && classified[c] === 'numeric');
+            if (numCols.length === 0) return null;
+            const labels = result.rows.map(r => String(r[labelCol] || ''));
+            const ds = numCols.map(col => ({
+                label: prettifyHeader(col),
+                values: result.rows.map(r => typeof r[col] === 'number' ? r[col] : parseFloat(r[col]) || 0),
+            }));
+            const hasDate = classified[labelCol] === 'date';
+            const fmt = detectFormat(numCols[0]);
+            return {
+                labels,
+                datasets: ds,
+                format: fmt,
+                chartType: pickChartType(labels, ds, { hasDateAxis: hasDate }),
+            };
+        }
+
+        // --- Shape 6: {by_category[]} — inventory summary ---
+        if (Array.isArray(result.by_category) && result.by_category.length >= 2) {
+            const items = result.by_category;
+            const labelKey = Object.keys(items[0]).find(k => /name|category|label|type/.test(k.toLowerCase())) || Object.keys(items[0])[0];
+            const valKey = Object.keys(items[0]).find(k => {
+                if (k === labelKey) return false;
+                return items.every(r => typeof r[k] === 'number');
+            });
+            if (!labelKey || !valKey) return null;
+            const labels = items.map(r => String(r[labelKey] || ''));
+            const ds = [{ label: prettifyHeader(valKey), values: items.map(r => r[valKey]) }];
+            const fmt = detectFormat(valKey);
+            return {
+                labels,
+                datasets: ds,
+                format: fmt,
+                chartType: labels.length <= 8 ? 'doughnut' : 'horizontal_bar',
+            };
+        }
+
+        // --- Shape 7: product_sales_details — {sales_by_date[], summary{}} ---
+        if (Array.isArray(result.sales_by_date) && result.sales_by_date.length >= 2) {
+            const labels = result.sales_by_date.map(r => r.date || r.period || '');
+            const valKey = Object.keys(result.sales_by_date[0]).find(k => k !== 'date' && k !== 'period' && typeof result.sales_by_date[0][k] === 'number');
+            if (!valKey) return null;
+            const ds = [{ label: prettifyHeader(valKey), values: result.sales_by_date.map(r => r[valKey] || 0) }];
+            return { labels, datasets: ds, format: detectFormat(valKey), chartType: 'line' };
+        }
+
+        // Non-chartable
+        return null;
+    }
+
+    /**
+     * Entry point — analyze result, render chart if appropriate.
+     * Called automatically on every tool result.
+     */
+    function autoVisualize(result, toolName, queryType) {
+        if (!result || result.error) return;
+        const extracted = extractChartData(result, toolName, queryType);
+        if (!extracted) return;
+        const { labels, datasets, format, chartType } = extracted;
+        if (!labels || labels.length === 0 || !datasets || datasets.length === 0) return;
+
+        // Clear previous viz
+        destroyActiveCharts();
+        dataEl.innerHTML = '';
+        newUserTurn = false; // chart is from THIS turn
+
+        // Title
+        const title = generateTitle(toolName, queryType, labels);
+        const titleEl = document.createElement('div');
+        titleEl.className = 'voice-chart-title';
+        titleEl.textContent = title;
+        dataEl.appendChild(titleEl);
+
+        // Dispatch to existing renderers
+        switch (chartType) {
+            case 'line':           renderLineChart(labels, datasets, format); break;
+            case 'doughnut':       renderDoughnutChart(labels, datasets, format); break;
+            case 'horizontal_bar': renderHorizontalBarChart(labels, datasets, format); break;
+            case 'bar':
+            default:               renderBarChart(labels, datasets, format); break;
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Data visualization renderer
     // -----------------------------------------------------------------------
     function renderData(data, toolName, queryType) {
         if (!data || data.error) return;
+        destroyActiveCharts();
         dataEl.innerHTML = '';
 
+        const charted = false; // autoVisualize handles charts now
+
         // Pattern 0: SQL query result — columns[] + rows[{...}] (from run_sql_query)
-        if (Array.isArray(data.columns) && Array.isArray(data.rows) && data.columns.length > 0 && data.rows.length > 0) {
+        // Skip table if auto-chart already rendered a chart for this data
+        if (!charted && Array.isArray(data.columns) && Array.isArray(data.rows) && data.columns.length > 0 && data.rows.length > 0) {
             // Show row count badge
             const badge = document.createElement('div');
             badge.className = 'voice-data-badge';
@@ -559,7 +1287,8 @@
         }
 
         // Pattern 1: labels[] + values[] → ranked list (vendor spend, category spending)
-        if (Array.isArray(data.labels) && Array.isArray(data.values) && data.labels.length > 0) {
+        // Skip if auto-chart already rendered a chart for this data
+        if (!charted && Array.isArray(data.labels) && Array.isArray(data.values) && data.labels.length > 0) {
             const list = document.createElement('div');
             list.className = 'voice-data-list';
             const limit = Math.min(data.labels.length, 8);
@@ -579,7 +1308,7 @@
         }
 
         // Pattern 2: columns[] + rows[][] → table (supplier performance)
-        if (Array.isArray(data.columns) && Array.isArray(data.rows) && data.rows.length > 0) {
+        if (!charted && Array.isArray(data.columns) && Array.isArray(data.rows) && data.rows.length > 0) {
             const table = document.createElement('div');
             table.className = 'voice-data-table';
             const header = document.createElement('div');
@@ -609,7 +1338,7 @@
         }
 
         // Pattern 3: Array of objects (orders, employees, schedules, attendance, invoices)
-        const arrayKey = findArrayKey(data);
+        const arrayKey = !charted && findArrayKey(data);
         if (arrayKey) {
             const arr = data[arrayKey];
             if (arr.length === 0) return;
@@ -629,9 +1358,11 @@
         }
 
         // Pattern 4: Flat object with numeric/string values (summary, totals)
-        const stats = extractObjectStats(data);
-        if (stats.length > 0) {
-            renderStatCards(stats);
+        if (!charted) {
+            const stats = extractObjectStats(data);
+            if (stats.length > 0) {
+                renderStatCards(stats);
+            }
         }
     }
 
@@ -728,15 +1459,17 @@
         state = newState;
         btnMic.classList.toggle('active', state !== State.IDLE);
         statusDot.className = 'voice-ai-status-dot ' + state;
-        const labels = {
-            idle: 'Ready',
-            connecting: 'Connecting...',
-            listening: 'Listening...',
-            thinking: 'Thinking...',
-            speaking: 'Speaking...',
-        };
-        statusText.textContent = labels[state] || '';
-        waveform.classList.toggle('active', state === State.LISTENING || state === State.SPEAKING);
+        if (!paused) {
+            const labels = {
+                idle: 'Ready',
+                connecting: 'Connecting...',
+                listening: 'Listening...',
+                thinking: 'Thinking...',
+                speaking: 'Speaking...',
+            };
+            statusText.textContent = labels[state] || '';
+            waveform.classList.toggle('active', state === State.LISTENING || state === State.SPEAKING);
+        }
     }
 
     function showError(msg) {

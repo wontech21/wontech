@@ -8,6 +8,7 @@ let currentStartDate = null;
 let currentEndDate = null;
 let salesTrendChart = null;
 let hourlySalesChart = null;
+let orderTypeChart = null;
 
 /**
  * Initialize Sales Analytics when tab is shown
@@ -202,6 +203,7 @@ async function loadSalesOverview() {
             updateTopProducts([]);
             updateSalesTrendChart([]);
             updateHourlySalesChart([]);
+            updateOrderTypeBreakdown([]);
             updateQuickStats({ summary: { total_revenue: 0 } });
             return;
         }
@@ -217,6 +219,9 @@ async function loadSalesOverview() {
 
         // Update hourly sales chart
         updateHourlySalesChart(data.sales_by_hour);
+
+        // Update order type breakdown
+        updateOrderTypeBreakdown(data.sales_by_order_type);
 
         // Update quick stats
         updateQuickStats(data);
@@ -242,6 +247,93 @@ function updateSummaryStats(summary) {
 
     document.getElementById('sales-avg-transaction').textContent =
         formatCurrency(summary.avg_transaction_value || 0);
+}
+
+/**
+ * Update order type breakdown — doughnut chart + stat bars
+ */
+function updateOrderTypeBreakdown(data) {
+    const canvas = document.getElementById('orderTypeCanvas');
+    const statsContainer = document.getElementById('order-type-stats');
+
+    if (!canvas || !statsContainer) return;
+
+    // Color map for each order type
+    const TYPE_CONFIG = {
+        dine_in:  { label: 'Dine In',  color: '#4f6bed', bg: 'rgba(79,107,237,0.12)' },
+        pickup:   { label: 'Pickup',   color: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
+        delivery: { label: 'Delivery', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+        online:   { label: 'Online',   color: '#14b8a6', bg: 'rgba(20,184,166,0.12)' },
+    };
+
+    if (!data || data.length === 0) {
+        if (orderTypeChart) { orderTypeChart.destroy(); orderTypeChart = null; }
+        statsContainer.innerHTML = '<p style="color:#6c757d;text-align:center;">No order type data</p>';
+        return;
+    }
+
+    const totalRevenue = data.reduce((s, d) => s + (d.revenue || 0), 0);
+
+    // Build chart
+    const labels = data.map(d => (TYPE_CONFIG[d.order_type] || { label: d.order_type }).label);
+    const values = data.map(d => d.revenue || 0);
+    const colors = data.map(d => (TYPE_CONFIG[d.order_type] || { color: '#6c757d' }).color);
+
+    if (orderTypeChart) orderTypeChart.destroy();
+    orderTypeChart = new Chart(canvas.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors,
+                borderWidth: 2,
+                borderColor: '#fff',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: '62%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            const val = ctx.parsed;
+                            const pct = totalRevenue ? ((val / totalRevenue) * 100).toFixed(1) : 0;
+                            return `${ctx.label}: ${formatCurrency(val)} (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Build stat bars
+    let html = '';
+    data.forEach(d => {
+        const cfg = TYPE_CONFIG[d.order_type] || { label: d.order_type, color: '#6c757d', bg: 'rgba(108,117,125,0.12)' };
+        const pct = totalRevenue ? ((d.revenue / totalRevenue) * 100).toFixed(1) : 0;
+        html += `
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:10px;height:10px;border-radius:50%;background:${cfg.color};flex-shrink:0;"></div>
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;justify-content:space-between;font-size:0.85em;margin-bottom:3px;">
+                        <span style="font-weight:600;">${cfg.label}</span>
+                        <span style="color:#6c757d;">${pct}%</span>
+                    </div>
+                    <div style="height:6px;border-radius:3px;background:${cfg.bg};overflow:hidden;">
+                        <div style="height:100%;width:${pct}%;background:${cfg.color};border-radius:3px;transition:width 0.4s;"></div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.78em;color:#6c757d;margin-top:2px;">
+                        <span>${formatCurrency(d.revenue || 0)}</span>
+                        <span>${(d.num_sales || 0).toLocaleString()} sales</span>
+                    </div>
+                </div>
+            </div>`;
+    });
+    statsContainer.innerHTML = html;
 }
 
 /**

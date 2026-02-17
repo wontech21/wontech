@@ -1340,11 +1340,12 @@ async function loadInvoices() {
         if (params.toString()) url += '?' + params.toString();
 
         const recentResponse = await fetch(url);
-        const recent = await recentResponse.json();
+        const recentData = await recentResponse.json();
+        const recent = recentData.invoices || recentData;
 
         // Store data in pagination state
         paginationState.invoices.allData = recent;
-        paginationState.invoices.totalItems = recent.length;
+        paginationState.invoices.totalItems = recentData.total_count || recent.length;
         paginationState.invoices.currentPage = 1;
 
         // Render recent invoices table

@@ -140,6 +140,17 @@ def auto_process_payroll(cursor, org_id, period_start, period_end, period_type='
                 if emp_dict['receives_tips']:
                     tips += week['weekly_tips'] or 0
 
+            # Add POS tips from orders for the full period
+            if emp_dict['receives_tips']:
+                cursor.execute("""
+                    SELECT COALESCE(SUM(tip_amount), 0) as pos_tips
+                    FROM orders
+                    WHERE employee_id = ? AND DATE(created_at) >= ? AND DATE(created_at) <= ?
+                      AND status != 'voided'
+                """, (emp_dict['id'], period_start, period_end))
+                pos_result = cursor.fetchone()
+                tips += pos_result['pos_tips'] or 0
+
         # Calculate wages with CURRENT rates (these get locked in)
         regular_wage = round(regular_hours * hourly_rate, 2)
         ot_wage = round(ot_hours * hourly_rate * 1.5, 2)
@@ -204,7 +215,20 @@ def calculate_weekly_hours(cursor, employee_id, week_start, week_end):
 
     result = cursor.fetchone()
     total_hours = result['total_hours'] or 0
-    total_tips = result['total_tips'] or 0
+    attendance_tips = result['total_tips'] or 0
+
+    # POS tips from orders for this employee in the same period
+    cursor.execute("""
+        SELECT COALESCE(SUM(tip_amount), 0) as pos_tips
+        FROM orders
+        WHERE employee_id = ? AND DATE(created_at) >= ? AND DATE(created_at) <= ?
+          AND status != 'voided'
+    """, (employee_id, week_start, week_end))
+
+    pos_result = cursor.fetchone()
+    pos_tips = pos_result['pos_tips'] or 0
+
+    total_tips = attendance_tips + pos_tips
 
     # Calculate regular vs overtime (over 40 hours = OT)
     regular_hours = min(total_hours, 40)
@@ -480,6 +504,17 @@ def process_payroll():
                     ot_hours += max(wh - 40, 0)
                     if emp_dict['receives_tips']:
                         tips += week['weekly_tips'] or 0
+
+                # Add POS tips from orders for the full period
+                if emp_dict['receives_tips']:
+                    cursor.execute("""
+                        SELECT COALESCE(SUM(tip_amount), 0) as pos_tips
+                        FROM orders
+                        WHERE employee_id = ? AND DATE(created_at) >= ? AND DATE(created_at) <= ?
+                          AND status != 'voided'
+                    """, (emp_dict['id'], period_start, period_end))
+                    pos_result = cursor.fetchone()
+                    tips += pos_result['pos_tips'] or 0
 
             # Calculate wages with CURRENT rates (these get locked in)
             regular_wage = round(regular_hours * hourly_rate, 2)
@@ -920,6 +955,16 @@ def get_monthly_payroll():
                         weekly_hours[week] = 0
                     weekly_hours[week] += record['daily_hours']
                     total_tips += record['daily_tips']
+
+                # Add POS tips from orders for this employee in the month
+                cursor.execute("""
+                    SELECT COALESCE(SUM(tip_amount), 0) as pos_tips
+                    FROM orders
+                    WHERE employee_id = ? AND DATE(created_at) >= ? AND DATE(created_at) <= ?
+                      AND status != 'voided'
+                """, (emp_dict['id'], first_day, last_day))
+                pos_result = cursor.fetchone()
+                total_tips += pos_result['pos_tips'] or 0
 
                 # Calculate regular and OT hours across all weeks
                 total_hours = 0

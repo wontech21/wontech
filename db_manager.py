@@ -585,11 +585,19 @@ def create_org_database(organization_id):
             sale_price REAL,
             discount_amount REAL,
             discount_percent REAL,
+            order_type TEXT DEFAULT 'dine_in',
             FOREIGN KEY (product_id) REFERENCES products(id)
         )
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_sales_history_date ON sales_history(sale_date)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_sales_history_product ON sales_history(product_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_sales_history_order_type ON sales_history(order_type)")
+
+    # Migration: add order_type to existing databases that lack it
+    try:
+        cur.execute("ALTER TABLE sales_history ADD COLUMN order_type TEXT DEFAULT 'dine_in'")
+    except Exception:
+        pass  # Column already exists
 
     # -- Transactions: Ingredient Transactions -----------------------------
     cur.execute("""
@@ -1176,6 +1184,19 @@ def create_org_database(organization_id):
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone)")
 
+    # -- Register sessions: terminal-based (not employee-based) ----------
+    _ensure_column(cur, 'register_sessions', 'register_number', 'INTEGER NOT NULL DEFAULT 1')
+    _ensure_column(cur, 'register_sessions', 'opened_by', 'INTEGER')
+    _ensure_column(cur, 'register_sessions', 'closed_by', 'INTEGER')
+    # Backfill opened_by from employee_id for existing rows
+    try:
+        cur.execute("UPDATE register_sessions SET opened_by = employee_id WHERE opened_by IS NULL AND employee_id IS NOT NULL")
+    except Exception:
+        pass
+    # Explicit FK: orders → register_sessions
+    _ensure_column(cur, 'orders', 'register_session_id', 'INTEGER')
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_register_session ON orders(register_session_id)")
+
     # -- Storefront: orders/order_items column extensions ----------------
     _ensure_column(cur, 'orders', 'source', "TEXT DEFAULT 'pos'")
     _ensure_column(cur, 'orders', 'online_tracking_token', 'TEXT')
@@ -1187,6 +1208,31 @@ def create_org_database(organization_id):
     cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_tracking ON orders(online_tracking_token)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_source ON orders(source)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id)")
+
+    # -- Delivery: order extensions + routes + driver flag -----------------
+    _ensure_column(cur, 'orders', 'customer_lat', 'REAL')
+    _ensure_column(cur, 'orders', 'customer_lng', 'REAL')
+    _ensure_column(cur, 'orders', 'driver_id', 'INTEGER')
+    _ensure_column(cur, 'orders', 'dispatched_at', 'DATETIME')
+    _ensure_column(cur, 'orders', 'delivered_at', 'DATETIME')
+    _ensure_column(cur, 'orders', 'delivery_route_id', 'INTEGER')
+    _ensure_column(cur, 'employees', 'is_driver', 'INTEGER DEFAULT 0')
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS delivery_routes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            driver_id INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            stops TEXT NOT NULL,
+            estimated_duration_min REAL,
+            actual_duration_min REAL,
+            started_at DATETIME,
+            completed_at DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_delivery_routes_status ON delivery_routes(status)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_delivery_routes_driver ON delivery_routes(driver_id)")
 
     # -- Storefront: Business Hours --------------------------------------
     cur.execute("""

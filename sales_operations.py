@@ -13,7 +13,7 @@ from datetime import datetime
 from db_manager import get_org_db
 
 
-def record_sales_to_db(cursor, sales_data, sale_date, sale_time='', request_ip='System'):
+def record_sales_to_db(cursor, sales_data, sale_date, sale_time='', request_ip='System', order_type='dine_in'):
     """
     Record sales to sales_history, deduct ingredients, write audit log.
     Caller owns the transaction — this does NOT commit or close.
@@ -24,6 +24,7 @@ def record_sales_to_db(cursor, sales_data, sale_date, sale_time='', request_ip='
         sale_date: Date string 'YYYY-MM-DD'
         sale_time: Default time if individual items don't specify one
         request_ip: IP address for audit log
+        order_type: 'dine_in', 'pickup', 'delivery', or 'online'
 
     Returns:
         dict with applied_count, total_revenue, total_cost, total_profit
@@ -37,6 +38,7 @@ def record_sales_to_db(cursor, sales_data, sale_date, sale_time='', request_ip='
         quantity_sold = float(sale.get('quantity', 0))
         item_sale_time = sale.get('sale_time', sale_time)
         retail_price = sale.get('retail_price')
+        item_order_type = sale.get('order_type', order_type)
 
         if not product_name or quantity_sold <= 0:
             continue
@@ -89,12 +91,14 @@ def record_sales_to_db(cursor, sales_data, sale_date, sale_time='', request_ip='
             INSERT INTO sales_history (
                 sale_date, sale_time, product_id, product_name, quantity_sold,
                 revenue, cost_of_goods, gross_profit,
-                original_price, sale_price, discount_amount, discount_percent
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                original_price, sale_price, discount_amount, discount_percent,
+                order_type
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             sale_date, item_sale_time, product_id, product['product_name'],
             quantity_sold, actual_revenue, product_cost, gross_profit,
-            original_price, sale_price, discount_amount, discount_percent
+            original_price, sale_price, discount_amount, discount_percent,
+            item_order_type
         ))
 
         applied_count += 1
@@ -290,6 +294,7 @@ def register_sales_routes(app, get_db_connection=None, INVENTORY_DB=None):
         sales_data = data.get('sales_data', [])
         sale_date = data.get('sale_date', datetime.now().strftime('%Y-%m-%d'))
         sale_time = data.get('sale_time', '')
+        order_type = data.get('order_type', 'dine_in')
 
         conn = None
         try:
@@ -298,7 +303,8 @@ def register_sales_routes(app, get_db_connection=None, INVENTORY_DB=None):
 
             result = record_sales_to_db(
                 cursor, sales_data, sale_date, sale_time,
-                request_ip=request.remote_addr or 'System'
+                request_ip=request.remote_addr or 'System',
+                order_type=order_type
             )
 
             conn.commit()
