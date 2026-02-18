@@ -1376,7 +1376,7 @@ function renderUnreconciledInvoicesTable() {
             <td class="invoice-clickable" onclick="showInvoiceDetails('${escapedInvoiceNum}')">${inv.invoice_date}</td>
             <td class="invoice-clickable" onclick="showInvoiceDetails('${escapedInvoiceNum}')">${inv.received_date}</td>
             <td class="text-right invoice-clickable" onclick="showInvoiceDetails('${escapedInvoiceNum}')"><strong>${formatCurrency(inv.total_amount)}</strong></td>
-            <td class="invoice-clickable" onclick="showInvoiceDetails('${escapedInvoiceNum}')"><span class="badge badge-warning">${inv.payment_status}</span></td>
+            <td class="invoice-clickable" onclick="showInvoiceDetails('${escapedInvoiceNum}')"><span class="badge ${inv.payment_status.toUpperCase() === 'PAID' ? 'badge-success' : 'badge-warning'}">${inv.payment_status}</span></td>
             <td class="actions-cell">
                 <button class="btn-delete-dark" onclick="event.stopPropagation(); openDeleteInvoiceModal('${escapedInvoiceNum}', '${escapedSupplier}', ${inv.total_amount})" title="Delete"><span style="font-weight: 700;">🗑️</span></button>
             </td>
@@ -1410,7 +1410,7 @@ function renderInvoicesTable() {
             <td class="invoice-clickable" onclick="showInvoiceDetails('${escapedInvoiceNum}')">${inv.supplier_name}</td>
             <td class="invoice-clickable" onclick="showInvoiceDetails('${escapedInvoiceNum}')">${inv.invoice_date}</td>
             <td class="text-right invoice-clickable" onclick="showInvoiceDetails('${escapedInvoiceNum}')"><strong>${formatCurrency(inv.total_amount)}</strong></td>
-            <td class="invoice-clickable" onclick="showInvoiceDetails('${escapedInvoiceNum}')"><span class="badge ${inv.payment_status === 'PAID' ? 'badge-success' : 'badge-warning'}">${inv.payment_status}</span></td>
+            <td class="invoice-clickable" onclick="showInvoiceDetails('${escapedInvoiceNum}')"><span class="badge ${inv.payment_status.toUpperCase() === 'PAID' ? 'badge-success' : 'badge-warning'}">${inv.payment_status}</span></td>
             <td class="invoice-clickable" onclick="showInvoiceDetails('${escapedInvoiceNum}')"><span class="badge ${inv.reconciled === 'YES' ? 'badge-success' : 'badge-danger'}">${inv.reconciled}</span></td>
             <td class="actions-cell">
                 <button class="btn-delete-dark" onclick="event.stopPropagation(); openDeleteInvoiceModal('${escapedInvoiceNum}', '${escapedSupplier}', ${inv.total_amount})" title="Delete"><span style="font-weight: 700;">🗑️</span></button>

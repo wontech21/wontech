@@ -127,11 +127,13 @@
   - [x] Trimmed verbose instructions → concise 2-sentence format
   - [x] `truncateResult()` in JS: caps function call output at 4K chars, slices arrays to 20 items before sending back to Realtime API (full data still renders locally)
 
-- [ ] **D6. Voice AI write actions** — let AI execute functions (clock in, approve PTO, 86 items, etc.)
-  - Plan documented in `/docs/VOICE_AI_ACTIONS_PLAN.md`
-  - 7 action tools, ~20 action types
-  - Verbal confirmation required before every write
-  - Centralized `POST /api/voice/action` endpoint
+- [x] **D6. Voice AI write actions** — let AI execute functions (clock in, approve PTO, 86 items, etc.)
+  - [x] 7 action tools: manage_attendance, manage_schedule, manage_orders, manage_86, manage_inventory, manage_payroll, manage_menu
+  - [x] ~20 action types across all domains
+  - [x] Centralized `POST /api/voice/action` endpoint with admin-only access
+  - [x] Fuzzy name resolution (_resolve_employee, _resolve_product, _resolve_ingredient, _resolve_menu_item)
+  - [x] Verbal confirmation enforced via system prompt
+  - [x] Frontend: action dispatch in voice-ai.js, success/error confirmation cards in voice-ai.css
 
 ## Track E — Data
 

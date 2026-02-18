@@ -222,7 +222,7 @@
             hours:                () => `/api/menu-admin/hours`,
             settings:             () => `/api/menu-admin/settings`,
             categories:           () => `/api/menu-admin/categories`,
-            items:                () => `/api/menu-admin/items`,
+            items:                () => `/api/products/all`,
             modifier_groups:      a => a.item_id ? `/api/menu-admin/items/${a.item_id}/modifier-groups` : `/api/menu-admin/modifier-groups`,
         },
     };
@@ -621,7 +621,14 @@
 
             let result;
             try {
-                if (functionName === 'run_sql_query') {
+                if (functionName.startsWith('manage_')) {
+                const resp = await fetch('/api/voice/action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: functionName, params: args }),
+                });
+                result = await resp.json();
+            } else if (functionName === 'run_sql_query') {
                     console.log('Voice SQL:', args.sql);
                     const resp = await fetch('/api/voice/query', {
                         method: 'POST',
@@ -650,7 +657,11 @@
             }
 
             const trimmed = truncateResult(result);
-            autoVisualize(result, functionName, args.query_type);
+            if (functionName.startsWith('manage_')) {
+                renderActionResult(result);
+            } else {
+                autoVisualize(result, functionName, args.query_type);
+            }
 
             await responseDone; // wait for current response to finish
             if (dc && dc.readyState === 'open') {
@@ -1450,6 +1461,19 @@
         const d = document.createElement('div');
         d.textContent = s;
         return d.innerHTML;
+    }
+
+    function renderActionResult(result) {
+        destroyActiveCharts();
+        dataEl.innerHTML = '';
+        newUserTurn = false;
+        const card = document.createElement('div');
+        card.className = 'voice-data-action ' + (result.success ? 'success' : 'error');
+        card.innerHTML = `
+            <div class="action-icon">${result.success ? '&#10003;' : '&#10007;'}</div>
+            <div class="action-message">${esc(result.message || result.error || 'Unknown result')}</div>
+        `;
+        dataEl.appendChild(card);
     }
 
     // -----------------------------------------------------------------------
