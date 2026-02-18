@@ -2,7 +2,7 @@
 
 > **Location**: `/Users/dell/WONTECH/docs/POS_BUILD_PLAN.md`
 > **Created**: 2026-02-08
-> **Status**: Not started
+> **Status**: Complete — all 8 phases implemented (B1-B8)
 > **Context**: Firing Up pizzeria is the first deployment. POS must integrate fully with existing WONTECH modules (inventory, HR/scheduling, payroll, sales analytics, audit).
 
 ---
@@ -144,18 +144,18 @@ CREATE TABLE register_sessions (
 **Goal**: Orders hit the database. Sales analytics see POS transactions.
 
 **Backend:**
-- [ ] Create migration: `migrations/create_pos_tables.py` — orders, order_items, order_payments, pos_settings tables
-- [ ] New endpoint: `POST /api/pos/orders` — accepts order from frontend, inserts into orders + order_items
-- [ ] New endpoint: `GET /api/pos/orders` — fetch orders with filters (date, status, type)
-- [ ] New endpoint: `GET /api/pos/orders/<id>` — single order with items and payments
-- [ ] New endpoint: `POST /api/pos/orders/<id>/pay` — record payment to order_payments, call `/api/sales/apply` to record in sales_history
-- [ ] Wire POS order completion into existing sales pipeline so analytics dashboards update automatically
+- [x] Create migration: `migrations/create_pos_tables.py` — orders, order_items, order_payments, pos_settings tables
+- [x] New endpoint: `POST /api/pos/orders` — accepts order from frontend, inserts into orders + order_items
+- [x] New endpoint: `GET /api/pos/orders` — fetch orders with filters (date, status, type)
+- [x] New endpoint: `GET /api/pos/orders/<id>` — single order with items and payments
+- [x] New endpoint: `POST /api/pos/orders/<id>/pay` — record payment to order_payments, call `/api/sales/apply` to record in sales_history
+- [x] Wire POS order completion into existing sales pipeline so analytics dashboards update automatically
 
 **Frontend (`pos.html`):**
-- [ ] Modify `completeOrder()` to POST to `/api/pos/orders` instead of localStorage
-- [ ] Modify payment functions to POST to `/api/pos/orders/<id>/pay`
-- [ ] Order history loads from database via `/api/pos/orders` instead of localStorage
-- [ ] Keep localStorage as offline fallback only (sync when connection restored)
+- [x] Modify `completeOrder()` to POST to `/api/pos/orders` instead of localStorage
+- [x] Modify payment functions to POST to `/api/pos/orders/<id>/pay`
+- [x] Order history loads from database via `/api/pos/orders` instead of localStorage
+- [x] Keep localStorage as offline fallback only (sync when connection restored)
 
 **Integration test**: Place order → check `orders` table → check `sales_history` table → verify analytics dashboard reflects the sale.
 
@@ -165,15 +165,15 @@ CREATE TABLE register_sessions (
 **Goal**: Sell a pizza, ingredients go down automatically. Out-of-stock items are flagged.
 
 **Backend:**
-- [ ] On order confirmation, loop through order_items → look up recipe → deduct ingredients (code exists in `sales_operations.py:260-266`, wire it in)
-- [ ] New endpoint: `GET /api/pos/product-availability` — for each product, check if all recipe ingredients are in stock
-- [ ] If stock drops below reorder level after deduction, trigger `inventory_warnings` alert
-- [ ] On order void, reverse ingredient deductions
+- [x] On order confirmation, loop through order_items → look up recipe → deduct ingredients (code exists in `sales_operations.py:260-266`, wire it in)
+- [x] New endpoint: `GET /api/pos/product-availability` — for each product, check if all recipe ingredients are in stock
+- [x] If stock drops below reorder level after deduction, trigger `inventory_warnings` alert
+- [x] On order void, reverse ingredient deductions
 
 **Frontend:**
-- [ ] On product grid load, call `/api/pos/product-availability` — gray out / badge "86'd" on out-of-stock items
-- [ ] Show warning when adding an item with low-stock ingredients
-- [ ] Real-time update: when stock runs out mid-shift, update the grid
+- [x] On product grid load, call `/api/pos/product-availability` — gray out / badge "86'd" on out-of-stock items
+- [x] Show warning when adding an item with low-stock ingredients
+- [x] Real-time update: when stock runs out mid-shift, update the grid
 
 **Integration test**: Record ingredient quantities → place POS order → verify ingredient quantities decreased by recipe amounts → verify warning triggers if below reorder level.
 
@@ -183,16 +183,16 @@ CREATE TABLE register_sessions (
 **Goal**: Every order is tied to a person. POS respects permissions.
 
 **Backend:**
-- [ ] POS login endpoint — employee selects themselves or enters PIN (fast auth, not full login)
-- [ ] `employee_id` populated on every order
-- [ ] Permission checks: `pos_void`, `pos_refund`, `pos_discount`, `pos_open_drawer`
-- [ ] Tip recorded against employee for payroll integration
+- [x] POS login endpoint — employee selects themselves or enters PIN (fast auth, not full login)
+- [x] `employee_id` populated on every order
+- [x] Permission checks: `pos_void`, `pos_refund`, `pos_discount`, `pos_open_drawer`
+- [x] Tip recorded against employee for payroll integration
 
 **Frontend:**
-- [ ] POS opens with employee selection screen (shift employees only — pulled from today's schedule)
-- [ ] Employee name displayed on POS header
-- [ ] Void/refund/discount buttons check permissions, prompt for manager override if needed
-- [ ] Quick-switch employee (for shared terminals)
+- [x] POS opens with employee selection screen (shift employees only — pulled from today's schedule)
+- [x] Employee name displayed on POS header
+- [x] Void/refund/discount buttons check permissions, prompt for manager override if needed
+- [x] Quick-switch employee (for shared terminals)
 
 **Integration**: Ties into existing `employees` table and `permission_definitions` in middleware.
 
@@ -202,17 +202,17 @@ CREATE TABLE register_sessions (
 **Goal**: Orders have a lifecycle. Kitchen sees the queue. Customers can check status.
 
 **Backend:**
-- [ ] New endpoint: `PATCH /api/pos/orders/<id>/status` — update order status with timestamp
-- [ ] New endpoint: `GET /api/pos/kitchen` — orders in 'confirmed' or 'preparing' status, sorted by time
-- [ ] New endpoint: `GET /api/pos/order-status/<order_number>` — public, no auth, for customer lookup
-- [ ] Auto-transition: order paid → status = 'confirmed'
-- [ ] Timestamp tracking: `created_at`, `confirmed_at`, `preparing_at`, `ready_at`, `completed_at`
+- [x] New endpoint: `PATCH /api/pos/orders/<id>/status` — update order status with timestamp
+- [x] New endpoint: `GET /api/pos/kitchen` — orders in 'confirmed' or 'preparing' status, sorted by time
+- [x] New endpoint: `GET /api/pos/order-status/<order_number>` — public, no auth, for customer lookup
+- [x] Auto-transition: order paid → status = 'confirmed'
+- [x] Timestamp tracking: `created_at`, `confirmed_at`, `preparing_at`, `ready_at`, `completed_at`
 
 **Frontend:**
-- [ ] Kitchen Display view — separate page or tab showing order queue with timers
-- [ ] Status update buttons for kitchen staff (tap to advance: preparing → ready)
-- [ ] Color-coded time warnings (green < 10min, yellow 10-20min, red > 20min)
-- [ ] Order status visible in POS order history
+- [x] Kitchen Display view — separate page or tab showing order queue with timers
+- [x] Status update buttons for kitchen staff (tap to advance: preparing → ready)
+- [x] Color-coded time warnings (green < 10min, yellow 10-20min, red > 20min)
+- [x] Order status visible in POS order history
 
 **New template**: `templates/kitchen.html` — KDS display optimized for a mounted screen
 
@@ -222,10 +222,10 @@ CREATE TABLE register_sessions (
 **Goal**: Tips at POS flow through to payroll automatically.
 
 **Backend:**
-- [ ] On payment with tip, write to `order_payments.tip_amount` AND update employee tip accumulator
-- [ ] New endpoint or modify existing: `GET /api/payroll/tips-summary?employee_id=X&period=Y` — aggregate tips for pay period
-- [ ] Payroll calculation (`routes/payroll_routes.py`) pulls POS tip data when processing pay period
-- [ ] Tip reporting: daily tip-out summary per employee
+- [x] On payment with tip, write to `order_payments.tip_amount` AND update employee tip accumulator
+- [x] New endpoint or modify existing: `GET /api/payroll/tips-summary?employee_id=X&period=Y` — aggregate tips for pay period
+- [x] Payroll calculation (`routes/payroll_routes.py`) pulls POS tip data when processing pay period
+- [x] Tip reporting: daily tip-out summary per employee
 
 **Integration**: Connects `order_payments` → `payroll_history` through existing payroll processing pipeline.
 
@@ -235,17 +235,17 @@ CREATE TABLE register_sessions (
 **Goal**: Cash accountability. Shift-level reconciliation.
 
 **Backend:**
-- [ ] Create `register_sessions` table (schema above)
-- [ ] New endpoint: `POST /api/pos/register/open` — start session, record opening cash count
-- [ ] New endpoint: `POST /api/pos/register/close` — end session, record closing count, calculate variance
-- [ ] New endpoint: `GET /api/pos/register/current` — active session details + running totals
-- [ ] Auto-calculate expected cash: opening_cash + cash_sales - cash_refunds - cash_payouts
+- [x] Create `register_sessions` table (schema above)
+- [x] New endpoint: `POST /api/pos/register/open` — start session, record opening cash count
+- [x] New endpoint: `POST /api/pos/register/close` — end session, record closing count, calculate variance
+- [x] New endpoint: `GET /api/pos/register/current` — active session details + running totals
+- [x] Auto-calculate expected cash: opening_cash + cash_sales - cash_refunds - cash_payouts
 
 **Frontend:**
-- [ ] Register open screen at start of shift — count drawer, enter amount
-- [ ] Register close flow — count drawer, system shows expected vs actual, note variance
-- [ ] Shift summary: total sales, breakdown by payment method, tips collected, refunds issued
-- [ ] Print shift report
+- [x] Register open screen at start of shift — count drawer, enter amount
+- [x] Register close flow — count drawer, system shows expected vs actual, note variance
+- [x] Shift summary: total sales, breakdown by payment method, tips collected, refunds issued
+- [x] Print shift report
 
 ---
 
@@ -253,15 +253,15 @@ CREATE TABLE register_sessions (
 **Goal**: Customer gets a receipt — print, email, or text.
 
 **Backend:**
-- [ ] New endpoint: `POST /api/pos/orders/<id>/receipt/email` — sends formatted receipt via existing email infrastructure (`share_routes.py`)
-- [ ] New endpoint: `POST /api/pos/orders/<id>/receipt/sms` — sends receipt link via existing Twilio scaffold
-- [ ] Receipt template: order number, items, subtotal, tax, tip, total, payment method, timestamp, business name/address
+- [x] New endpoint: `POST /api/pos/orders/<id>/receipt/email` — sends formatted receipt via existing email infrastructure (`share_routes.py`)
+- [x] New endpoint: `POST /api/pos/orders/<id>/receipt/sms` — sends receipt link via existing Twilio scaffold
+- [x] Receipt template: order number, items, subtotal, tax, tip, total, payment method, timestamp, business name/address
 
 **Frontend:**
-- [ ] Replace `printReceipt()` stub with formatted thermal-printer-friendly HTML
-- [ ] Replace `emailReceipt()` stub with actual API call
-- [ ] Replace `textReceipt()` stub with actual API call
-- [ ] Post-payment screen: "Receipt sent!" confirmation
+- [x] Replace `printReceipt()` stub with formatted thermal-printer-friendly HTML
+- [x] Replace `emailReceipt()` stub with actual API call
+- [x] Replace `textReceipt()` stub with actual API call
+- [x] Post-payment screen: "Receipt sent!" confirmation
 
 ---
 
@@ -269,15 +269,15 @@ CREATE TABLE register_sessions (
 **Goal**: Repeat customers are recognized. Order history enables AI insights later.
 
 **Backend:**
-- [ ] New table: `customers` — name, phone, email, address, first_order, last_order, total_orders, total_spent
-- [ ] Auto-create customer profile on first order (match by phone number)
-- [ ] Link `orders.customer_id` to `customers` table
-- [ ] New endpoint: `GET /api/pos/customers/<phone>` — lookup by phone, return profile + recent orders
+- [x] New table: `customers` — name, phone, email, address, first_order, last_order, total_orders, total_spent
+- [x] Auto-create customer profile on first order (match by phone number)
+- [x] Link `orders.customer_id` to `customers` table
+- [x] New endpoint: `GET /api/pos/customers/<phone>` — lookup by phone, return profile + recent orders
 
 **Frontend:**
-- [ ] Phone number lookup during order entry — "Welcome back, John. Same as last time?"
-- [ ] Quick reorder from past orders
-- [ ] Customer notes visible during order entry ("allergic to shellfish", "always asks for extra sauce")
+- [x] Phone number lookup during order entry — "Welcome back, John. Same as last time?"
+- [x] Quick reorder from past orders
+- [x] Customer notes visible during order entry ("allergic to shellfish", "always asks for extra sauce")
 
 **AI integration point**: Customer data feeds future retention analysis, purchase pattern predictions, personalized upsell suggestions.
 
