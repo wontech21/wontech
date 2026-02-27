@@ -1,171 +1,143 @@
-# WONTECH Business Management Platform
+# WONTECH
 
-A comprehensive restaurant inventory and sales tracking application built with Flask and vanilla JavaScript.
+Business management platform for small and mid-size businesses ($1-10M revenue). Each client gets a customized technical build — AI-powered insights, vertically integrated digital infrastructure, and data management delivered through human consultants ("Growth Partners").
 
-## Features
+**First client:** Firing Up (pizzeria) — proof of concept with full operational deployment.
 
-### 📦 Inventory Management
-- Track ingredients with multiple variants (brands, suppliers)
-- Consolidated and detailed inventory views
-- Automatic reorder level warnings
-- Storage location tracking
-- Date received and lot number management
-- Composite ingredients support (recipes within ingredients)
+## Stack
 
-### 🍔 Products & Recipes
-- Create products with ingredient recipes
-- Products-as-ingredients support (nested recipes up to 2 levels)
-- Automatic cost calculation from ingredient costs
-- Recipe validation (circular dependency detection, depth limits)
-- Real-time profit margin calculations
-
-### 💰 Sales Analytics
-- Sales dashboard with 7-day, monthly, and custom date ranges
-- Revenue, profit, and cost of goods tracking
-- Top products analysis
-- Sales trend charts and hourly distribution
-- CSV export for all sales records
-
-### 📄 Invoice Management
-- Upload and process invoices
-- Automatic inventory reconciliation
-- Invoice history and tracking
-- Supplier and brand management
-
-### 🔢 Inventory Counts
-- Perform physical inventory counts
-- Automatic variance detection
-- Count history tracking
-
-## Technology Stack
-
-- **Backend:** Python 3.11, Flask 3.1.2
-- **Database:** SQLite3
+- **Backend:** Python 3.13, Flask 3.1.2
+- **Database:** SQLite (separate DB per tenant)
 - **Frontend:** Vanilla JavaScript (ES6+), HTML5, CSS3
+- **AI:** OpenAI GPT-4o-mini (insights), OpenAI Realtime API (voice)
 - **Charts:** Chart.js 4.4.0
-- **Deployment:** Docker, Docker Compose
 
 ## Quick Start
 
-### Local Development
-
 ```bash
-# Clone the repository
 git clone https://github.com/wontech21/wontech.git
 cd wontech
-
-# Create virtual environment
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+source venv/bin/activate
 pip install -r requirements.txt
-
-# Run the application
 python app.py
-
-# Open browser to http://localhost:5001
+# → http://localhost:5001
 ```
 
-### Docker Deployment
-
-```bash
-# Build and run with Docker Compose
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop
-docker-compose down
-```
-
-## Project Structure
+## Architecture
 
 ```
 WONTECH/
-├── app.py                      # Main Flask application
-├── crud_operations.py          # CRUD API endpoints
-├── sales_operations.py         # Sales processing logic
-├── sales_analytics.py          # Analytics endpoints
-├── inventory.db                # SQLite database
-├── templates/
-│   └── dashboard.html          # Main UI template
+├── app.py                          # Flask entry point, blueprint registration
+├── db_manager.py                   # Canonical schema, DB creation, context managers
+├── middleware/
+│   ├── tenant_context_separate_db.py  # Multi-tenant auth + org routing
+│   └── feature_gating.py          # Feature flag middleware
+├── routes/                         # 18 route blueprints
+│   ├── auth_routes.py             # Login, logout, password
+│   ├── portal_routes.py           # Page views, navigation
+│   ├── pos_routes.py              # POS orders, register, payments
+│   ├── attendance_routes.py       # Clock in/out, breaks
+│   ├── employee_mgmt_routes.py    # Employee CRUD
+│   ├── inventory_app_routes.py    # Ingredients, products, recipes, invoices
+│   ├── analytics_app_routes.py    # Widgets, charts, CSV exports
+│   ├── insights_routes.py         # AI-powered business insights
+│   ├── kpi_routes.py              # 8 real-time business KPIs
+│   ├── reports_routes.py          # Report generation + exports
+│   ├── converter_routes.py        # MOR builder + file management
+│   ├── voice_routes.py            # Voice AI (OpenAI Realtime)
+│   ├── share_routes.py            # Email/SMS (SendGrid, Twilio)
+│   ├── admin_routes.py            # Super admin operations
+│   └── ...
+├── utils/
+│   ├── converter/                 # MOR builder, bank statement parser
+│   ├── report_data_functions.py   # Report data queries
+│   ├── report_formatters.py       # CSV/PDF formatters
+│   ├── response.py                # Standardized API envelope
+│   └── schema.py                  # Safe DB migration helpers
 ├── static/
-│   ├── css/
-│   │   └── style.css          # Application styles
 │   ├── js/
-│   │   ├── dashboard.js       # Main dashboard logic
-│   │   ├── sales_analytics.js # Sales charts & analytics
-│   │   └── layer4_sales.js    # CSV processing
-│   └── icons/                 # PWA app icons
-├── Dockerfile                  # Container definition
-├── docker-compose.yml          # Service orchestration
-└── requirements.txt            # Python dependencies
+│   │   ├── dashboard.js           # Core init + navigation
+│   │   ├── analytics.js           # Charts, widgets
+│   │   ├── inventory.js           # Ingredient management
+│   │   ├── products.js            # Product/recipe management
+│   │   ├── invoices.js            # Invoice CRUD
+│   │   ├── counts.js              # Physical inventory counts
+│   │   ├── settings.js            # Settings, theming
+│   │   ├── reports.js             # Reports + MOR builder
+│   │   ├── voice-ai.js            # Voice AI frontend
+│   │   └── utils.js               # Shared API helpers, formatting
+│   └── css/
+│       ├── style.css              # Main styles
+│       ├── dashboard-components.css # Component tokens
+│       └── voice-ai.css           # Voice AI immersive UI
+├── templates/
+│   ├── dashboard.html             # Admin dashboard
+│   ├── dashboard_home.html        # Home tab with KPIs + insights
+│   ├── pos.html                   # Point of sale terminal
+│   ├── reports.html               # Reports + MOR builder
+│   ├── insights.html              # Full insights page
+│   └── ...
+├── databases/                     # Per-tenant SQLite databases
+├── migrations/                    # Database migration scripts
+└── tasks/todo.md                  # Master task tracking
 ```
 
-## API Endpoints
+## Features
 
-### Inventory
-- `GET /api/inventory/aggregated` - Get consolidated inventory
-- `GET /api/inventory/detailed` - Get detailed variants
-- `POST /api/ingredients` - Create ingredient
-- `PUT /api/ingredients/<id>` - Update ingredient
-- `DELETE /api/ingredients/<id>` - Delete ingredient
+### Operations
+- **Inventory** — ingredients, products, recipes, barcode scanning, supplier management
+- **Sales** — POS terminal, order lifecycle, payment processing (cash/card/mobile)
+- **Invoices** — upload, reconciliation, cost tracking
+- **HR** — employees, scheduling, shift swaps, time off/PTO
+- **Attendance** — clock in/out, breaks, admin timesheet editing
+- **Payroll** — regular/OT/tips calculation, weekly/monthly periods, paystubs
+- **Register** — multi-register support, cash reconciliation, settlement reports
+- **Receipts** — print, email (SendGrid), SMS (Twilio)
+- **Customers** — auto-created profiles, order history, phone lookup
 
-### Products
-- `GET /api/products/all` - List all products
-- `POST /api/products` - Create product
-- `PUT /api/products/<id>` - Update product
-- `DELETE /api/products/<id>` - Delete product
-- `GET /api/products/<id>/recipe` - Get product recipe
-- `GET /api/products/<id>/ingredient-cost` - Calculate ingredient cost
+### Intelligence
+- **AI Insights** — GPT-4o-mini daily business analysis with day-of-week focus rotation
+- **KPI Dashboard** — 8 metrics (food cost, gross margin, labor cost, prime cost, avg ticket, rev/labor hr, inventory turnover, invoice cycle) with industry benchmarks and trends
+- **Voice AI** — OpenAI Realtime API via WebRTC, 12 read tools + 7 write actions, full-screen immersive UI
+- **Reports** — configurable report catalog with CSV/PDF export and audit logging
 
-### Sales
-- `GET /api/analytics/sales-overview` - Sales dashboard data
-- `GET /api/sales/history` - Sales records with pagination
-- `POST /api/sales/parse-csv` - Parse CSV sales data
-- `POST /api/sales/apply` - Process and save sales
+### Tools
+- **MOR Builder** — Monthly Operating Report generator for Chapter 11 cases (bank statement parsing, exhibit generation, AcroForm filling, PDF merging)
 
-### Invoices
-- `GET /api/invoices` - List invoices
-- `POST /api/invoices/upload` - Upload invoice
-- `DELETE /api/invoices/delete/<number>` - Delete invoice
+### Platform
+- **Multi-tenant** — separate SQLite DB per organization, super admin / org admin / employee tiers
+- **Theming** — 10 gradient themes + custom background images
+- **Audit logging** — full system history across all operations
 
-## Database Schema
+## API
 
-### Main Tables
-- `ingredients` - Ingredient master data
-- `products` - Product definitions
-- `recipes` - Product recipes (links products to ingredients/other products)
-- `sales_history` - Sales transaction records
-- `invoices` - Invoice master data
-- `invoice_items` - Invoice line items
-- `inventory_counts` - Physical count records
+18 blueprints, 250+ routes. Key endpoint groups:
 
-### Key Features
-- Products can use other products as ingredients (with validation)
-- Automatic cost rollup for nested products
-- Circular dependency prevention
-- Audit trails with timestamps
+| Prefix | Purpose |
+|--------|---------|
+| `/api/pos/` | POS orders, register, payments, tips, receipts |
+| `/api/inventory/` | Ingredients, products, recipes, counts |
+| `/api/invoices/` | Invoice CRUD, reconciliation |
+| `/api/analytics/` | Widgets, sales data, CSV exports |
+| `/api/insights/` | AI-generated business insights |
+| `/api/kpi/` | Real-time business KPIs |
+| `/api/reports/` | Report generation + export |
+| `/api/converter/` | MOR builder, file history |
+| `/api/voice/` | Voice AI sessions + actions |
+| `/api/attendance/` | Clock in/out, breaks, timesheets |
+| `/api/employees/` | Employee CRUD, scheduling |
+| `/api/payroll/` | Payroll calculation, paystubs |
 
-## Contributing
+## Data
 
-This is a private project. If you have access and want to contribute:
-
-1. Create a feature branch
-2. Make your changes
-3. Test thoroughly
-4. Submit a pull request
+Firing Up (org_1) has 14 months of operational data:
+- ~135K sales records (Jan 2025 - Feb 2026)
+- ~460 invoices with line items
+- ~3,000 attendance records
+- ~130 payroll records across weekly + monthly periods
+- 975 ingredient variants, 40+ products with recipes
 
 ## License
 
-Private - All rights reserved
-
-## Author
-
-wontech21
-
-## Support
-
-For issues or questions, please open an issue on GitHub.
+Private — All rights reserved.

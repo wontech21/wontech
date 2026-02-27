@@ -1,9 +1,8 @@
 # WONTECH Project Status
 
-**Last Updated:** 2026-02-17
+**Last Updated:** 2026-02-27
 
 > For detailed task tracking, see `/tasks/todo.md`
-> For POS build details, see `/docs/POS_BUILD_PLAN.md`
 
 ---
 
@@ -11,9 +10,10 @@
 
 - **Stack**: Flask 3.1.2 + vanilla JS + SQLite (separate DB per tenant)
 - **Architecture**: Multi-tenant SaaS — super admin (WONTECH) / org admin / employee tiers
-- **Routes**: `app.py` (342 lines) + 16,700+ lines across `routes/*.py` (13 blueprints)
-- **Frontend**: `dashboard.js` (8,343 lines), `dashboard.html` (3,563 lines), `pos.html` (4,606 lines)
-- **Database**: `db_manager.py` — canonical schema (30 tables, 9 views for org; 7 tables for master)
+- **Routes**: `app.py` (342 lines) + 18 blueprints across `routes/*.py`
+- **Frontend**: Domain-split JS modules (analytics, counts, inventory, invoices, products, settings, reports, utils) + dashboard.js (~800 lines core)
+- **Templates**: dashboard.html, dashboard_home.html, pos.html, reports.html, insights.html
+- **Database**: `db_manager.py` — canonical schema (33+ tables, 9 views for org; 7 tables for master)
 
 ---
 
@@ -49,24 +49,37 @@
 - Full-screen immersive UI with data visualization (5 render patterns)
 - Fuzzy name resolution, verbal confirmation enforcement
 
-### Foundation Repair (A1-A4 Complete)
-- A1: Schema consolidation — db_manager.py single source of truth
-- A2: Route extraction — app.py from 6,921 → 342 lines across 13 blueprints
-- A3: Connection context managers — `master_db()` and `org_db()`
-- A4: Shared function deduplication — utils/auth.py, utils/audit.py
+### AI Integration (F1-F4 Complete)
+- **F1** Today's Intelligence — GPT-4o-mini daily insights with rule-based fallback, day-of-week focus rotation, hero card on dashboard home, full insights page
+- **F2** KPI Dashboard Strip — 8 business metrics (food cost, gross margin, labor cost, prime cost, avg ticket, rev/labor hr, inventory turnover, invoice cycle) with industry benchmarks, trends, and status indicators
+- **F3** Reports & Exports — report registry with data functions, formatters, CSV/PDF export, audit logging
+- **F4** MOR Builder — Monthly Operating Report generator (bank statement parsing, exhibit generation, flat PDF rendering via canvas overlays, JSON sidecar for chained generation, template fallback)
 
-### Data
-- Historical data simulation — 94,992 sales, 372 invoices, 2,916 attendance, 120 payroll records
-- Audit log backfill for all simulated data (32,113 entries)
+### Foundation Repair (A1-A11 Complete)
+- **A1** Schema consolidation — db_manager.py single source of truth
+- **A2** Route extraction — app.py from 6,921 → 342 lines across 18 blueprints
+- **A3** Connection context managers — `master_db()` and `org_db()`
+- **A4** Shared function deduplication — utils/auth.py, utils/audit.py
+- **A5** Dashboard.js split — 8,343 → ~800 lines, 7 domain modules extracted
+- **A6** Shared utils.js — API helpers, toast notifications, formatting
+- **A7** Debug artifact removal
+- **A8** CSS variable system — dashboard-components.css with design tokens
+- **A9** Inline style extraction — moved to CSS classes
+- **A10** API response envelope — utils/response.py standardized structure
+- **A11** Migration infrastructure — version tracking, schema utilities
+
+### Data (E1-E2 Complete)
+- Historical data simulation — 94,992 sales, 372 invoices, 2,916 attendance, 120 payroll records (Jan-Dec 2025)
+- Gap fill simulation — 9,099+ sales, 12 invoices, 50 attendance, weekly payroll (Jan 24 - Feb 22, 2026)
+- Total: ~135K sales, ~464 invoices, ~3,000 attendance, ~130 payroll records
 
 ---
 
 ## Not Started
 
-- **AI integration** — insights over existing data (core WONTECH differentiator)
-- **Meta admin layer** — WONTECH's operational dashboard for managing clients + Growth Partners
+- **F5-F9** Advanced AI — insight history/trends, email/SMS digest, anomaly detection, predictive forecasting, voice ↔ insights integration
+- **G1-G4** Meta admin layer — WONTECH's operational dashboard for managing clients + Growth Partners
 - **Vertical abstraction** — adapting platform beyond restaurants (not needed until client #2)
-- **Frontend refactoring (A5-A11)** — split dashboard.js, shared utils, CSS variable system, API envelope standardization, migration infrastructure
 
 ---
 
@@ -81,6 +94,7 @@
 | SendGrid / SMTP | Email receipts | Scaffolded |
 | Twilio | SMS receipts | Scaffolded |
 | OpenAI Realtime API | Voice AI | Working |
+| OpenAI Chat API | Business insights (GPT-4o-mini) | Working |
 
 ---
 
@@ -90,11 +104,18 @@
 |------|---------|
 | `app.py` | Flask app entry, blueprint registration |
 | `db_manager.py` | Canonical schema, DB creation, context managers |
-| `routes/*.py` | 13 route blueprints (pos, auth, portal, attendance, etc.) |
+| `routes/*.py` | 18 route blueprints |
 | `middleware/tenant_context_separate_db.py` | Multi-tenant middleware |
-| `sales_operations.py` | Sales pipeline + inventory deduction |
-| `templates/pos.html` | POS frontend (4,606 lines) |
-| `templates/dashboard.html` | Admin dashboard frontend |
-| `static/js/dashboard.js` | Dashboard logic |
+| `middleware/feature_gating.py` | Feature flag middleware |
+| `utils/converter/` | MOR builder, bank statement parser, merchant normalizer |
+| `utils/response.py` | Standardized API envelope |
+| `utils/schema.py` | Safe DB migration helpers |
+| `utils/report_*.py` | Report registry, data functions, formatters |
+| `static/js/dashboard.js` | Core init + navigation (~800 lines) |
+| `static/js/*.js` | 8 domain modules (analytics, counts, inventory, etc.) |
 | `static/js/voice-ai.js` | Voice AI frontend |
+| `templates/pos.html` | POS frontend |
+| `templates/dashboard.html` | Admin dashboard |
+| `templates/dashboard_home.html` | Home tab — KPIs + insights |
+| `templates/reports.html` | Reports + MOR builder |
 | `tasks/todo.md` | Master task tracking |

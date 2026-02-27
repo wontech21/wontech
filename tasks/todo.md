@@ -1,7 +1,7 @@
 # WONTECH — Master Plan
 
 > Started: 2026-02-08
-> Reference: `/docs/CODEBASE_AUDIT_2026-02-08.md`, `/docs/POS_BUILD_PLAN.md`
+> Last Updated: 2026-02-27
 
 ---
 
@@ -41,6 +41,42 @@
   - [x] Removed dead `log_audit` closure from sales_operations.py (defined but never called)
   - [x] Identified sales_tracking.py as dead code (not imported anywhere, uses legacy inventory.db)
   - [x] Test: 222 routes, 7 users, 975 ingredients — all intact
+
+- [x] **A5. Split dashboard.js** into domain modules (2026-02-17)
+  - [x] Extract analytics.js (~1,200 lines) — chart rendering, widget data, analytics tab
+  - [x] Extract counts.js (~400 lines) — physical inventory count management
+  - [x] Extract settings.js (~600 lines) — settings tab, theming, employee management
+  - [x] Extract invoices.js (~500 lines) — invoice CRUD, reconciliation
+  - [x] Extract products.js (~800 lines) — product/recipe management
+  - [x] Extract inventory.js (~700 lines) — ingredient management, suppliers
+  - [x] dashboard.js reduced from 8,343 → ~800 lines (init, navigation, shared state)
+
+- [x] **A6. Create shared utils.js** (2026-02-17)
+  - [x] API helper (`apiFetch`) with standardized error handling
+  - [x] Toast notifications, modal helpers, formatting utilities
+  - [x] All domain modules import from utils.js
+
+- [x] **A7. Remove debug artifacts** (2026-02-17)
+  - [x] Removed stray console.log statements
+  - [x] Cleaned debug comments and commented-out code
+
+- [x] **A8. CSS variable system** (2026-02-17)
+  - [x] Created static/css/dashboard-components.css
+  - [x] Card, button, table, modal styles via CSS custom properties
+  - [x] Consistent spacing, border-radius, shadow tokens
+
+- [x] **A9. Extract inline styles from HTML** (2026-02-17)
+  - [x] Moved inline `style=""` attributes to CSS classes
+  - [x] dashboard.html and dashboard_home.html cleaned
+
+- [x] **A10. Standardize API response envelope** (2026-02-17)
+  - [x] Created utils/response.py — `api_success()`, `api_error()` helpers
+  - [x] Consistent `{success, data, error, meta}` structure
+
+- [x] **A11. Migration infrastructure with version tracking** (2026-02-17)
+  - [x] Enhanced run_migrations.py with version tracking table
+  - [x] Idempotent migrations, rollback documentation
+  - [x] Created utils/schema.py for safe column/table operations
 
 ## Track B — POS Build
 
@@ -145,6 +181,13 @@
   - [x] Employee hire dates backdated to 2024
   - [x] Database backed up before running (`org_1.db.bak`)
 
+- [x] **E2. Gap fill simulation** (2026-02-19 to 2026-02-22)
+  - [x] 9,099+ additional sales records (Jan 24 - Feb 22, 2026)
+  - [x] 12 additional invoices (Feb 12-22, INV-01083 through INV-01094)
+  - [x] 50 additional attendance records (Feb 18-22)
+  - [x] 2 weekly payroll periods (Feb 9-15 and Feb 16-22, ~$10.5K each)
+  - [x] Jan 2026 monthly payroll corrected ($10K → $33.5K realistic)
+
 ## Track F — AI Integration
 
 - [x] **F1. "Today's Intelligence" — Proactive insights on dashboard** (2026-02-17)
@@ -156,30 +199,53 @@
   - [x] Day-of-week focus rotation: Mon=labor, Tue=costs, Wed=menu, Thu=inventory, Fri=weekend prep, Sat=peak, Sun=weekly recap
   - [x] Full-page insights view at `/dashboard/insights` (`templates/insights.html`)
   - [x] Hero card on dashboard home — full-width, top position, live preview of all insights
-  - [x] Blueprint wired in `routes/__init__.py`, `app.py`, `routes/portal_routes.py`
-  - [x] Verified end-to-end: AI insights with real data, caching (10ms cached vs 9s fresh), refresh, fallback
+  - [x] Verified end-to-end: AI insights with real data, caching, refresh, fallback
 
-- [ ] **F2. Insight history + trends**
+- [x] **F2. KPI Dashboard Strip** (2026-02-17)
+  - [x] `routes/kpi_routes.py` — 8 business KPIs with trend, target, and status
+  - [x] Food Cost %, Gross Margin %, Labor Cost %, Prime Cost %, Avg Ticket, Rev/Labor Hr, Inventory Turnover, Invoice Cycle
+  - [x] Industry benchmarks with good/warning/critical thresholds
+  - [x] Week-over-week trend comparison (payroll: actual period-based, not rolling window)
+  - [x] 1-hour cache via widget_data_cache
+
+- [x] **F3. Reports & Exports system** (2026-02-17)
+  - [x] `routes/reports_routes.py` — report registry with data functions + formatters
+  - [x] `utils/report_data_functions.py`, `utils/report_formatters.py`, `utils/report_registry.py`
+  - [x] CSV and PDF export with audit logging
+  - [x] Reports page at `/dashboard/reports` (`templates/reports.html`)
+
+- [x] **F4. MOR Builder** (2026-02-19, updated 2026-02-21)
+  - [x] `utils/converter/mor_builder.py` — form filler, exhibit generator, PDF merger
+  - [x] `utils/converter/pdf_extractors.py` — Eastern Bank statement parser (word-level positional)
+  - [x] `utils/converter/merchant_normalizer.py` — 200+ merchant name mappings
+  - [x] `routes/converter_routes.py` — MOR generation pipeline, file history, download
+  - [x] Flat PDF rendering (canvas overlays, not AcroForm) — consistent across all viewers
+  - [x] JSON sidecar for reliable chained generation (avoids pypdf field-loss)
+  - [x] Template fallback for questionnaire/case info preservation
+  - [x] Exhibit C (deposits) + Exhibit D (withdrawals/checks) auto-generated
+  - [x] Integrated into Reports page as "MOR Builder" tab
+
+- [ ] **F5. Insight history + trends**
   - [ ] Store each day's insights in a history table
   - [ ] Track which insights recur vs. are new
   - [ ] "This week's insights" summary view
 
-- [ ] **F3. Email/SMS daily digest**
+- [ ] **F6. Email/SMS daily digest**
   - [ ] Morning email with top 3 insights (leverage existing SendGrid/Twilio from share_routes.py)
   - [ ] Configurable: daily, weekdays-only, or off
   - [ ] Admin settings page for digest preferences
 
-- [ ] **F4. Anomaly detection + push alerts**
+- [ ] **F7. Anomaly detection + push alerts**
   - [ ] Real-time monitoring for threshold breaches (inventory stockout, revenue drop >20%, overtime spike)
   - [ ] In-app notification system
   - [ ] Optional SMS alerts for critical anomalies
 
-- [ ] **F5. Predictive forecasting**
+- [ ] **F8. Predictive forecasting**
   - [ ] Demand forecasting based on historical sales patterns + seasonality
   - [ ] Cash flow projection (revenue trends vs. upcoming invoice obligations)
   - [ ] Suggested prep quantities for upcoming days
 
-- [ ] **F6. Voice AI integration**
+- [ ] **F9. Voice AI ↔ Insights integration**
   - [ ] "What are today's insights?" via voice assistant
   - [ ] "Tell me more about [specific insight]" — drill-down conversation
   - [ ] Voice-triggered refresh
@@ -190,13 +256,3 @@
 - [ ] **G2. Client onboarding flow** — create org, provision database, configure features
 - [ ] **G3. Growth Partner portal** — commission tracking, client health metrics
 - [ ] **G4. Cross-client analytics** — aggregate KPIs across all managed businesses
-
-## Track A (continued) — Frontend Refactoring
-
-- [ ] **A5. Split dashboard.js** into domain modules
-- [ ] **A6. Create shared utils.js**
-- [ ] **A7. Remove debug artifacts**
-- [ ] **A8. CSS variable system**
-- [ ] **A9. Extract inline styles from HTML**
-- [ ] **A10. Standardize API response envelope across all endpoints**
-- [ ] **A11. Migration infrastructure with version tracking**
