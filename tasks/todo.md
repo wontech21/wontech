@@ -145,7 +145,53 @@
   - [x] Employee hire dates backdated to 2024
   - [x] Database backed up before running (`org_1.db.bak`)
 
-## Track A (continued) — Frontend
+## Track F — AI Integration
+
+- [x] **F1. "Today's Intelligence" — Proactive insights on dashboard** (2026-02-17)
+  - [x] `routes/insights_routes.py` — new blueprint with `GET /api/insights/today` + `POST /api/insights/refresh`
+  - [x] 8 SQL aggregation queries: sales pulse, top/bottom products, inventory health, cost changes, unreconciled invoices, labor snapshot, menu margins, stale products
+  - [x] OpenAI GPT-4o-mini integration (Chat Completions, structured JSON output, ~$0.001/call)
+  - [x] Rule-based fallback when no API key — generates insights from raw snapshot data
+  - [x] Cache via `widget_data_cache` table — expires at midnight (daily refresh)
+  - [x] Day-of-week focus rotation: Mon=labor, Tue=costs, Wed=menu, Thu=inventory, Fri=weekend prep, Sat=peak, Sun=weekly recap
+  - [x] Full-page insights view at `/dashboard/insights` (`templates/insights.html`)
+  - [x] Hero card on dashboard home — full-width, top position, live preview of all insights
+  - [x] Blueprint wired in `routes/__init__.py`, `app.py`, `routes/portal_routes.py`
+  - [x] Verified end-to-end: AI insights with real data, caching (10ms cached vs 9s fresh), refresh, fallback
+
+- [ ] **F2. Insight history + trends**
+  - [ ] Store each day's insights in a history table
+  - [ ] Track which insights recur vs. are new
+  - [ ] "This week's insights" summary view
+
+- [ ] **F3. Email/SMS daily digest**
+  - [ ] Morning email with top 3 insights (leverage existing SendGrid/Twilio from share_routes.py)
+  - [ ] Configurable: daily, weekdays-only, or off
+  - [ ] Admin settings page for digest preferences
+
+- [ ] **F4. Anomaly detection + push alerts**
+  - [ ] Real-time monitoring for threshold breaches (inventory stockout, revenue drop >20%, overtime spike)
+  - [ ] In-app notification system
+  - [ ] Optional SMS alerts for critical anomalies
+
+- [ ] **F5. Predictive forecasting**
+  - [ ] Demand forecasting based on historical sales patterns + seasonality
+  - [ ] Cash flow projection (revenue trends vs. upcoming invoice obligations)
+  - [ ] Suggested prep quantities for upcoming days
+
+- [ ] **F6. Voice AI integration**
+  - [ ] "What are today's insights?" via voice assistant
+  - [ ] "Tell me more about [specific insight]" — drill-down conversation
+  - [ ] Voice-triggered refresh
+
+## Track G — Meta Admin (WONTECH Operations)
+
+- [ ] **G1. WONTECH admin dashboard** — manage clients + Growth Partners
+- [ ] **G2. Client onboarding flow** — create org, provision database, configure features
+- [ ] **G3. Growth Partner portal** — commission tracking, client health metrics
+- [ ] **G4. Cross-client analytics** — aggregate KPIs across all managed businesses
+
+## Track A (continued) — Frontend Refactoring
 
 - [ ] **A5. Split dashboard.js** into domain modules
 - [ ] **A6. Create shared utils.js**

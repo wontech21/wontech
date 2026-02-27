@@ -386,6 +386,40 @@ def create_master_db():
         "CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action)"
     )
 
+    # ---- schema_migrations ----
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            migration_name TEXT UNIQUE NOT NULL,
+            applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            checksum TEXT
+        )
+    """)
+
+    # ---- share_tokens (persistent share links) ----
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS share_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            token TEXT UNIQUE NOT NULL,
+            organization_id INTEGER,
+            file_data BLOB NOT NULL,
+            file_name TEXT NOT NULL,
+            file_type TEXT NOT NULL,
+            created_by INTEGER,
+            expires_at DATETIME NOT NULL,
+            accessed_count INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL,
+            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+        )
+    """)
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_share_token ON share_tokens(token)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_share_expires ON share_tokens(expires_at)"
+    )
+
     conn.commit()
     conn.close()
     print(f"Master database initialized: {MASTER_DB_PATH}")
@@ -1372,6 +1406,62 @@ def create_org_database(organization_id):
         )
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_order_item_mods_item ON order_item_modifiers(order_item_id)")
+
+    # -- Converter: File History ----------------------------------------
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS converter_file_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            file_type TEXT NOT NULL,
+            file_category TEXT NOT NULL,
+            original_filename TEXT NOT NULL,
+            stored_filepath TEXT NOT NULL,
+            file_size_bytes INTEGER,
+            month_year TEXT,
+            file_hash TEXT,
+            created_by INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_converter_fh_month ON converter_file_history(month_year)")
+
+    # -- Converter: MOR Generation Log ----------------------------------
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS converter_mor_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            month_year TEXT NOT NULL UNIQUE,
+            report_date TEXT,
+            line_19_opening_balance REAL,
+            line_20_receipts REAL,
+            line_21_disbursements REAL,
+            line_22_net_cash_flow REAL,
+            line_23_ending_balance REAL,
+            proj_receipts REAL,
+            proj_disbursements REAL,
+            proj_net REAL,
+            employees_current TEXT,
+            prof_fees_cumulative REAL,
+            responsible_party TEXT,
+            bank_statement_file_id INTEGER,
+            exhibit_c_file_id INTEGER,
+            exhibit_d_file_id INTEGER,
+            mor_file_id INTEGER,
+            verification_deposits_ok INTEGER DEFAULT 1,
+            verification_withdrawals_ok INTEGER DEFAULT 1,
+            created_by INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_converter_mor_month ON converter_mor_log(month_year)")
+
+    # -- Schema Migrations Tracking ------------------------------------
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            migration_name TEXT UNIQUE NOT NULL,
+            applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            checksum TEXT
+        )
+    """)
 
     # ------------------------------------------------------------------
     #  VIEWS  (9 views)

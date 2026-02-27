@@ -1,32 +1,33 @@
 """
 Share Routes - Email and SMS sharing functionality
+
+Share tokens are persisted to master.db so download links survive server restarts.
 """
 
 from flask import Blueprint, request, jsonify, send_file, current_app, g
-import os
 import base64
 import secrets
-import json
 from datetime import datetime, timedelta
-from functools import wraps
 
 share_bp = Blueprint('share', __name__, url_prefix='/api/share')
 
-# In-memory store for temporary share links (use Redis/DB in production)
-# Format: { token: { 'file_data': ..., 'file_name': ..., 'expires': datetime, 'file_type': ... } }
-temp_shares = {}
 
-# Cleanup expired shares
+def _get_master_db():
+    from db_manager import get_master_db
+    return get_master_db()
+
+
 def cleanup_expired_shares():
-    now = datetime.now()
-    expired = [token for token, data in temp_shares.items() if data['expires'] < now]
-    for token in expired:
-        del temp_shares[token]
+    """Delete expired share tokens from the database."""
+    conn = _get_master_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM share_tokens WHERE expires_at < ?", (datetime.now().isoformat(),))
+    conn.commit()
+    conn.close()
 
 
 def get_email_service():
     """Get configured email service"""
-    # Check for SendGrid
     sendgrid_key = current_app.config.get('SENDGRID_API_KEY')
     if sendgrid_key:
         try:
@@ -35,7 +36,6 @@ def get_email_service():
         except ImportError:
             pass
 
-    # Check for SMTP config
     smtp_host = current_app.config.get('SMTP_HOST')
     if smtp_host:
         return 'smtp', {
@@ -75,18 +75,7 @@ def get_sms_service():
 
 @share_bp.route('/email', methods=['POST'])
 def send_email():
-    """
-    Send email with file attachment
-
-    Body: {
-        "to": "email@example.com",
-        "subject": "Your Report",
-        "message": "Please find attached...",
-        "file_data": "base64_encoded_file",
-        "file_name": "report.csv",
-        "file_type": "text/csv"
-    }
-    """
+    """Send email with file attachment"""
     data = request.get_json()
 
     to_email = data.get('to')
@@ -102,13 +91,11 @@ def send_email():
     if not file_data_b64:
         return jsonify({'error': 'File data is required'}), 400
 
-    # Decode file data
     try:
         file_data = base64.b64decode(file_data_b64)
-    except Exception as e:
+    except Exception:
         return jsonify({'error': 'Invalid file data'}), 400
 
-    # Get email service
     service_type, config = get_email_service()
 
     if not service_type:
@@ -116,9 +103,9 @@ def send_email():
 
     try:
         if service_type == 'sendgrid':
-            result = send_via_sendgrid(config, to_email, subject, message, file_data, file_name, file_type)
+            send_via_sendgrid(config, to_email, subject, message, file_data, file_name, file_type)
         elif service_type == 'smtp':
-            result = send_via_smtp(config, to_email, subject, message, file_data, file_name, file_type)
+            send_via_smtp(config, to_email, subject, message, file_data, file_name, file_type)
 
         return jsonify({'success': True, 'message': 'Email sent successfully'})
 
@@ -156,7 +143,6 @@ def send_via_sendgrid(api_key, to_email, subject, message, file_data, file_name,
         html_content=html_content
     )
 
-    # Add attachment
     encoded_file = base64.b64encode(file_data).decode()
     attachment = Attachment(
         FileContent(encoded_file),
@@ -183,18 +169,15 @@ def send_via_smtp(config, to_email, subject, message, file_data, file_name, file
     msg['To'] = to_email
     msg['Subject'] = subject
 
-    # Body
     body = message or 'Please find your report attached.'
     msg.attach(MIMEText(body, 'plain'))
 
-    # Attachment
     part = MIMEBase('application', 'octet-stream')
     part.set_payload(file_data)
     encoders.encode_base64(part)
     part.add_header('Content-Disposition', f'attachment; filename="{file_name}"')
     msg.attach(part)
 
-    # Send
     with smtplib.SMTP(config['host'], config['port']) as server:
         server.starttls()
         if config.get('user') and config.get('password'):
@@ -210,17 +193,7 @@ def send_via_smtp(config, to_email, subject, message, file_data, file_name, file
 
 @share_bp.route('/text', methods=['POST'])
 def send_text():
-    """
-    Send SMS with download link
-
-    Body: {
-        "to": "+15555555555",
-        "message": "Your report is ready",
-        "file_data": "base64_encoded_file",
-        "file_name": "report.csv",
-        "file_type": "text/csv"
-    }
-    """
+    """Send SMS with download link. File stored in DB for persistence."""
     data = request.get_json()
 
     to_phone = data.get('to')
@@ -242,26 +215,30 @@ def send_text():
     elif not to_phone.startswith('+'):
         to_phone = '+' + to_phone
 
-    # Get SMS service
     service_type, config = get_sms_service()
 
     if not service_type:
         return jsonify({'error': 'SMS service not configured. Add Twilio credentials.'}), 400
 
     try:
-        # Decode and store file temporarily
         file_data = base64.b64decode(file_data_b64)
 
-        # Generate secure download token
+        # Generate secure download token and persist to DB
         token = secrets.token_urlsafe(32)
         expiry_hours = current_app.config.get('SHARE_LINK_EXPIRY_HOURS', 24)
+        expires_at = (datetime.now() + timedelta(hours=expiry_hours)).isoformat()
 
-        temp_shares[token] = {
-            'file_data': file_data,
-            'file_name': file_name,
-            'file_type': file_type,
-            'expires': datetime.now() + timedelta(hours=expiry_hours)
-        }
+        org_id = g.organization['id'] if hasattr(g, 'organization') and g.organization else None
+        user_id = g.user['id'] if hasattr(g, 'user') and g.user else None
+
+        conn = _get_master_db()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO share_tokens (token, organization_id, file_data, file_name, file_type, created_by, expires_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (token, org_id, file_data, file_name, file_type, user_id, expires_at))
+        conn.commit()
+        conn.close()
 
         # Cleanup old shares
         cleanup_expired_shares()
@@ -303,27 +280,45 @@ def send_via_twilio(config, to_phone, message):
 
 @share_bp.route('/download/<token>', methods=['GET'])
 def download_shared_file(token):
-    """Download a temporarily shared file"""
+    """Download a shared file by token from the database."""
     cleanup_expired_shares()
 
-    if token not in temp_shares:
+    conn = _get_master_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT file_data, file_name, file_type, expires_at
+        FROM share_tokens
+        WHERE token = ?
+    """, (token,))
+    row = cursor.fetchone()
+
+    if not row:
+        conn.close()
         return jsonify({'error': 'Link expired or invalid'}), 404
 
-    share_data = temp_shares[token]
-
-    if share_data['expires'] < datetime.now():
-        del temp_shares[token]
+    if datetime.fromisoformat(row['expires_at']) < datetime.now():
+        cursor.execute("DELETE FROM share_tokens WHERE token = ?", (token,))
+        conn.commit()
+        conn.close()
         return jsonify({'error': 'Link has expired'}), 410
 
-    # Create response with file
+    # Increment access count
+    cursor.execute("UPDATE share_tokens SET accessed_count = accessed_count + 1 WHERE token = ?", (token,))
+    conn.commit()
+
+    file_data = row['file_data']
+    file_name = row['file_name']
+    file_type = row['file_type']
+    conn.close()
+
     from io import BytesIO
-    file_buffer = BytesIO(share_data['file_data'])
+    file_buffer = BytesIO(file_data)
 
     return send_file(
         file_buffer,
-        mimetype=share_data['file_type'],
+        mimetype=file_type,
         as_attachment=True,
-        download_name=share_data['file_name']
+        download_name=file_name
     )
 
 

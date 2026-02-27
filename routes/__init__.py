@@ -15,11 +15,17 @@ from .storefront_routes import storefront_bp
 from .menu_admin_routes import menu_admin_bp
 from .voice_routes import voice_bp
 from .delivery_routes import delivery_bp
+from .insights_routes import insights_bp
+from .kpi_routes import kpi_bp
+from .ask_routes import ask_bp
+from .reports_routes import reports_bp
+from .converter_routes import converter_bp
 
 __all__ = [
     'admin_bp', 'employee_bp', 'pos_bp',
     'auth_bp', 'portal_bp', 'attendance_bp',
     'employee_mgmt_bp', 'inventory_app_bp', 'analytics_app_bp',
     'storefront_bp', 'menu_admin_bp', 'voice_bp',
-    'delivery_bp',
+    'delivery_bp', 'insights_bp', 'kpi_bp', 'ask_bp',
+    'reports_bp', 'converter_bp',
 ]

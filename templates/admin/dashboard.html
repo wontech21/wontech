@@ -480,6 +480,9 @@
                 <button class="admin-btn admin-btn-primary" onclick="openCreateOrgModal()">
                     <span class="btn-icon">+</span> New Organization
                 </button>
+                <button class="admin-btn admin-btn-primary" onclick="window.location.href='/dashboard/reports'">
+                    <span class="btn-icon">📊</span> Reports
+                </button>
                 <button class="admin-btn admin-btn-primary" onclick="openPasswordChangeModal()">
                     <span class="btn-icon">🔒</span> Change Password
                 </button>
@@ -890,6 +893,7 @@
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
@@ -1154,6 +1158,7 @@
         .manage-tab-content.active {
             display: block;
         }
+
 
         /* Users List */
         .users-list {
@@ -1501,6 +1506,7 @@
                     alert('Failed to load organization details');
                 });
         }
+
 
         function loadOrganizationUsers(orgId) {
             const container = document.getElementById('orgUsersList');

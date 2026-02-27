@@ -18,5 +18,17 @@ requests==2.31.0
 # Database
 # SQLite3 is included with Python (no package needed)
 
+# Reports & Exports
+openpyxl>=3.1.0
+reportlab>=4.0.0
+
+# File Converter / MOR Builder
+pdfplumber>=0.10.0
+pandas>=2.0.0
+pypdf>=4.0.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
 # Production server
 gunicorn==21.2.0

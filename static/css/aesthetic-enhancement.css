@@ -9,7 +9,7 @@ category icon system (🍞🥩🧀🥬 etc.)
 /* ==================== ENHANCED MODALS ==================== */
 
 .modal-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--wt-gradient);
     border-bottom: none;
     padding: 24px 30px;
     position: relative;
@@ -181,7 +181,7 @@ category icon system (🍞🥩🧀🥬 etc.)
 .form-group input[type="email"]:focus,
 .form-group select:focus,
 .form-group textarea:focus {
-    border-color: #667eea;
+    border-color: var(--wt-primary);
     outline: none;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15),
                 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -217,7 +217,7 @@ category icon system (🍞🥩🧀🥬 etc.)
     width: 22px;
     height: 22px;
     cursor: pointer;
-    accent-color: #667eea;
+    accent-color: var(--wt-primary);
     margin-right: 8px;
 }
 
@@ -315,7 +315,7 @@ category icon system (🍞🥩🧀🥬 etc.)
 
 /* Inline Create Buttons (Supplier/Brand) */
 .btn-create-inline {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--wt-gradient);
     color: white;
     padding: 10px 20px;
     border: none;
@@ -451,7 +451,7 @@ category icon system (🍞🥩🧀🥬 etc.)
 }
 
 .form-group-with-action:hover {
-    border-color: #667eea;
+    border-color: var(--wt-primary);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
     transform: translateY(-2px);
 }
@@ -588,7 +588,7 @@ category icon system (🍞🥩🧀🥬 etc.)
 
 /* Enhanced Header */
 .header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--wt-gradient);
     position: relative;
     overflow: hidden;
     box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
@@ -674,7 +674,7 @@ category icon system (🍞🥩🧀🥬 etc.)
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
-    color: #6c757d;
+    color: var(--wt-gray-500);
     min-width: 120px;
     white-space: nowrap;
 }
@@ -694,7 +694,7 @@ category icon system (🍞🥩🧀🥬 etc.)
 
 .tab-btn:hover {
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
-    color: #667eea;
+    color: var(--wt-primary);
     transform: translateY(-2px);
 }
 
@@ -704,7 +704,7 @@ category icon system (🍞🥩🧀🥬 etc.)
 
 .tab-btn.active {
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
-    color: #667eea;
+    color: var(--wt-primary);
     box-shadow: 0 -4px 12px rgba(102, 126, 234, 0.2);
 }
 
@@ -779,12 +779,12 @@ category icon system (🍞🥩🧀🥬 etc.)
 }
 
 .filters select:hover {
-    border-color: #667eea;
+    border-color: var(--wt-primary);
     box-shadow: 0 4px 8px rgba(102, 126, 234, 0.15);
 }
 
 .filters select:focus {
-    border-color: #667eea;
+    border-color: var(--wt-primary);
     outline: none;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
@@ -860,7 +860,7 @@ category icon system (🍞🥩🧀🥬 etc.)
 .summary-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
-    border-color: #667eea;
+    border-color: var(--wt-primary);
 }
 
 .stat-card h3,
@@ -886,7 +886,7 @@ category icon system (🍞🥩🧀🥬 etc.)
 .stat-value {
     font-size: 2.2em;
     font-weight: 700;
-    color: #667eea;
+    color: var(--wt-primary);
     margin: 8px 0;
 }
 
@@ -902,7 +902,7 @@ table {
 }
 
 thead {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--wt-gradient);
     color: white;
 }
 
@@ -1021,7 +1021,7 @@ input[type="text"].search-input {
 
 input[type="search"]:focus,
 input[type="text"].search-input:focus {
-    border-color: #667eea;
+    border-color: var(--wt-primary);
     outline: none;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     transform: translateY(-1px);
@@ -1049,9 +1049,9 @@ input[type="text"].search-input:focus {
 }
 
 .pagination button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--wt-gradient);
     color: white;
-    border-color: #667eea;
+    border-color: var(--wt-primary);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
@@ -1062,9 +1062,9 @@ input[type="text"].search-input:focus {
 }
 
 .pagination button.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--wt-gradient);
     color: white;
-    border-color: #667eea;
+    border-color: var(--wt-primary);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
@@ -1080,7 +1080,7 @@ input[type="text"].search-input:focus {
 .empty-state {
     text-align: center;
     padding: 60px 20px;
-    color: #6c757d;
+    color: var(--wt-gray-500);
 }
 
 .empty-state-icon {
@@ -1098,7 +1098,7 @@ input[type="text"].search-input:focus {
 
 .empty-state-description {
     font-size: 1em;
-    color: #6c757d;
+    color: var(--wt-gray-500);
 }
 
 /* Enhanced Loading State */
@@ -1116,14 +1116,14 @@ input[type="text"].search-input:focus {
     height: 48px;
     border: 4px solid rgba(102, 126, 234, 0.2);
     border-radius: 50%;
-    border-top-color: #667eea;
+    border-top-color: var(--wt-primary);
     animation: spin 0.8s ease-in-out infinite;
 }
 
 .loading-text {
     font-size: 1.1em;
     font-weight: 600;
-    color: #667eea;
+    color: var(--wt-primary);
 }
 
 /* Enhanced Category Badges (additional polish) */
@@ -1225,7 +1225,7 @@ input[type="text"].search-input:focus {
     width: 20px;
     height: 20px;
     cursor: pointer;
-    accent-color: #667eea;
+    accent-color: var(--wt-primary);
 }
 
 .selection-controls .checkbox-label span {
@@ -1234,7 +1234,7 @@ input[type="text"].search-input:focus {
 
 .selection-count {
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-    color: #667eea;
+    color: var(--wt-primary);
     padding: 8px 16px;
     border-radius: 20px;
     font-weight: 600;
@@ -1277,7 +1277,7 @@ input[type="text"].search-input:focus {
 }
 
 .selection-controls .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--wt-gradient);
     color: white;
     box-shadow: 0 3px 8px rgba(102, 126, 234, 0.25);
 }
@@ -1390,7 +1390,7 @@ input[type="text"].search-input:focus {
 }
 
 .ingredient-quantity {
-    color: #667eea;
+    color: var(--wt-primary);
     font-size: 0.9em;
     font-weight: 500;
 }
@@ -1499,7 +1499,7 @@ input[type="text"].search-input:focus {
 
 /* Form Section Titles */
 .section-title {
-    color: #667eea;
+    color: var(--wt-primary);
     font-size: 1.1em;
     font-weight: 600;
     margin: 0 0 15px 0;
@@ -1524,7 +1524,7 @@ input[type="text"].search-input:focus {
 }
 
 .form-help-text {
-    color: #6c757d;
+    color: var(--wt-gray-500);
     font-size: 0.9em;
     margin: -5px 0 15px 0;
     font-style: italic;
@@ -1536,7 +1536,7 @@ input[type="text"].search-input:focus {
 }
 
 .product-name-cell:hover {
-    color: #667eea;
+    color: var(--wt-primary);
 }
 
 /* Responsive Enhancements */

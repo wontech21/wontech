@@ -18,6 +18,7 @@ from db_manager import get_master_db, get_org_db, create_master_db, create_org_d
 
 # Multi-tenant middleware
 from middleware.tenant_context_separate_db import set_tenant_context
+from middleware.feature_gating import has_feature
 
 # Legacy route modules (old register_* pattern)
 from crud_operations import register_crud_routes
@@ -31,11 +32,14 @@ from routes import (
     auth_bp, portal_bp, attendance_bp,
     employee_mgmt_bp, inventory_app_bp, analytics_app_bp,
     storefront_bp, menu_admin_bp, voice_bp,
-    delivery_bp,
+    delivery_bp, insights_bp, kpi_bp, ask_bp,
+    converter_bp,
 )
 from routes.schedule_routes import schedule_bp
 from routes.payroll_routes import payroll_bp
 from routes.share_routes import share_bp
+from routes.reports_routes import reports_bp
+import utils.report_data_functions  # noqa: F401 — triggers report registrations
 
 # ---------------------------------------------------------------------------
 # Flask app
@@ -45,6 +49,9 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'firing-up-secret-key-CH
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['GOOGLE_MAPS_API_KEY'] = os.environ.get('GOOGLE_MAPS_API_KEY', '')
+
+# Jinja globals
+app.jinja_env.globals['has_feature'] = has_feature
 
 # ---------------------------------------------------------------------------
 # Database initialization at startup
@@ -62,7 +69,7 @@ def _seed_default_org_and_admin():
         (id, organization_name, slug, db_filename, owner_name, owner_email, plan_type, features)
         VALUES
         (1, 'Default Organization', 'default', 'org_1.db', 'System Admin', 'admin@wontech.com', 'enterprise',
-         '["barcode_scanning", "payroll", "invoicing"]')
+         '["barcode_scanning", "payroll", "invoicing", "reports"]')
     """)
 
     password_hash = hash_password('admin123')
@@ -104,6 +111,7 @@ app.register_blueprint(schedule_bp)
 app.register_blueprint(payroll_bp)
 app.register_blueprint(pos_bp)
 app.register_blueprint(share_bp)
+app.register_blueprint(reports_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(portal_bp)
 app.register_blueprint(attendance_bp)
@@ -114,6 +122,10 @@ app.register_blueprint(storefront_bp)
 app.register_blueprint(menu_admin_bp)
 app.register_blueprint(voice_bp)
 app.register_blueprint(delivery_bp)
+app.register_blueprint(insights_bp)
+app.register_blueprint(kpi_bp)
+app.register_blueprint(ask_bp)
+app.register_blueprint(converter_bp)
 
 # Register legacy route modules (old register_* pattern)
 register_crud_routes(app)

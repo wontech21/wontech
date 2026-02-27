@@ -102,6 +102,386 @@
             font-weight: 400;
         }
 
+        /* Today's Intelligence — Hero Card */
+        .intelligence-hero {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 32px 36px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .intelligence-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #10b981 33%, #f59e0b 66%, #ef4444 100%);
+        }
+
+        .intelligence-hero:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+            border-color: rgba(102, 126, 234, 0.6);
+        }
+
+        .intelligence-hero-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .intelligence-hero-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .intelligence-icon {
+            font-size: 40px;
+            display: block;
+        }
+
+        .intelligence-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .intelligence-subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin: 2px 0 0 0;
+        }
+
+        .intelligence-meta {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .intelligence-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .intelligence-updated {
+            font-size: 13px;
+            color: #9ca3af;
+        }
+
+        .intelligence-insights {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .intelligence-loading {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #9ca3af;
+            padding: 12px 0;
+            font-size: 14px;
+        }
+
+        .intelligence-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #e5e7eb;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .insight-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 14px;
+            background: #f9fafb;
+            border-radius: 10px;
+            transition: background 0.2s;
+        }
+
+        .insight-item:hover {
+            background: #f3f4f6;
+        }
+
+        .insight-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-top: 5px;
+        }
+
+        .insight-dot.critical { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.3); }
+        .insight-dot.warning { background: #f59e0b; box-shadow: 0 0 6px rgba(245, 158, 11, 0.3); }
+        .insight-dot.positive { background: #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.3); }
+        .insight-dot.info { background: #6366f1; box-shadow: 0 0 6px rgba(99, 102, 241, 0.3); }
+
+        .insight-text {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .insight-text strong {
+            font-size: 14px;
+            color: #1f2937;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .insight-text span {
+            font-size: 13px;
+            color: #6b7280;
+            line-height: 1.4;
+            display: block;
+        }
+
+        /* Insight drill-down */
+        .insight-item { cursor: pointer; }
+        .insight-detail {
+            display: none;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .insight-item.expanded .insight-detail { display: block; }
+        .insight-action {
+            font-size: 13px;
+            color: #4b5563;
+            font-style: italic;
+            margin-bottom: 6px;
+        }
+        .insight-view-data {
+            font-size: 12px;
+            color: #667eea;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .insight-view-data:hover { text-decoration: underline; }
+
+        /* Severity badge coloring */
+        .intelligence-badge.badge-critical {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            animation: pulse-badge 2s ease-in-out infinite;
+        }
+        .intelligence-badge.badge-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        .intelligence-badge.badge-good {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        @keyframes pulse-badge {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+        }
+
+        /* KPI Strip */
+        .kpi-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .kpi-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 14px;
+            padding: 20px 22px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+        }
+        .kpi-card.status-good::before { background: #10b981; }
+        .kpi-card.status-warning::before { background: #f59e0b; }
+        .kpi-card.status-critical::before { background: #ef4444; }
+        .kpi-card.status-info::before { background: #6366f1; }
+        .kpi-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+            margin-bottom: 6px;
+        }
+        .kpi-value-row {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .kpi-unit {
+            font-size: 16px;
+            font-weight: 500;
+            color: #6b7280;
+        }
+        .kpi-trend {
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        .kpi-trend.up { color: #10b981; }
+        .kpi-trend.down { color: #ef4444; }
+        .kpi-trend.flat { color: #9ca3af; }
+        .kpi-target {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 2px;
+        }
+
+        /* Ask Bar */
+        .ask-bar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px 28px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        .ask-input-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .ask-input-row input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+            background: #f9fafb;
+            color: #1f2937;
+        }
+        .ask-input-row input:focus {
+            border-color: #667eea;
+            background: white;
+        }
+        .ask-input-row input::placeholder { color: #9ca3af; }
+        .ask-input-row button {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            white-space: nowrap;
+        }
+        .ask-input-row button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .ask-input-row button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .ask-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .ask-chip {
+            padding: 6px 14px;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #4b5563;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .ask-chip:hover {
+            background: #e5e7eb;
+            border-color: #667eea;
+            color: #667eea;
+        }
+        .ask-result {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .ask-answer {
+            font-size: 15px;
+            color: #1f2937;
+            line-height: 1.6;
+            margin-bottom: 16px;
+            white-space: pre-line;
+        }
+        .ask-chart-container {
+            max-height: 300px;
+            margin-top: 12px;
+        }
+        .ask-source {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 960px) {
+            .intelligence-hero { padding: 24px; }
+            .intelligence-hero-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .intelligence-insights { grid-template-columns: 1fr; }
+            .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+            .ask-input-row { flex-direction: column; }
+        }
+
         .section-cards {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -274,6 +654,59 @@
             <h1 class="landing-title" style="font-weight: 700;">{{ g.organization.organization_name }} Data Center</h1>
         </div>
 
+        <!-- Today's Intelligence — Hero Card -->
+        <div class="intelligence-hero">
+            <div class="intelligence-hero-header" style="cursor:pointer;" onclick="window.location.href='/dashboard/insights'">
+                <div class="intelligence-hero-left">
+                    <span class="intelligence-icon">🧠</span>
+                    <div>
+                        <h2 class="intelligence-title">Today's Intelligence</h2>
+                        <p class="intelligence-subtitle">AI-powered insights across sales, inventory, labor & costs</p>
+                    </div>
+                </div>
+                <div class="intelligence-meta">
+                    <span class="intelligence-badge" id="insightsBadge" style="display:none;">
+                        <span class="badge-dot"></span>
+                        <span id="insightsBadgeText">5 insights</span>
+                    </span>
+                    <span class="intelligence-updated" id="insightsUpdated"></span>
+                </div>
+            </div>
+            <div id="insightsPreview" class="intelligence-insights">
+                <div class="intelligence-loading">
+                    <div class="intelligence-spinner"></div>
+                    <span>Analyzing your business data...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Strip -->
+        <div class="kpi-strip" id="kpiStrip">
+            <div class="kpi-card status-info"><div class="kpi-label">Food Cost</div><div class="kpi-value-row"><span class="kpi-value">--</span></div></div>
+            <div class="kpi-card status-info"><div class="kpi-label">Labor Cost</div><div class="kpi-value-row"><span class="kpi-value">--</span></div></div>
+            <div class="kpi-card status-info"><div class="kpi-label">Prime Cost</div><div class="kpi-value-row"><span class="kpi-value">--</span></div></div>
+            <div class="kpi-card status-info"><div class="kpi-label">Avg Ticket</div><div class="kpi-value-row"><span class="kpi-value">--</span></div></div>
+        </div>
+
+        <!-- Ask-a-Question Bar -->
+        <div class="ask-bar">
+            <div class="ask-input-row">
+                <input type="text" id="askInput" placeholder="Ask about your business..." onkeydown="if(event.key==='Enter') askQuestion()">
+                <button id="askBtn" onclick="askQuestion()">Ask</button>
+            </div>
+            <div class="ask-suggestions" id="askSuggestions">
+                <span class="ask-chip" onclick="askFromChip(this)">How are sales today?</span>
+                <span class="ask-chip" onclick="askFromChip(this)">What's my food cost?</span>
+                <span class="ask-chip" onclick="askFromChip(this)">Top products this week?</span>
+                <span class="ask-chip" onclick="askFromChip(this)">Overtime hours?</span>
+            </div>
+            <div class="ask-result" id="askResult">
+                <div class="ask-answer" id="askAnswer"></div>
+                <div class="ask-chart-container"><canvas id="askChart"></canvas></div>
+                <div class="ask-source" id="askSource"></div>
+            </div>
+        </div>
+
         <div class="section-cards">
             <!-- Inventory & Sales Card -->
             <div class="section-card" onclick="window.location.href='/dashboard/inventory'">
@@ -419,6 +852,42 @@
                 </div>
             </div>
 
+            <!-- Reports & Exports Card -->
+            <div class="section-card" onclick="window.location.href='/dashboard/reports'">
+                <span class="section-icon">📊</span>
+                <h2 class="section-title">Reports & Tools</h2>
+                <p class="section-description">
+                    Business reports, bank statement conversion, and Monthly Operating Report builder.
+                </p>
+
+                <ul class="feature-list">
+                    <li>21 Built-in Reports</li>
+                    <li>Bank Statement Converter</li>
+                    <li>MOR Builder (Form 425C)</li>
+                    <li>CSV, Excel & PDF Export</li>
+                    <li>Client Profiles & History</li>
+                </ul>
+
+                <div class="section-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="statReportCount">-</div>
+                        <div class="stat-label">Reports</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statReportCategories">-</div>
+                        <div class="stat-label">Categories</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statReportFormats">3</div>
+                        <div class="stat-label">Formats</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="statReportExports">-</div>
+                        <div class="stat-label">Exports</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Kitchen Display Card -->
             <div class="section-card" onclick="window.location.href='/dashboard/kitchen'">
                 <span class="section-icon">🍳</span>
@@ -454,9 +923,13 @@
                     </div>
                 </div>
             </div>
+
+
+
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         // Load stats for inventory section (each stat independent so one failure doesn't block others)
         async function loadInventoryStats() {
@@ -614,12 +1087,215 @@
             } catch (err) { console.error('Error loading delivery routes stats:', err); }
         }
 
+        // Domain-to-question mapping for "View data" links
+        const domainQuestions = {
+            sales: 'Show me revenue by day this week',
+            inventory: 'Low stock items?',
+            labor: 'Overtime hours?',
+            costs: "What's my food cost?",
+            operations: 'How are sales today?',
+        };
+
+        // Load insights for Today's Intelligence hero card
+        async function loadInsights() {
+            try {
+                const res = await fetch('/api/insights/today');
+                const data = await res.json();
+                const container = document.getElementById('insightsPreview');
+
+                if (data.success && data.insights && data.insights.length > 0) {
+                    container.innerHTML = data.insights.map((i, idx) => {
+                        const q = domainQuestions[i.domain] || 'How are sales today?';
+                        return `
+                        <div class="insight-item" onclick="toggleInsight(this, event)">
+                            <div class="insight-dot ${i.severity || 'info'}"></div>
+                            <div class="insight-text">
+                                <strong>${i.title}</strong>
+                                <span>${(i.detail || '').substring(0, 100)}${(i.detail || '').length > 100 ? '...' : ''}</span>
+                                <div class="insight-detail">
+                                    <div class="insight-action">${i.action || ''}</div>
+                                    <span class="insight-view-data" onclick="askFromInsight('${q.replace(/'/g, "\\'")}', event)">View data &rarr;</span>
+                                </div>
+                            </div>
+                        </div>`;
+                    }).join('');
+
+                    // Badge with severity coloring
+                    const badge = document.getElementById('insightsBadge');
+                    const hasCritical = data.insights.some(i => i.severity === 'critical');
+                    const hasWarning = data.insights.some(i => i.severity === 'warning');
+                    const actionable = data.insights.filter(i => i.severity === 'critical' || i.severity === 'warning').length;
+
+                    badge.className = 'intelligence-badge';
+                    if (hasCritical) badge.classList.add('badge-critical');
+                    else if (hasWarning) badge.classList.add('badge-warning');
+                    else badge.classList.add('badge-good');
+
+                    document.getElementById('insightsBadgeText').textContent =
+                        actionable > 0 ? actionable + ' need action' : data.insights.length + ' insights';
+                    badge.style.display = 'inline-flex';
+
+                    // Updated time
+                    if (data.generated_at) {
+                        const diffMs = new Date() - new Date(data.generated_at);
+                        const diffMins = Math.floor(diffMs / 60000);
+                        let ago;
+                        if (diffMins < 1) ago = 'Just now';
+                        else if (diffMins < 60) ago = diffMins + 'm ago';
+                        else ago = Math.floor(diffMins / 60) + 'h ago';
+                        document.getElementById('insightsUpdated').textContent = ago + (data.source === 'ai' ? ' · AI' : ' · Auto');
+                    }
+                } else {
+                    container.innerHTML = '<div class="intelligence-loading"><span>No insights yet — check back soon.</span></div>';
+                }
+            } catch (err) {
+                console.error('Error loading insights:', err);
+                document.getElementById('insightsPreview').innerHTML =
+                    '<div class="intelligence-loading"><span>Insights unavailable</span></div>';
+            }
+        }
+
+        function toggleInsight(el, event) {
+            event.stopPropagation();
+            el.classList.toggle('expanded');
+        }
+
+        function askFromInsight(question, event) {
+            event.stopPropagation();
+            document.getElementById('askInput').value = question;
+            askQuestion();
+            document.getElementById('askInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // KPI Strip
+        async function loadKPIs() {
+            try {
+                const res = await fetch('/api/kpi/dashboard');
+                const data = await res.json();
+                if (!data.success) return;
+
+                const show = ['food_cost_pct', 'labor_cost_pct', 'prime_cost_pct', 'avg_ticket'];
+                const strip = document.getElementById('kpiStrip');
+                strip.innerHTML = show.map(key => {
+                    const k = data.kpis[key];
+                    if (!k) return '';
+                    const trendDir = k.trend > 0 ? 'up' : k.trend < 0 ? 'down' : 'flat';
+                    const trendArrow = k.trend > 0 ? '&#9650;' : k.trend < 0 ? '&#9660;' : '&#8212;';
+                    const trendVal = k.trend != null ? Math.abs(k.trend) : '';
+                    const unitPrefix = k.unit === '$' ? '$' : '';
+                    const unitSuffix = k.unit === '%' ? '%' : k.unit === 'x' ? 'x' : '';
+                    const targetText = k.target != null ? 'Target: ' + k.target + (k.unit === '%' ? '%' : '') : '';
+                    return `
+                        <div class="kpi-card status-${k.status || 'info'}">
+                            <div class="kpi-label">${k.label}</div>
+                            <div class="kpi-value-row">
+                                <span class="kpi-value">${unitPrefix}${typeof k.value === 'number' ? k.value.toLocaleString(undefined, {maximumFractionDigits: 1}) : k.value}</span>
+                                <span class="kpi-unit">${unitSuffix}</span>
+                            </div>
+                            ${k.trend != null ? `<div class="kpi-trend ${trendDir}">${trendArrow} ${trendVal}${unitSuffix} vs last wk</div>` : ''}
+                            ${targetText ? `<div class="kpi-target">${targetText}</div>` : ''}
+                        </div>`;
+                }).join('');
+            } catch (err) {
+                console.error('Error loading KPIs:', err);
+            }
+        }
+
+        // Ask-a-Question
+        let askChartInstance = null;
+        function askFromChip(el) {
+            document.getElementById('askInput').value = el.textContent;
+            askQuestion();
+        }
+
+        async function askQuestion() {
+            const input = document.getElementById('askInput');
+            const question = input.value.trim();
+            if (!question) return;
+
+            const btn = document.getElementById('askBtn');
+            const result = document.getElementById('askResult');
+            const answer = document.getElementById('askAnswer');
+            const source = document.getElementById('askSource');
+
+            btn.disabled = true;
+            btn.textContent = 'Thinking...';
+            result.style.display = 'none';
+            if (askChartInstance) { askChartInstance.destroy(); askChartInstance = null; }
+
+            try {
+                const res = await fetch('/api/ask/question', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question }),
+                });
+                const data = await res.json();
+
+                answer.textContent = data.answer || 'No answer available.';
+                source.textContent = data.source === 'ai' ? 'Answered by AI' : 'Quick answer';
+                result.style.display = 'block';
+
+                // Render chart if provided
+                if (data.chart && data.chart.labels && data.chart.datasets) {
+                    const ctx = document.getElementById('askChart').getContext('2d');
+                    askChartInstance = new Chart(ctx, {
+                        type: data.chart.type === 'horizontal_bar' ? 'bar' : data.chart.type,
+                        data: { labels: data.chart.labels, datasets: data.chart.datasets },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            indexAxis: data.chart.type === 'horizontal_bar' ? 'y' : 'x',
+                            plugins: {
+                                title: { display: !!data.chart.title, text: data.chart.title },
+                                legend: { display: false },
+                            },
+                        },
+                    });
+                    document.querySelector('.ask-chart-container').style.height = '280px';
+                } else {
+                    document.querySelector('.ask-chart-container').style.height = '0';
+                }
+            } catch (err) {
+                answer.textContent = 'Something went wrong. Please try again.';
+                result.style.display = 'block';
+                console.error('Ask error:', err);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Ask';
+            }
+        }
+
+        // Load stats for reports section
+        async function loadReportStats() {
+            try {
+                const res = await fetch('/api/reports/catalog');
+                const data = await res.json();
+                if (data.success) {
+                    const el = (id) => document.getElementById(id);
+                    if (el('statReportCount')) el('statReportCount').textContent = data.total || 0;
+                    if (el('statReportCategories')) el('statReportCategories').textContent = (data.categories || []).length;
+                }
+            } catch (err) { console.error('Error loading report stats:', err); }
+
+            try {
+                const res = await fetch('/api/reports/history?limit=1');
+                const data = await res.json();
+                if (data.success) {
+                    const el = document.getElementById('statReportExports');
+                    if (el) el.textContent = (data.history || []).length > 0 ? (data.history || []).length + '+' : '0';
+                }
+            } catch (err) { /* ignore */ }
+        }
+
         // Load all stats
         loadInventoryStats();
         loadAttendanceStats();
         loadKitchenStats();
         loadPosStats();
         loadDeliveryStats();
+        loadInsights();
+        loadKPIs();
+        loadReportStats();
     </script>
 
     {% if g.is_super_admin or g.is_organization_admin %}
@@ -650,7 +1326,6 @@
             <div class="voice-ai-footer"><span>Powered by WONTECH</span></div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="{{ url_for('static', filename='js/voice-ai.js') }}?v=16"></script>
     {% endif %}
 </body>

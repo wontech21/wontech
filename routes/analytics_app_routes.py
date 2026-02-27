@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, g, make_response
 import sqlite3, csv, io, json
 from datetime import datetime, timedelta
 from db_manager import get_org_db
-from middleware.tenant_context_separate_db import login_required, organization_required
+from middleware.tenant_context_separate_db import login_required, organization_required, log_audit
 
 analytics_app_bp = Blueprint('analytics_app', __name__)
 
@@ -26,7 +26,7 @@ def get_available_widgets():
     widgets = [dict(row) for row in cursor.fetchall()]
     conn.close()
 
-    return jsonify(widgets)
+    return jsonify({'success': True, 'widgets': widgets})
 
 @analytics_app_bp.route('/api/analytics/categories')
 @login_required
@@ -71,7 +71,7 @@ def get_enabled_widgets():
     widgets = [dict(row) for row in cursor.fetchall()]
     conn.close()
 
-    return jsonify(widgets)
+    return jsonify({'success': True, 'widgets': widgets})
 
 @analytics_app_bp.route('/api/analytics/widgets/toggle', methods=['POST'])
 def toggle_widget():
@@ -1441,6 +1441,7 @@ def export_vendor_spend():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=vendor_spend.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'vendor-spend'})
     return response
 
 @analytics_app_bp.route('/api/analytics/price-trends/export')
@@ -1511,6 +1512,7 @@ def export_price_trends():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=price_trends.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'price-trends'})
     return response
 
 @analytics_app_bp.route('/api/analytics/category-spending/export')
@@ -1587,6 +1589,7 @@ def export_category_spending():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=category_spending.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'category-spending'})
     return response
 
 @analytics_app_bp.route('/api/analytics/inventory-value/export')
@@ -1627,6 +1630,7 @@ def export_inventory_value():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=inventory_value.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'inventory-value'})
     return response
 
 @analytics_app_bp.route('/api/analytics/supplier-performance/export')
@@ -1670,6 +1674,7 @@ def export_supplier_performance():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=supplier_performance.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'supplier-performance'})
     return response
 
 @analytics_app_bp.route('/api/analytics/price-volatility/export')
@@ -1734,6 +1739,7 @@ def export_price_volatility():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=price_volatility.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'price-volatility'})
     return response
 
 @analytics_app_bp.route('/api/analytics/invoice-activity/export')
@@ -1784,6 +1790,7 @@ def export_invoice_activity():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=invoice_activity.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'invoice-activity'})
     return response
 
 @analytics_app_bp.route('/api/analytics/cost-variance/export')
@@ -1850,6 +1857,7 @@ def export_cost_variance():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=cost_variance.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'cost-variance'})
     return response
 
 @analytics_app_bp.route('/api/analytics/menu-engineering/export')
@@ -1958,6 +1966,7 @@ def export_menu_engineering():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=menu_engineering.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'menu-engineering'})
     return response
 
 @analytics_app_bp.route('/api/analytics/dead-stock/export')
@@ -1999,6 +2008,7 @@ def export_dead_stock():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=dead_stock.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'dead-stock'})
     return response
 
 @analytics_app_bp.route('/api/analytics/breakeven-analysis/export')
@@ -2084,6 +2094,7 @@ def export_breakeven_analysis():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=breakeven_analysis.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'breakeven-analysis'})
     return response
 
 @analytics_app_bp.route('/api/analytics/seasonal-patterns/export')
@@ -2136,6 +2147,7 @@ def export_seasonal_patterns():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=seasonal_patterns.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'seasonal-patterns'})
     return response
 
 @analytics_app_bp.route('/api/analytics/waste-shrinkage/export')
@@ -2181,6 +2193,7 @@ def export_waste_shrinkage():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=waste_shrinkage.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'waste-shrinkage'})
     return response
 
 @analytics_app_bp.route('/api/analytics/eoq-optimizer/export')
@@ -2230,6 +2243,7 @@ def export_eoq_optimizer():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=eoq_optimizer.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'eoq-optimizer'})
     return response
 
 @analytics_app_bp.route('/api/analytics/price-correlation/export')
@@ -2286,6 +2300,7 @@ def export_price_correlation():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=price_correlation.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'price-correlation'})
     return response
 
 @analytics_app_bp.route('/api/analytics/usage-forecast/export')
@@ -2345,6 +2360,7 @@ def export_usage_forecast():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=usage_forecast.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'usage-forecast'})
     return response
 
 @analytics_app_bp.route('/api/analytics/recipe-cost-trajectory/export')
@@ -2416,6 +2432,7 @@ def export_recipe_cost_trajectory():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=recipe_cost_trajectory.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'recipe-cost-trajectory'})
     return response
 
 @analytics_app_bp.route('/api/analytics/substitution-opportunities/export')
@@ -2466,6 +2483,7 @@ def export_substitution_opportunities():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=substitution_opportunities.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'substitution-opportunities'})
     return response
 
 @analytics_app_bp.route('/api/analytics/cost-drivers/export')
@@ -2546,6 +2564,7 @@ def export_cost_drivers():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=cost_drivers.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'cost-drivers'})
     return response
 
 @analytics_app_bp.route('/api/analytics/purchase-frequency/export')
@@ -2590,4 +2609,5 @@ def export_purchase_frequency():
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=purchase_frequency.csv'
+    log_audit('csv_exported', 'analytics', None, {'widget': 'purchase-frequency'})
     return response

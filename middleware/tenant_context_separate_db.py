@@ -79,7 +79,7 @@ def get_organization_by_id(org_id):
     cursor = conn.cursor()
     cursor.execute("""
         SELECT id, organization_name, slug, db_filename, owner_name, owner_email,
-               plan_type, subscription_status, active, logo_url
+               plan_type, subscription_status, active, logo_url, features
         FROM organizations
         WHERE id = ? AND active = 1
     """, (org_id,))
@@ -101,7 +101,7 @@ def get_organization_by_slug(slug):
     cursor = conn.cursor()
     cursor.execute("""
         SELECT id, organization_name, slug, db_filename, owner_name, owner_email,
-               plan_type, subscription_status, active, logo_url
+               plan_type, subscription_status, active, logo_url, features
         FROM organizations
         WHERE slug = ? AND active = 1
     """, (slug,))

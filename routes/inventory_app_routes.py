@@ -77,7 +77,7 @@ def get_aggregated_inventory():
 
     items = [dict(row) for row in cursor.fetchall()]
     conn.close()
-    return jsonify(items)
+    return jsonify({'success': True, 'items': items})
 
 @inventory_app_bp.route('/api/inventory/detailed')
 def get_detailed_inventory():

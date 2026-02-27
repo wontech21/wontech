@@ -1023,6 +1023,7 @@ def update_organization_api():
         conn.close()
         return jsonify({'error': f'Database error: {str(e)}'}), 500
 
+
 # ==========================================
 # SYSTEM ANALYTICS
 # ==========================================
